@@ -13,7 +13,7 @@ export default function Universities() {
       students: "40,000+",
       hostelCount: 5,
       image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-      link: "/?university=Makerere University"
+      link: "/?university=Makerere%20University#hostels"
     },
     {
       name: "Makerere University Business School (MUBS)",
@@ -22,7 +22,7 @@ export default function Universities() {
       students: "15,000+",
       hostelCount: 3,
       image: "https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-      link: "/?university=MUBS"
+      link: "/?university=MUBS#hostels"
     }
   ];
 
