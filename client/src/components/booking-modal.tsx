@@ -14,6 +14,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { isUnauthorizedError } from "@/lib/authUtils";
 import { X } from "lucide-react";
 
 interface BookingModalProps {
@@ -36,6 +38,7 @@ type BookingFormData = z.infer<typeof bookingFormSchema>;
 export default function BookingModal({ isOpen, onClose, hostel }: BookingModalProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAuthenticated, user } = useAuth();
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
@@ -67,6 +70,17 @@ export default function BookingModal({ isOpen, onClose, hostel }: BookingModalPr
       onClose();
     },
     onError: (error) => {
+      if (isUnauthorizedError(error as Error)) {
+        toast({
+          title: "Login Required",
+          description: "You need to log in to book a hostel. Redirecting...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 1500);
+        return;
+      }
       toast({
         title: "Booking Failed",
         description: "There was an error submitting your booking. Please try again.",

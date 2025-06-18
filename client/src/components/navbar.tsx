@@ -37,13 +37,52 @@ export default function Navbar() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="hidden md:flex">
-              <User className="w-4 h-4 mr-2" />
-              Login
-            </Button>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              Sign Up
-            </Button>
+            {isLoading ? (
+              <div className="w-8 h-8 bg-slate-200 rounded-full animate-pulse"></div>
+            ) : isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user?.profileImageUrl || ""} alt={user?.firstName || "User"} />
+                      <AvatarFallback>
+                        {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      {user?.firstName && (
+                        <p className="font-medium">{user.firstName} {user.lastName}</p>
+                      )}
+                      {user?.email && (
+                        <p className="w-[200px] truncate text-sm text-slate-600">{user.email}</p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenuItem asChild>
+                    <a href="/api/logout" className="flex items-center">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" className="hidden md:flex" asChild>
+                  <a href="/api/login">
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </a>
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700" asChild>
+                  <a href="/api/login">Sign Up</a>
+                </Button>
+              </>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -71,10 +110,22 @@ export default function Navbar() {
               <Link href="/contact" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">
                 Contact
               </Link>
-              <Button variant="ghost" size="sm" className="justify-start">
-                <User className="w-4 h-4 mr-2" />
-                Login
-              </Button>
+              {!isAuthenticated && (
+                <Button variant="ghost" size="sm" className="justify-start" asChild>
+                  <a href="/api/login">
+                    <User className="w-4 h-4 mr-2" />
+                    Login
+                  </a>
+                </Button>
+              )}
+              {isAuthenticated && (
+                <Button variant="ghost" size="sm" className="justify-start" asChild>
+                  <a href="/api/logout">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </a>
+                </Button>
+              )}
             </div>
           </div>
         )}
