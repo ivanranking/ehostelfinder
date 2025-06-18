@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function HeroSection() {
+  const [, setLocation] = useLocation();
   const [searchData, setSearchData] = useState({
     university: "",
     checkIn: "",
@@ -13,8 +15,13 @@ export default function HeroSection() {
   });
 
   const handleSearch = () => {
-    // TODO: Implement search functionality
-    console.log("Search data:", searchData);
+    if (searchData.university) {
+      const params = new URLSearchParams();
+      params.append("university", searchData.university);
+      setLocation(`/?${params.toString()}#hostels`);
+    } else {
+      setLocation("/#hostels");
+    }
   };
 
   return (

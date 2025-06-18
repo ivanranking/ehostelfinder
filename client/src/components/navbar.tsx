@@ -20,9 +20,15 @@ export default function Navbar() {
               <Link href="/" className="text-slate-700 hover:text-blue-600 transition-colors">
                 Browse Hostels
               </Link>
-              <a href="#" className="text-slate-700 hover:text-blue-600 transition-colors">Universities</a>
-              <a href="#" className="text-slate-700 hover:text-blue-600 transition-colors">How it Works</a>
-              <a href="#" className="text-slate-700 hover:text-blue-600 transition-colors">Contact</a>
+              <Link href="/universities" className="text-slate-700 hover:text-blue-600 transition-colors">
+                Universities
+              </Link>
+              <Link href="/how-it-works" className="text-slate-700 hover:text-blue-600 transition-colors">
+                How it Works
+              </Link>
+              <Link href="/contact" className="text-slate-700 hover:text-blue-600 transition-colors">
+                Contact
+              </Link>
             </div>
           </div>
           
@@ -52,9 +58,15 @@ export default function Navbar() {
               <Link href="/" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">
                 Browse Hostels
               </Link>
-              <a href="#" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">Universities</a>
-              <a href="#" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">How it Works</a>
-              <a href="#" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">Contact</a>
+              <Link href="/universities" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">
+                Universities
+              </Link>
+              <Link href="/how-it-works" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">
+                How it Works
+              </Link>
+              <Link href="/contact" className="text-slate-700 hover:text-blue-600 transition-colors px-2 py-1">
+                Contact
+              </Link>
               <Button variant="ghost" size="sm" className="justify-start">
                 <User className="w-4 h-4 mr-2" />
                 Login

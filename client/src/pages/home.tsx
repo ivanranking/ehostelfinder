@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Hostel } from "@shared/schema";
 import Navbar from "@/components/navbar";
@@ -9,9 +9,20 @@ import HostelCard from "@/components/hostel-card";
 import BookingModal from "@/components/booking-modal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLocation } from "wouter";
 
 export default function Home() {
+  const [location] = useLocation();
   const [selectedUniversity, setSelectedUniversity] = useState("Makerere University");
+
+  // Handle URL parameters for university filtering
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.split('?')[1] || '');
+    const universityParam = urlParams.get('university');
+    if (universityParam) {
+      setSelectedUniversity(universityParam);
+    }
+  }, [location]);
   const [selectedHostel, setSelectedHostel] = useState<Hostel | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [filters, setFilters] = useState({
