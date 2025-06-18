@@ -73,13 +73,13 @@ export default function Navbar() {
             ) : (
               <>
                 <Button variant="ghost" size="sm" className="hidden md:flex" asChild>
-                  <a href="/api/login">
+                  <Link href="/login">
                     <User className="w-4 h-4 mr-2" />
                     Login
-                  </a>
+                  </Link>
                 </Button>
                 <Button className="bg-blue-600 hover:bg-blue-700" asChild>
-                  <a href="/api/login">Sign Up</a>
+                  <Link href="/signup">Sign Up</Link>
                 </Button>
               </>
             )}
@@ -112,10 +112,10 @@ export default function Navbar() {
               </Link>
               {!isAuthenticated && (
                 <Button variant="ghost" size="sm" className="justify-start" asChild>
-                  <a href="/api/login">
+                  <Link href="/login">
                     <User className="w-4 h-4 mr-2" />
                     Login
-                  </a>
+                  </Link>
                 </Button>
               )}
               {isAuthenticated && (

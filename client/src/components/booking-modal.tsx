@@ -100,6 +100,50 @@ export default function BookingModal({ isOpen, onClose, hostel }: BookingModalPr
   const securityDeposit = 100000;
   const totalDue = hostel.price + securityDeposit;
 
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">Login Required</DialogTitle>
+          </DialogHeader>
+          
+          <div className="text-center space-y-6 py-4">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-blue-600" />
+            </div>
+            
+            <div>
+              <p className="text-slate-600 mb-4">
+                Please log in to book your room at <strong>{hostel.name}</strong>
+              </p>
+              <p className="text-sm text-slate-500">
+                Creating an account is quick and secure. You'll be able to track your bookings and save your favorite hostels.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                onClick={() => window.location.href = "/login"}
+              >
+                Log In
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => window.location.href = "/signup"}
+              >
+                Create Account
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">

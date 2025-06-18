@@ -8,6 +8,8 @@ import HostelDetails from "@/pages/hostel-details";
 import Universities from "@/pages/universities";
 import HowItWorks from "@/pages/how-it-works";
 import Contact from "@/pages/contact";
+import Login from "@/pages/login";
+import Signup from "@/pages/signup";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/universities" component={Universities} />
       <Route path="/how-it-works" component={HowItWorks} />
       <Route path="/contact" component={Contact} />
+      <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
       <Route component={NotFound} />
     </Switch>
   );
