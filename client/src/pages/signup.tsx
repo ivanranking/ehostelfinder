@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, ArrowLeft, User, UserPlus, Shield } from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +27,11 @@ export default function Signup() {
   const handleReplitSignup = () => {
     setIsLoading(true);
     window.location.href = "/api/login";
+  };
+
+  const handleGoogleSignup = () => {
+    setIsLoading(true);
+    window.location.href = "/api/auth/google";
   };
 
   const handleEmailSignup = (e: React.FormEvent) => {
@@ -62,19 +68,35 @@ export default function Signup() {
             <CardTitle className="text-center">Sign Up</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Replit Authentication */}
-            <Button
-              onClick={handleReplitSignup}
-              disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-lg"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-              ) : (
-                <User className="w-5 h-5 mr-2" />
-              )}
-              Sign up with Replit
-            </Button>
+            {/* Authentication Options */}
+            <div className="space-y-3">
+              <Button
+                onClick={handleGoogleSignup}
+                disabled={isLoading}
+                variant="outline"
+                className="w-full h-12 text-lg border-red-200 hover:bg-red-50"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <FaGoogle className="w-5 h-5 mr-2 text-red-500" />
+                )}
+                Sign up with Google
+              </Button>
+
+              <Button
+                onClick={handleReplitSignup}
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-lg"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                ) : (
+                  <User className="w-5 h-5 mr-2" />
+                )}
+                Sign up with Replit
+              </Button>
+            </div>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">

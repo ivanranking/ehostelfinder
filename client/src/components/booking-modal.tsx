@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { X } from "lucide-react";
+import { X, User } from "lucide-react";
+import { FaGoogle } from "react-icons/fa";
 
 interface BookingModalProps {
   isOpen: boolean;
@@ -125,17 +126,26 @@ export default function BookingModal({ isOpen, onClose, hostel }: BookingModalPr
 
             <div className="space-y-3">
               <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700" 
-                onClick={() => window.location.href = "/login"}
+                variant="outline" 
+                className="w-full border-red-200 hover:bg-red-50"
+                onClick={() => window.location.href = "/api/auth/google"}
               >
-                Log In
+                <FaGoogle className="w-4 h-4 mr-2 text-red-500" />
+                Continue with Google
               </Button>
               <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => window.location.href = "/signup"}
+                className="w-full bg-blue-600 hover:bg-blue-700" 
+                onClick={() => window.location.href = "/api/login"}
               >
-                Create Account
+                <User className="w-4 h-4 mr-2" />
+                Continue with Replit
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full text-slate-600"
+                onClick={() => window.location.href = "/login"}
+              >
+                View all login options
               </Button>
             </div>
           </div>
