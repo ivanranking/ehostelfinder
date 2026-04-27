@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Cookie Policy - EHostelFinder{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-20">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-4xl font-bold mb-4">Cookie Policy</h1>
+        <p class="text-[var(--muted)] mb-12">Last updated: April 27, 2026</p>
+        
+        <div class="prose prose-invert max-w-none">
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">1. What Are Cookies?</h2>
+                <p class="text-[var(--muted)] leading-relaxed">
+                    Cookies are small text files that are stored on your device (computer, tablet, or mobile) when you visit our website. They are widely used to make websites work more efficiently, provide customized experiences, and gather information about website usage. Cookies help us recognize you on subsequent visits, remember your preferences, and enhance your overall experience on EHostelFinder.
+                </p>
+            </section>
+            
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">2. How We Use Cookies</h2>
+                <p class="text-[var(--muted)] leading-relaxed mb-4">We use cookies for the following purposes:</p>
+                
+                <div class="space-y-6">
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3 text-[var(--accent)]">Essential Cookies</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3">
+                            These cookies are necessary for the website to function properly. They enable core functionality such as security, network management, account authentication, and remembering your preferences (like language or location). The website cannot operate properly without these cookies.
+                        </p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="badge badge-success">Session ID</span>
+                            <span class="badge badge-success">Authentication</span>
+                            <span class="badge badge-success">Security</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3 text-[var(--accent)]">Functional Cookies</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3">
+                            These cookies allow us to remember choices you make and provide enhanced, personalized features. For example, they may remember your username, preferences, or the region you are in, so you don't have to re-enter this information each time you visit.
+                        </p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="badge badge-success">Language Preference</span>
+                            <span class="badge badge-success">Search Filters</span>
+                            <span class="badge badge-success">Saved Settings</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3 text-[var(--accent)]">Analytics Cookies</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3">
+                            These cookies collect information about how visitors use our website. The information is aggregated and anonymous, helping us understand which pages are most and least popular, see how users move around the site, and improve our services.
+                        </p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="badge badge-warning">Page Views</span>
+                            <span class="badge badge-warning">Bounce Rate</span>
+                            <span class="badge badge-warning">Navigation Paths</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3 text-[var(--accent)]">Marketing Cookies</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3">
+                            These cookies track your browsing activity on our website and across other sites to deliver relevant advertisements to you. They are also used to measure the effectiveness of advertising campaigns.
+                        </p>
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="badge badge-warning">Interest-Based Ads</span>
+                            <span class="badge badge-warning">Retargeting</span>
+                            <span class="badge badge-warning">Campaign Tracking</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">3. Specific Cookies We Use</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr class="bg-[var(--card)] border-b border-[var(--border)]">
+                                <th class="text-left p-4 text-sm font-semibold">Cookie Name</th>
+                                <th class="text-left p-4 text-sm font-semibold">Purpose</th>
+                                <th class="text-left p-4 text-sm font-semibold">Duration</th>
+                                <th class="text-left p-4 text-sm font-semibold">Type</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b border-[var(--border)]">
+                                <td class="p-4 text-[var(--accent)]">sessionid</td>
+                                <td class="p-4 text-[var(--muted)]">Maintains user session state</td>
+                                <td class="p-4 text-[var(--muted)]">Session</td>
+                                <td class="p-4"><span class="badge badge-success">Essential</span></td>
+                            </tr>
+                            <tr class="border-b border-[var(--border)]">
+                                <td class="p-4 text-[var(--accent)]">csrftoken</td>
+                                <td class="p-4 text-[var(--muted)]">Security token for form submissions</td>
+                                <td class="p-4 text-[var(--muted)]">1 year</td>
+                                <td class="p-4"><span class="badge badge-success">Essential</span></td>
+                            </tr>
+                            <tr class="border-b border-[var(--border)]">
+                                <td class="p-4 text-[var(--accent)]">user_preferences</td>
+                                <td class="p-4 text-[var(--muted)]">Remembers user display preferences</td>
+                                <td class="p-4 text-[var(--muted)]">30 days</td>
+                                <td class="p-4"><span class="badge badge-success">Functional</span></td>
+                            </tr>
+                            <tr class="border-b border-[var(--border)]">
+                                <td class="p-4 text-[var(--accent)]">_ga</td>
+                                <td class="p-4 text-[var(--muted)]">Google Analytics - distinguishes users</td>
+                                <td class="p-4 text-[var(--muted)]">2 years</td>
+                                <td class="p-4"><span class="badge badge-warning">Analytics</span></td>
+                            </tr>
+                            <tr class="border-b border-[var(--border)]">
+                                <td class="p-4 text-[var(--accent)]">_gid</td>
+                                <td class="p-4 text-[var(--muted)]">Google Analytics - distinguishes users</td>
+                                <td class="p-4 text-[var(--muted)]">24 hours</td>
+                                <td class="p-4"><span class="badge badge-warning">Analytics</span></td>
+                            </tr>
+                            <tr>
+                                <td class="p-4 text-[var(--accent)]">_gat</td>
+                                <td class="p-4 text-[var(--muted)]">Google Analytics - throttles request rate</td>
+                                <td class="p-4 text-[var(--muted)]">1 minute</td>
+                                <td class="p-4"><span class="badge badge-warning">Analytics</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">4. Managing Cookies</h2>
+                <p class="text-[var(--muted)] leading-relaxed mb-4">You can control and manage cookies in various ways. Please note that removing or blocking cookies may impact your user experience and some parts of the website may no longer be fully accessible:</p>
+                
+                <div class="space-y-6">
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3">Browser Settings</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3">
+                            Most browsers allow you to manage cookies through their settings. You can usually find these settings in the "Options" or "Preferences" menu. You can:
+                        </p>
+                        <ul class="text-sm text-[var(--muted)] space-y-2">
+                            <li>• View and delete cookies</li>
+                            <li>• Block third-party cookies</li>
+                            <li>• Block all cookies (not recommended)</li>
+                            <li>• Clear all cookies when you close your browser</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3">Do Not Track Signals</h3>
+                        <p class="text-sm text-[var(--muted)]">
+                            Some browsers have a "Do Not Track" feature that signals to websites that you do not want to have your online activity tracked. We do not currently respond to "Do Not Track" signals, as there is no industry-wide standard for interpreting and acting on these signals.
+                        </p>
+                    </div>
+                    
+                    <div class="bg-[var(--card)] rounded-xl p-6 border border-[var(--border)]">
+                        <h3 class="text-lg font-semibold mb-3">Opt-Out of Analytics</h3>
+                        <p class="text-sm text-[var(--muted)] mb-3">
+                            To opt-out of Google Analytics across all websites, you can install the <a href="https://tools.google.com/dlpage/gaoptout" target="_blank" class="text-[var(--accent)] hover:underline">Google Analytics Opt-out Browser Add-on</a>.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">5. Third-Party Cookies</h2>
+                <p class="text-[var(--muted)] leading-relaxed mb-4">Some cookies are placed by third-party services that appear on our pages. We do not control these cookies. Please refer to the respective third party's privacy policy for more information:</p>
+                <ul class="space-y-2 text-[var(--muted)]">
+                    <li>• <strong>Google Analytics:</strong> <a href="https://policies.google.com/privacy" target="_blank" class="text-[var(--accent)] hover:underline">Google Privacy Policy</a></li>
+                    <li>• <strong>Social Media Plugins:</strong> Facebook, Twitter, LinkedIn (if implemented)</li>
+                    <li>• <strong>Payment Processors:</strong> Any payment service providers (if implemented)</li>
+                </ul>
+            </section>
+            
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">6. Updates to This Cookie Policy</h2>
+                <p class="text-[var(--muted)] leading-relaxed">
+                    We may update this Cookie Policy from time to time to reflect changes in technology, legislation, or our data practices. Any changes will be posted on this page with an updated "Last updated" date. We encourage you to review this policy periodically to stay informed about our use of cookies.
+                </p>
+            </section>
+            
+            <section class="mb-12">
+                <h2 class="text-2xl font-semibold mb-4">7. Contact Us</h2>
+                <p class="text-[var(--muted)] leading-relaxed">
+                    If you have questions about our use of cookies or this Cookie Policy, please contact us:
+                </p>
+                <ul class="mt-4 space-y-2 text-[var(--muted)]">
+                    <li>• Email: privacy@ehostelfinder.com</li>
+                    <li>• Through our <a href="/contact/" class="text-[var(--accent)] hover:underline">Contact page</a></li>
+                    <li>• Postal address: Plot 123, Kampala Road, Kampala, Uganda</li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

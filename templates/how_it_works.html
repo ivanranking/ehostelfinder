@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}How It Works - EHostelFinder{% endblock %}
+
+{% block nav_how %}active{% endblock %}
+
+{% block content %}
+<div class="bg-[var(--border)] h-px my-6"></div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <!-- Header -->
+    <div class="text-center mb-16 opacity-0 animate-fade-in-up">
+        <h1 class="text-4xl sm:text-5xl font-['Space_Grotesk'] font-bold mb-6">How It Works</h1>
+        <p class="text-[var(--muted)] text-lg max-w-2xl mx-auto leading-relaxed">
+            Finding your perfect hostel in Kampala has never been easier. Follow these simple steps to secure accommodation near your university.
+        </p>
+    </div>
+
+    <!-- Steps -->
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+        <!-- Step 1 -->
+        <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-1">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center text-xl font-bold text-[var(--bg)] mb-4">1</div>
+            <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Choose Your University</h3>
+            <p class="text-[var(--muted)] text-sm">Select your university from our comprehensive list of institutions in Kampala and surrounding areas.</p>
+        </div>
+        <!-- Step 2 -->
+        <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-2">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center text-xl font-bold text-[var(--bg)] mb-4">2</div>
+            <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Browse Available Hostels</h3>
+            <p class="text-[var(--muted)] text-sm">Explore hostels near your chosen university. Use our filters to find options that match your budget and preferences.</p>
+        </div>
+        <!-- Step 3 -->
+        <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-3">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center text-xl font-bold text-[var(--bg)] mb-4">3</div>
+            <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Contact the Owner</h3>
+            <p class="text-[var(--muted)] text-sm">Found a hostel you like? Send a direct message to the owner through our platform.</p>
+        </div>
+        <!-- Step 4 -->
+        <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-4">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center text-xl font-bold text-[var(--bg)] mb-4">4</div>
+            <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Book Your Stay</h3>
+            <p class="text-[var(--muted)] text-sm">Once you've found the perfect place, book directly through our secure platform and move in when you're ready.</p>
+        </div>
+    </div>
+
+    <!-- Features -->
+    <div class="mb-20">
+        <div class="text-center mb-12 opacity-0 animate-fade-in-up">
+            <h2 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold mb-4">Why Choose EHostelFinder?</h2>
+            <p class="text-[var(--muted)] max-w-2xl mx-auto">We're committed to making the hostel search process simple, transparent, and student-friendly.</p>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-1">
+                <div class="text-3xl mb-4">🔍</div>
+                <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Easy Search & Filters</h3>
+                <p class="text-[var(--muted)] text-sm">Find hostels quickly with our advanced search and filtering options. Filter by price, amenities, distance, and more.</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-2">
+                <div class="text-3xl mb-4">💬</div>
+                <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Direct Communication</h3>
+                <p class="text-[var(--muted)] text-sm">Message hostel owners directly through our platform. No middlemen, no hidden fees.</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-3">
+                <div class="text-3xl mb-4">📱</div>
+                <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Mobile Friendly</h3>
+                <p class="text-[var(--muted)] text-sm">Our platform works perfectly on all devices. Search for hostels on your phone, tablet, or computer.</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-4">
+                <div class="text-3xl mb-4">🔒</div>
+                <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Secure & Free</h3>
+                <p class="text-[var(--muted)] text-sm">Your data is secure, and our service is completely free for students. We only connect you with verified hostel owners.</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-5">
+                <div class="text-3xl mb-4">⭐</div>
+                <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">Verified Listings</h3>
+                <p class="text-[var(--muted)] text-sm">All hostels on our platform are verified and regularly updated. Read reviews from other students.</p>
+            </div>
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] card-hover opacity-0 animate-fade-in-up stagger-5">
+                <div class="text-3xl mb-4">⏰</div>
+                <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-2">24/7 Support</h3>
+                <p class="text-[var(--muted)] text-sm">Need help? Our support team is available around the clock to assist you with any questions.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="text-center opacity-0 animate-fade-in-up">
+        <h2 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold mb-6">Ready to Find Your Home Away From Home?</h2>
+        <p class="text-[var(--muted)] text-lg mb-8 max-w-2xl mx-auto">Join thousands of students who found their perfect accommodation through EHostelFinder. Start your search today – it's completely free!</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/universities/" class="btn-primary text-lg px-8 py-4">Browse All Hostels</a>
+            <a href="/signup/" class="btn-secondary text-lg px-8 py-4">Create Free Account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

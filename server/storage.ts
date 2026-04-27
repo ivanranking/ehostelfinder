@@ -1,4 +1,4 @@
-import { hostels, bookings, users, type Hostel, type InsertHostel, type Booking, type InsertBooking, type User, type UpsertUser } from "@shared/schema";
+import { hostels, bookings, users, messages, type Hostel, type InsertHostel, type Booking, type InsertBooking, type User, type UpsertUser, type InsertMessage, type Message } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
@@ -13,6 +13,10 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   getBookingById(id: number): Promise<Booking | undefined>;
   getBookingsByHostel(hostelId: number): Promise<Booking[]>;
+
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessagesByHostel(hostelId: number): Promise<Message[]>;
   
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
@@ -56,6 +60,18 @@ export class DatabaseStorage implements IStorage {
 
   async getBookingsByHostel(hostelId: number): Promise<Booking[]> {
     return await db.select().from(bookings).where(eq(bookings.hostelId, hostelId));
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
+    return message;
+  }
+
+  async getMessagesByHostel(hostelId: number): Promise<Message[]> {
+    return await db.select().from(messages).where(eq(messages.hostelId, hostelId));
   }
 
   async getUser(id: string): Promise<User | undefined> {

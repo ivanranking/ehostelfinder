@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Universities - EHostelFinder{% endblock %}
+
+{% block nav_universities %}active{% endblock %}
+
+{% block content %}
+<div class="bg-[var(--border)] h-px my-6"></div>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div class="text-center mb-16 opacity-0 animate-fade-in-up">
+        <h1 class="text-4xl sm:text-5xl font-['Space_Grotesk'] font-bold mb-6">Partner Universities</h1>
+        <p class="text-[var(--muted)] text-lg max-w-2xl mx-auto">
+            We work with top universities to provide verified, safe, and affordable accommodation options for students.
+        </p>
+    </div>
+    
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for uni in universities %}
+        <a href="/?university={{ uni|urlencode }}" 
+           class="card-hover bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-{{ forloop.counter }}">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
+                    <span class="text-[var(--bg)] font-bold text-xl">{{ uni|slice:":1"|upper }}</span>
+                </div>
+                <div>
+                    <h3 class="font-['Space_Grotesk'] font-semibold text-lg">{{ uni }}</h3>
+                    <p class="text-[var(--muted)] text-sm">Hostels Available</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+                <span class="text-[var(--accent)] font-semibold">View Hostels</span>
+                <svg class="w-5 h-5 text-[var(--muted)] transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                </svg>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

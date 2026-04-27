@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}EHostelFinder - Find Your Perfect Hostel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-elevated: #141414;
+            --card: #1a1a1a;
+            --border: #2a2a2a;
+            --fg: #fafafa;
+            --muted: #888888;
+            --accent: #64ffda;
+            --accent-hover: #4fd8b0;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .bg-grid {
+            background-image: 
+                linear-gradient(rgba(100, 255, 218, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(100, 255, 218, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(100, 255, 218, 0.1);
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: scale(1.02);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--fg);
+            font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--fg);
+            font-size: 15px;
+            transition: all 0.2s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+        }
+        
+        .input-field::placeholder {
+            color: var(--muted);
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-success {
+            background: rgba(100, 255, 218, 0.15);
+            color: var(--accent);
+        }
+        
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+        
+        .nav-link {
+            position: relative;
+            color: var(--muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent);
+            transition: width 0.2s ease;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--fg);
+        }
+        
+        .nav-link:hover::after, .nav-link.active::after {
+            width: 100%;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+        
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        .stagger-5 { animation-delay: 0.5s; }
+        
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--muted);
+        }
+        
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid transparent;
+        }
+        
+        .message-success {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: rgba(100, 255, 218, 0.2);
+            color: var(--accent);
+        }
+        
+        .message-error {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        
+        .message-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-grid">
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)]/80 backdrop-blur-lg border-b border-[var(--border)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <a href="/" class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <span class="text-xl font-bold font-['Space_Grotesk'] tracking-tight">EHostelFinder</span>
+                </a>
+                
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="/" class="nav-link {% block nav_home %}{% endblock %}">Home</a>
+                    <a href="/universities/" class="nav-link {% block nav_universities %}{% endblock %}">Universities</a>
+                    <a href="/how-it-works/" class="nav-link {% block nav_how %}{% endblock %}">How It Works</a>
+                    <a href="/contact/" class="nav-link {% block nav_contact %}{% endblock %}">Contact</a>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    {% if user.is_authenticated %}
+                        <div class="hidden sm:flex items-center gap-3 px-3 py-2 rounded-full bg-[var(--card)] border border-[var(--border)]">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent)] to-cyan-500 flex items-center justify-center text-sm font-bold text-[var(--bg)]">
+                                {{ user.first_name|slice:":1"|upper }}
+                            </div>
+                            <span class="text-sm font-medium hidden md:block">Welcome, {{ user.first_name }}</span>
+                        </div>
+                        <a href="/logout/" class="btn-secondary text-sm py-2 px-4">Logout</a>
+                    {% else %}
+                        <a href="/login/" class="btn-secondary text-sm py-2 px-4">Login</a>
+                        <a href="/signup/" class="btn-primary text-sm py-2 px-4">Sign Up</a>
+                    {% endif %}
+                </div>
+                
+                <button class="md:hidden p-2 text-[var(--fg)]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="md:hidden hidden border-t border-[var(--border)] bg-[var(--bg-elevated)]">
+            <div class="px-4 py-4 space-y-3">
+                <a href="/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Home</a>
+                <a href="/universities/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Universities</a>
+                <a href="/how-it-works/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">How It Works</a>
+                <a href="/contact/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Contact</a>
+                {% if user.is_authenticated %}
+                    <div class="pt-3 border-t border-[var(--border)]">
+                        <p class="text-sm text-[var(--muted)] mb-2">Welcome, {{ user.first_name }}</p>
+                        <a href="/logout/" class="w-full btn-secondary text-center block">Logout</a>
+                    </div>
+                {% else %}
+                    <div class="pt-3 border-t border-[var(--border)] space-y-2">
+                        <a href="/login/" class="w-full btn-secondary text-center block">Login</a>
+                        <a href="/signup/" class="w-full btn-primary text-center block">Sign Up</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="pt-20">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="border-t border-[var(--border)] bg-[var(--bg-elevated)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div class="md:col-span-2">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
+                            <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                        </div>
+                        <span class="text-xl font-bold font-['Space_Grotesk']">EHostelFinder</span>
+                    </div>
+                    <p class="text-[var(--muted)] text-sm leading-relaxed max-w-md">
+                        Your trusted partner in finding safe, comfortable, and affordable student accommodation near top universities.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-['Space_Grotesk'] font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-sm text-[var(--muted)]">
+                        <li><a href="/" class="hover:text-[var(--fg)] transition-colors">Home</a></li>
+                        <li><a href="/universities/" class="hover:text-[var(--fg)] transition-colors">Universities</a></li>
+                        <li><a href="/how-it-works/" class="hover:text-[var(--fg)] transition-colors">How It Works</a></li>
+                        <li><a href="/contact/" class="hover:text-[var(--fg)] transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-['Space_Grotesk'] font-semibold mb-4">Legal</h4>
+                    <ul class="space-y-2 text-sm text-[var(--muted)]">
+                        <li><a href="/privacy-policy/" class="hover:text-[var(--fg)] transition-colors">Privacy Policy</a></li>
+                        <li><a href="/terms-of-use/" class="hover:text-[var(--fg)] transition-colors">Terms of Service</a></li>
+                        <li><a href="/cookie-policy/" class="hover:text-[var(--fg)] transition-colors">Cookie Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-[var(--border)] mt-8 pt-8 text-center text-sm text-[var(--muted)]">
+                <p>&copy; 2026 EHostelFinder. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

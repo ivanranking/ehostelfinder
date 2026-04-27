@@ -45,6 +45,24 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
   status: true,
 });
 
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  hostelId: integer("hostel_id").notNull(),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
+
 // Session storage table for Replit Auth
 export const sessions = pgTable(
   "sessions",

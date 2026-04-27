@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Find Student Hostels - EHostelFinder{% endblock %}
+
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative min-h-[85vh] flex items-center overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-emerald-500/5"></div>
+    <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDUwIDUwIj48ZmlsdGVyIGlkPSJzdGljayIgd2lkdGg9IjUwMCIgaGVpZ2h0PSI1MCI+PGZlVHVyYnVsZW5jZSBpZD0ic3RyaWNrIiB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9Im5vcm1hbC4wIiBudW1PY3RhdmVzPSIzIiBzdGljZUdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBzdGljZUxpc3RlbmVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjMDBhMDBhIiBzdG9wLW9wYWNpdHk9IjAiLz48c3RvcCBzdG9wLWNvbG9yPSIjZmZmZiIgc3RvcC1vcGFjaXR5PSIxIi8+PC9mcmVjdFJ1YmJlbmNlPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSI1MCIgaGVpZ2h0PSI1MCIgZmlsdGVyPSJ1cmwoI3N0cmljaycpIiBmaWxsPSJibGFjayIgZmlsbD0ibm9uZSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9zdmc+')] opacity-20"></div>
+    
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="opacity-0 animate-fade-in-up">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 mb-6">
+                    <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
+                    <span class="text-sm font-medium text-[var(--accent)]">Trusted by 50,000+ Students</span>
+                </div>
+                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-['Space_Grotesk'] font-bold leading-tight mb-6">
+                    Find Your
+                    <span class="block text-[var(--accent)]">Perfect Hostel</span>
+                    <span class="text-[var(--muted)]">Near Campus</span>
+                </h1>
+                <p class="text-xl text-[var(--muted)] mb-8 max-w-lg leading-relaxed">
+                    Discover safe, comfortable, and affordable student accommodation near the world's top universities. 
+                    Verified listings, transparent pricing, no hidden fees.
+                </p>
+                
+                <!-- Search Box -->
+                <div class="bg-[var(--card)] rounded-2xl p-2 border border-[var(--border)] mb-8 max-w-2xl">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="flex-1">
+                            <label class="text-xs text-[var(--muted)] mb-2 block">University</label>
+                            <form action="/" method="get" class="relative">
+                                <select name="university" 
+                                        class="w-full bg-transparent border-0 outline-none text-[var(--fg)] py-3 cursor-pointer" 
+                                        onchange="this.form.submit()">
+                                    <option value="All Universities" {% if selected_university == 'All Universities' or not selected_university %}selected{% endif %}>All Universities</option>
+                                    {% for uni in universities %}
+                                    <option value="{{ uni }}" {% if selected_university == uni %}selected{% endif %}>{{ uni }}</option>
+                                    {% endfor %}
+                                </select>
+                                <svg class="w-4 h-4 text-[var(--muted)] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </form>
+                        </div>
+                        <button class="btn-primary self-end whitespace-nowrap">
+                            Search Hostels
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6 text-sm text-[var(--muted)]">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Verified Properties
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        24/7 Security
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Free WiFi
+                    </div>
+                </div>
+            </div>
+            
+            <div class="relative opacity-0 animate-fade-in-up stagger-1">
+                <div class="relative">
+                    <div class="absolute -inset-4 bg-gradient-to-r from-[var(--accent)] to-emerald-500 rounded-3xl opacity-20 blur-xl"></div>
+                    <div class="relative bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden">
+                        <div class="aspect-[4/3] overflow-hidden">
+                            {% if hostels %}
+                            <img src="{{ hostels.0.image_url }}" alt="{{ hostels.0.name }}" 
+                                 class="w-full h-full object-cover hover:scale-105 transition-transform duration-700">
+                            {% endif %}
+                        </div>
+                        <div class="absolute top-4 left-4">
+                            <span class="badge badge-success">Featured</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-20 border-y border-[var(--border)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="text-center opacity-0 animate-fade-in stagger-1">
+                <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">50K+</div>
+                <div class="text-[var(--muted)]">Students Placed</div>
+            </div>
+            <div class="text-center opacity-0 animate-fade-in stagger-2">
+                <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">200+</div>
+                <div class="text-[var(--muted)]">Verified Hostels</div>
+            </div>
+            <div class="text-center opacity-0 animate-fade-in stagger-3">
+                <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">4.8</div>
+                <div class="text-[var(--muted)]">Average Rating</div>
+            </div>
+            <div class="text-center opacity-0 animate-fade-in stagger-4">
+                <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">50+</div>
+                <div class="text-[var(--muted)]">Partner Universities</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Hostels -->
+<section class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12 opacity-0 animate-fade-in-up">
+            <h2 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold mb-4">Featured Hostels</h2>
+            <p class="text-[var(--muted)] max-w-lg mx-auto">
+                Hand-picked accommodations with verified reviews and excellent amenities
+            </p>
+        </div>
+        
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for hostel in hostels %}
+            <article class="card-hover bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden opacity-0 animate-fade-in-up stagger-{{ forloop.counter }}">
+                <div class="aspect-[4/3] overflow-hidden relative">
+                    <img src="{{ hostel.image_url }}" alt="{{ hostel.name }}" 
+                         class="w-full h-full object-cover hover:scale-110 transition-transform duration-500">
+                    <div class="absolute top-3 left-3">
+                        <span class="badge {% if hostel.available %}badge-success{% else %}badge-warning{% endif %}">
+                            {% if hostel.available %}Available{% else %}Limited{% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="p-5">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <h3 class="font-['Space_Grotesk'] font-semibold text-lg truncate">{{ hostel.name }}</h3>
+                        <div class="flex items-center gap-1 text-[var(--accent)] flex-shrink-0">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            <span class="text-sm font-semibold">{{ hostel.rating }}</span>
+                        </div>
+                    </div>
+                    <p class="text-[var(--muted)] text-sm mb-3 line-clamp-2">{{ hostel.description }}</p>
+                    <div class="flex items-center gap-2 text-sm text-[var(--muted)] mb-4">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span class="truncate">{{ hostel.distance }}</span>
+                    </div>
+                    <div class="flex items-center justify-between pt-4 border-t border-[var(--border)]">
+                        <div>
+                            <span class="text-sm text-[var(--muted)]">From</span>
+                            <span class="text-2xl font-bold font-['Space_Grotesk'] ml-1">${{ hostel.price }}</span>
+                            <span class="text-sm text-[var(--muted)]">/month</span>
+                        </div>
+                        <a href="/hostel/{{ hostel.id }}/" class="btn-primary text-sm py-2 px-4">View Details</a>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-emerald-500/5">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="opacity-0 animate-fade-in-up">
+            <h2 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold mb-6">
+                Ready to Find Your Home Away From Home?
+            </h2>
+            <p class="text-[var(--muted)] text-lg mb-8 max-w-2xl mx-auto">
+                Join thousands of students who found their perfect accommodation through EHostelFinder. 
+                Start your search today – it's completely free!
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/universities/" class="btn-primary text-lg px-8 py-4">Browse All Hostels</a>
+                {% if not user.is_authenticated %}
+                <a href="/signup/" class="btn-secondary text-lg px-8 py-4">Create Free Account</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
