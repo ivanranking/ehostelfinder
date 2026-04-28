@@ -238,10 +238,10 @@ for data in universities_hostels:
     )
     if created:
         count += 1
-        print(f"✓ Created: {hostel.name} ({hostel.university})")
+        print(f"[CREATED] {hostel.name} ({hostel.university})")
     else:
-        print(f"✗ Already exists: {hostel.name}")
+        print(f"[EXISTS] {hostel.name}")
 
-print(f"\n✅ Added {count} new hostels")
-print(f"Total hostels in DB: {Hostel.objects.count()}")
-print(f"Universities: {list(Hostel.objects.values_list('university', flat=True).distinct())}")
+print(f"\n[OK] Added {count} new hostels")
+print(f"[OK] Total hostels in DB: {Hostel.objects.count()}")
+print(f"[OK] Universities: {list(Hostel.objects.values_list('university', flat=True).distinct())}")

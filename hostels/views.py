@@ -159,16 +159,33 @@ def get_booking_by_id(request, id):
 
 @require_http_methods(["POST"])
 def create_message(request):
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        # Check if user is authenticated
+        logger.info(f"User authenticated: {request.user.is_authenticated}")
+        logger.info(f"User: {request.user}")
+        
         data = json.loads(request.body)
+        logger.info(f"Message data received: {data}")
+        
         hostel = get_object_or_404(Hostel, id=data.get('hostelId'))
+        logger.info(f"Hostel found: {hostel.name}")
+        
+        # Check if user is authenticated, if not return error
+        if not request.user.is_authenticated:
+            logger.warning("User not authenticated, returning 401")
+            return JsonResponse({'error': 'You must be logged in to send a message'}, status=401)
         
         message = Message.objects.create(
-            user=request.user if request.user.is_authenticated else None,
+            user=request.user,
             hostel=hostel,
             subject=data.get('subject', ''),
             content=data.get('content', ''),
         )
+        
+        logger.info(f"Message created successfully: {message.id}")
         
         message_data = {
             'id': message.id,
@@ -180,6 +197,9 @@ def create_message(request):
         }
         return JsonResponse(message_data, status=201)
     except Exception as e:
+        import traceback
+        logger.error(f"Error creating message: {str(e)}")
+        logger.error(traceback.format_exc())
         return JsonResponse({'error': str(e)}, status=400)
 
 @require_http_methods(["GET"])
@@ -187,7 +207,8 @@ def get_messages_by_hostel(request, hostel_id):
     messages = Message.objects.filter(hostel_id=hostel_id).order_by('-created_at')
     messages_data = list(messages.values(
         'id', 'subject', 'content', 'created_at',
-        user_id=models.F('user__id'),
+        user_actual_id=models.F('user__id'),
+        user_name=models.F('user__first_name'),
         user_email=models.F('user__email'),
     ))
     return JsonResponse(messages_data, safe=False)

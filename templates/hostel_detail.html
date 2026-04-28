@@ -165,7 +165,7 @@
             <div class="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)]">
                 <div class="flex items-start justify-between mb-3">
                     <div>
-                        <span class="font-semibold">{{ message.user.first_name|default:"Anonymous" }}</span>
+                        <span class="font-semibold">{{ message.user.first_name|default:message.user_email }}</span>
                         <span class="text-[var(--muted)] text-sm ml-2">{{ message.created_at|date:"M d, Y" }}</span>
                     </div>
                     <span class="badge">Query</span>
@@ -177,7 +177,7 @@
             <div class="bg-[var(--card)] rounded-xl p-8 border border-[var(--border)] text-center">
                 <p class="text-[var(--muted)]">No messages yet. Be the first to ask a question!</p>
             </div>
-            {% endfor %}
+            {% endfor %}}
         </div>
     </div>
 </div>
@@ -278,14 +278,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
             .then(result => {
                 alert('Message sent successfully!');
                 messageForm.reset();
                 window.location.reload();
             })
             .catch(error => {
-                alert('Error sending message. Please try again.');
+                console.error('Error:', error);
+                alert('Error sending message: ' + (error.error || 'Please try again.'));
             });
         });
     }
