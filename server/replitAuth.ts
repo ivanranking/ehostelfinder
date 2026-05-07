@@ -1,6 +1,7 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as OAuth2Strategy } from "passport-oauth2";
 
 import passport from "passport";
 import session from "express-session";
@@ -77,6 +78,46 @@ async function upsertGoogleUser(profile: any) {
   });
 }
 
+class GitHubStrategy extends OAuth2Strategy {
+  name = "github";
+
+  userProfile(accessToken: string, done: (err: Error | null, profile?: any) => void) {
+    const headers = {
+      Authorization: `token ${accessToken}`,
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "EHostelFinder",
+    };
+
+    fetch("https://api.github.com/user", { headers })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(`GitHub profile request failed: ${res.status}`);
+        }
+        const profile = await res.json();
+
+        const emailResponse = await fetch("https://api.github.com/user/emails", { headers });
+        if (emailResponse.ok) {
+          profile.emails = await emailResponse.json();
+        }
+
+        done(null, profile);
+      })
+      .catch((error) => done(error));
+  }
+}
+
+async function upsertGitHubUser(profile: any) {
+  const email = profile.emails?.find((item: any) => item.primary)?.email || profile.email;
+  const nameParts = (profile.name || "").split(" ");
+  await storage.upsertUser({
+    id: String(profile.id),
+    email,
+    firstName: nameParts[0] || profile.login,
+    lastName: nameParts.slice(1).join(" ") || "",
+    profileImageUrl: profile.avatar_url,
+  });
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -131,6 +172,34 @@ export async function setupAuth(app: Express) {
     }));
   }
 
+  // GitHub OAuth Strategy
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    const githubVerify: any = async (...args: any[]) => {
+      const [accessToken, refreshToken, profile, done] = args;
+      try {
+        await upsertGitHubUser(profile);
+        const user = {
+          profile,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          provider: 'github'
+        };
+        return done(null, user);
+      } catch (error) {
+        return done(error as Error, false);
+      }
+    };
+
+    passport.use(new GitHubStrategy({
+      authorizationURL: "https://github.com/login/oauth/authorize",
+      tokenURL: "https://github.com/login/oauth/access_token",
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: "/api/auth/github/callback",
+      scope: ["user:email"],
+    }, githubVerify));
+  }
+
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
@@ -160,6 +229,17 @@ export async function setupAuth(app: Express) {
     }
   );
 
+  app.get("/api/auth/github",
+    passport.authenticate("github", { scope: ["user:email"] })
+  );
+
+  app.get("/api/auth/github/callback",
+    passport.authenticate("github", { failureRedirect: "/login" }),
+    (req, res) => {
+      res.redirect("/");
+    }
+  );
+
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
       res.redirect(
@@ -179,8 +259,8 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // Handle Google authentication
-  if (user.provider === 'google') {
+  // Handle Google and GitHub authentication
+  if (user.provider === 'google' || user.provider === 'github') {
     return next();
   }
 

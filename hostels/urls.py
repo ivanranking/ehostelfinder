@@ -18,10 +18,11 @@ urlpatterns = [
     path('api/messages/<int:hostel_id>/', views.get_messages_by_hostel, name='api_hostel_messages'),
     
     # Auth
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
+    path('login/', views.login, name='login'),
+    path('logout/', views.logout_view, name='logout'),
     path('signup/', views.signup, name='signup'),
     path('cookie-policy/', views.cookie_policy, name='cookie_policy'),
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('terms-of-use/', views.terms_of_use, name='terms_of_use'),
+    path('api/admin/messages/', views.admin_messages, name='admin_messages'),
 ]

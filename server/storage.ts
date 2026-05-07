@@ -3,22 +3,15 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 
 export interface IStorage {
-  // Hostel operations
   getAllHostels(): Promise<Hostel[]>;
   getHostelById(id: number): Promise<Hostel | undefined>;
   getHostelsByUniversity(university: string): Promise<Hostel[]>;
   createHostel(hostel: InsertHostel): Promise<Hostel>;
-  
-  // Booking operations
   createBooking(booking: InsertBooking): Promise<Booking>;
   getBookingById(id: number): Promise<Booking | undefined>;
   getBookingsByHostel(hostelId: number): Promise<Booking[]>;
-
-  // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByHostel(hostelId: number): Promise<Message[]>;
-  
-  // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 }

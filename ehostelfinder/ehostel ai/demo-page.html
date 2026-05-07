@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo - eHostel Site with AI Chatbot</title>
+  <style>
+    /* Demo page styling - your site's existing styles would be here */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+    
+    header {
+      background: #333;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    nav {
+      background: #667eea;
+      padding: 15px;
+    }
+    
+    nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: 500;
+    }
+    
+    nav a:hover {
+      text-decoration: underline;
+    }
+    
+    .content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    .hero {
+      text-align: center;
+      padding: 60px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    h1 {
+      font-size: 3em;
+      margin: 0 0 20px 0;
+    }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+      margin-top: 40px;
+    }
+    
+    .feature {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 10px;
+      border-left: 4px solid #667eea;
+    }
+    
+    footer {
+      background: #333;
+      color: white;
+      text-align: center;
+      padding: 30px;
+      margin-top: 60px;
+    }
+    
+    /* Highlight notice */
+    .chat-notice {
+      background: #e8f4f8;
+      border: 2px solid #667eea;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    
+    .chat-notice h3 {
+      color: #667eea;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- This is your existing website structure -->
+  
+  <header>
+    <h1>EHostel Finder</h1>
+    <p>Find your perfect hostel accommodation</p>
+  </header>
+  
+  <nav>
+    <a href="#">Home</a>
+    <a href="#">Hostels</a>
+    <a href="#">Bookings</a>
+    <a href="#">About</a>
+    <a href="#">Contact</a>
+  </nav>
+  
+  <div class="hero">
+    <h1>Welcome to EHostel Finder</h1>
+    <p>Discover amazing hostels around the world</p>
+    <p style="margin-top: 30px;">
+      <a href="#" style="background: white; color: #667eea; padding: 15px 30px; text-decoration: none; border-radius: 30px; font-weight: bold;">Find Hostels Now</a>
+    </p>
+  </div>
+  
+  <div class="content">
+    <div class="chat-notice">
+      <h3>🤖 AI Assistant Available</h3>
+      <p>Need help? Click the chat icon in the bottom-right corner to speak with our AI assistant for instant answers about hostels, bookings, and amenities!</p>
+    </div>
+    
+    <h2>Featured Hostels</h2>
+    <div class="features">
+      <div class="feature">
+        <h3>🌍 Global Network</h3>
+        <p>Access thousands of hostels in over 100 countries worldwide.</p>
+      </div>
+      <div class="feature">
+        <h3>⭐ Verified Reviews</h3>
+        <p>Read authentic reviews from real travelers.</p>
+      </div>
+      <div class="feature">
+        <h3>💰 Best Prices</h3>
+        <p>Guaranteed lowest prices with our price match promise.</p>
+      </div>
+    </div>
+    
+    <h2 style="margin-top: 50px;">How It Works</h2>
+    <p>Simply browse our selection, read reviews, and book directly through our secure platform. Our AI assistant is available 24/7 to help with any questions!</p>
+  </div>
+  
+  <footer>
+    <p>&copy; 2026 EHostel Finder. All rights reserved.</p>
+  </footer>
+  
+  <!-- =========================================================================
+       CHATBOT EMBED CODE - Add this to integrate the AI chatbot
+       ========================================================================= -->
+  
+  <!-- Option 1: Use the floating widget (recommended) -->
+  <script src="ehostelfinder/ehostel%20ai/chatbot-widget.js" async></script>
+  
+  <!-- Option 2: Alternative embed method -->
+  <!-- <script>
+    !function(){
+      const script = document.createElement('script');
+      script.src = 'ehostelfinder/ehostel%20ai/chatbot-widget.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }();
+  </script> -->
+  
+</body>
+</html>

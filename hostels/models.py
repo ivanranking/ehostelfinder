@@ -26,12 +26,6 @@ class UserManager(BaseUserManager):
     def get_by_natural_key(self, email):
         return self.get(email=email)
 
-
-import uuid
-
-def generate_user_id():
-    return str(uuid.uuid4())
-
 class User(AbstractUser):
     username = None  # Remove username field, use email instead
     id = models.CharField(max_length=255, primary_key=True, default=generate_user_id, editable=False)
@@ -62,7 +56,7 @@ class Hostel(models.Model):
     distance = models.CharField(max_length=100)
     price = models.IntegerField()
     rating = models.DecimalField(max_digits=3, decimal_places=1)
-    review_count = models.IntegerField()
+    review_count = models.IntegerField(default=0)
     image_url = models.URLField()
     amenities = models.JSONField(default=list)
     contact = models.CharField(max_length=50)
@@ -75,26 +69,44 @@ class Hostel(models.Model):
         return self.name
 
 class Booking(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name='bookings')
-    check_in = models.DateField()
-    check_out = models.DateField()
-    guests = models.IntegerField()
-    total_price = models.IntegerField()
+    full_name = models.CharField(max_length=255, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    phone = models.CharField(max_length=50, blank=True, default='')
+    university = models.CharField(max_length=255, blank=True, default='')
+    student_id = models.CharField(max_length=100, blank=True, default='')
+    move_in_date = models.CharField(max_length=50, blank=True, default='')
+    room_type = models.CharField(max_length=100, blank=True, default='')
+    special_requests = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=50, default='pending')
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.hostel.name}"
+        return f"{self.full_name} - {self.hostel.name}"
 
 class Message(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
     hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name='messages')
-    subject = models.CharField(max_length=255)
-    content = models.TextField()
+    full_name = models.CharField(max_length=255, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    phone = models.CharField(max_length=50, blank=True, default='')
+    message = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.subject}"
+        return f"{self.full_name} - {self.hostel.name}"
+
+class ContactMessage(models.Model):
+    full_name = models.CharField(max_length=255)
+    email = models.EmailField()
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.subject}"
+
+    class Meta:
+        ordering = ['-created_at']

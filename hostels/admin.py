@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Hostel, Booking, Message
+from .models import User, Hostel, Booking, Message, ContactMessage
 
 
 @admin.register(User)
@@ -38,16 +38,31 @@ class HostelAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'hostel', 'check_in', 'check_out', 'status', 'total_price', 'created_at')
-    list_filter = ('status', 'created_at', 'check_in', 'check_out')
-    search_fields = ('user__email', 'hostel__name')
+    list_display = ('id', 'full_name', 'hostel', 'university', 'room_type', 'status', 'created_at')
+    list_filter = ('status', 'created_at', 'university')
+    search_fields = ('full_name', 'email', 'hostel__name')
     ordering = ('-created_at',)
-    date_hierarchy = 'created_at'
 
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'hostel', 'subject', 'created_at')
+    list_display = ('id', 'full_name', 'hostel', 'created_at')
     list_filter = ('created_at',)
-    search_fields = ('user__email', 'hostel__name', 'subject', 'content')
+    search_fields = ('full_name', 'hostel__name', 'email', 'message')
     ordering = ('-created_at',)
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'email', 'subject', 'created_at', 'is_read')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('full_name', 'email', 'subject', 'message')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at',)
+    
+    actions = ['mark_as_read']
+    
+    def mark_as_read(self, request, queryset):
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f'{updated} messages marked as read.')
+    mark_as_read.short_description = 'Mark selected messages as read'

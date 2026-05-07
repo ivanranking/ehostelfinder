@@ -2,10 +2,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from hostels import views as hostel_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('hostels.urls')),
+    path('ai-assistant/', hostel_views.ai_assistant, name='ai_assistant'),
 ]
 
 if settings.DEBUG:

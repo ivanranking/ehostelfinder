@@ -18,7 +18,8 @@
         <!-- Contact Form -->
         <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-1">
             <h2 class="text-2xl font-['Space_Grotesk'] font-semibold mb-6">Send us a message</h2>
-            <form onsubmit="event.preventDefault(); alert('Thank you for your message! We\'ll get back to you soon.');">
+            <form id="contact-form">
+                {% csrf_token %}
                 <div class="grid grid-cols-2 gap-4 mb-4">
                     <div>
                         <label for="name" class="block text-sm font-medium mb-2">Full Name</label>
@@ -39,6 +40,8 @@
                 </div>
                 <button type="submit" class="btn-primary w-full">Send Message</button>
             </form>
+            <!-- Success/Error message area -->
+            <div id="form-message" class="mt-4 hidden"></div>
         </div>
 
         <!-- Contact Information & FAQ -->
@@ -55,7 +58,7 @@
                         </div>
                         <div>
                             <h3 class="font-semibold mb-1">Email</h3>
-                            <p class="text-[var(--muted)] text-sm">support@e-hostel.ug</p>
+                            <p class="text-[var(--muted)] text-sm">ehostel76@gmail.com</p>
                             <p class="text-[var(--muted)] text-sm">We respond within 24 hours</p>
                         </div>
                     </div>
@@ -67,7 +70,7 @@
                         </div>
                         <div>
                             <h3 class="font-semibold mb-1">Phone</h3>
-                            <p class="text-[var(--muted)] text-sm">+256 700 EHOSTEL</p>
+                            <p class="text-[var(--muted)] text-sm">+256 780809632</p>
                             <p class="text-[var(--muted)] text-sm">Monday - Friday, 8AM - 6PM</p>
                         </div>
                     </div>
@@ -80,7 +83,7 @@
                         </div>
                         <div>
                             <h3 class="font-semibold mb-1">Office</h3>
-                            <p class="text-[var(--muted)] text-sm">Plot 123, Kampala Road</p>
+                            <p class="text-[var(--muted)] text-sm">Makerere</p>
                             <p class="text-[var(--muted)] text-sm">Kampala, Uganda</p>
                         </div>
                     </div>
@@ -108,4 +111,47 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('contact-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const messageDiv = document.getElementById('form-message');
+    
+    // Disable button and show loading
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+    
+    try {
+        const response = await fetch('/contact/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            messageDiv.className = 'mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400';
+            messageDiv.innerHTML = `<p>${data.message}</p>`;
+            messageDiv.classList.remove('hidden');
+            this.reset();
+        } else {
+            throw new Error(data.error || 'Failed to send message');
+        }
+    } catch (error) {
+        messageDiv.className = 'mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400';
+        messageDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+        messageDiv.classList.remove('hidden');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Message';
+    }
+});
+</script>
+
 {% endblock %}

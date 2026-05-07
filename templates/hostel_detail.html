@@ -159,15 +159,32 @@
     
     <!-- Messages Section -->
     <div class="mt-12">
-        <h2 class="text-2xl font-['Space Grotesk'] font-semibold mb-6">Recent Messages</h2>
+        <h2 class="text-2xl font-['Space_Grotesk'] font-semibold mb-6">Recent Messages</h2>
         <div id="messagesList" class="space-y-4">
             {% for message in messages %}
             <div class="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)]">
                 <div class="flex items-start justify-between mb-3">
                     <div>
-                        <span class="font-semibold">{{ message.user.first_name|default:message.user_email }}</span>
+                        <span class="font-semibold">{{ message.full_name|default:'Anonymous' }}</span>
                         <span class="text-[var(--muted)] text-sm ml-2">{{ message.created_at|date:"M d, Y" }}</span>
                     </div>
+                    <span class="badge">Query</span>
+                </div>
+                <h4 class="font-['Space_Grotesk'] font-medium mb-2">{{ message.subject|default:'Message' }}</h4>
+                <p class="text-[var(--muted)]">{{ message.content|default:message.message }}</p>
+            </div>
+                    <span class="badge">Query</span>
+                </div>
+                <h4 class="font-['Space_Grotesk'] font-medium mb-2">Inquiry</h4>
+                <p class="text-[var(--muted)]">{{ message.message }}</p>
+            </div>
+            {% empty %}
+            <div class="bg-[var(--card)] rounded-xl p-8 border border-[var(--border)] text-center">
+                <p class="text-[var(--muted)]">No messages yet. Be the first to ask a question!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
                     <span class="badge">Query</span>
                 </div>
                 <h4 class="font-['Space Grotesk'] font-medium mb-2">{{ message.subject }}</h4>
@@ -244,7 +261,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
             .then(result => {
                 alert('Booking created successfully!');
                 bookingForm.reset();
@@ -252,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 durationDisplay.textContent = '1 month';
             })
             .catch(error => {
-                alert('Error creating booking. Please try again.');
+                alert('Error creating booking: ' + (error.error || 'Please try again.'));
             });
         });
     }

@@ -15,7 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let userId: string;
       
       // Handle different authentication providers
-      if (req.user.provider === 'google') {
+      if (req.user.provider === 'google' || req.user.provider === 'github') {
         userId = req.user.profile.id;
       } else {
         // Replit authentication

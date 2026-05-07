@@ -4,16 +4,15 @@ from .models import Hostel, Booking, Message, User
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ['hostel', 'check_in', 'check_out', 'guests', 'total_price']
+        fields = ['hostel', 'full_name', 'email', 'phone', 'university', 'student_id', 'move_in_date', 'room_type', 'special_requests', 'status']
         widgets = {
-            'check_in': forms.DateInput(attrs={'type': 'date'}),
-            'check_out': forms.DateInput(attrs={'type': 'date'}),
+            'status': forms.TextInput(attrs={'placeholder': 'pending'}),
         }
 
 class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
-        fields = ['hostel', 'subject', 'content']
+        fields = ['hostel', 'full_name', 'email', 'phone', 'message']
 
 class HostelForm(forms.ModelForm):
     class Meta:
@@ -44,7 +43,6 @@ class UserRegistrationForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
-        # Set a default ID
         import uuid
         user.id = str(uuid.uuid4())
         if commit:
