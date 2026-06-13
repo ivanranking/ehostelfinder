@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/bookings/', views.create_booking, name='api_create_booking'),
     path('api/bookings/<int:id>/', views.get_booking_by_id, name='api_booking_by_id'),
     path('api/messages/', views.create_message, name='api_create_message'),
+    path('api/ai-chat/', views.ai_chat, name='api_ai_chat'),
     path('api/messages/<int:hostel_id>/', views.get_messages_by_hostel, name='api_hostel_messages'),
     
     # Auth

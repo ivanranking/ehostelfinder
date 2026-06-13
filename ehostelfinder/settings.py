@@ -90,7 +90,7 @@ DATABASES = {
         'USER': os.getenv('SUPABASE_DB_USER', 'postgres.uplugxgdlmmrosounkvi'),
         'PASSWORD': os.getenv('SUPABASE_PASSWORD', 'Ranking@ivan12'),
         'HOST': os.getenv('SUPABASE_DB_HOST', 'aws-0-eu-west-1.pooler.supabase.com'),
-        'PORT': os.getenv('SUPABASE_DB_PORT', '6543'),
+        'PORT': os.getenv('SUPABASE_DB_PORT', '5432'),
     }
 }
 
