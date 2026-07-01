@@ -100,6 +100,22 @@
 </style>
 
 <script>
+function formatResponse(text) {
+  if (!text) return '<p class="text-[var(--muted)]">No response generated.</p>';
+
+  let formatted = String(text)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br>');
+
+  if (!formatted.startsWith('<p>')) {
+    formatted = '<p>' + formatted + '</p>';
+  }
+
+  return formatted;
+}
+
 async function askAI() {
   const question = document.getElementById("question").value;
   const responseBox = document.getElementById("response");

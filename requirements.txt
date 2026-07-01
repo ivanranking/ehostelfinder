@@ -2,6 +2,8 @@ Django>=6.0,<6.1
 python-dotenv
 psycopg2-binary
 dj-database-url
+psycopg[binary]
 google-auth
 gunicorn
 whitenoise
+requests

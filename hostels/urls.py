@@ -18,6 +18,7 @@ urlpatterns = [
     path('manager/checkins/', views.manager_checkins, name='manager_checkins'),
     path('manager/rooms/', views.manager_rooms, name='manager_rooms'),
     path('manager/checkout/<int:booking_id>/', views.manager_checkout, name='manager_checkout'),
+    path('admin/hostels/upload/', views.hostel_upload, name='hostel_upload'),
     path('admin/managers/', views.admin_manager_assign, name='admin_manager_assign'),
     path('api/admin/managers/', views.api_managers, name='api_managers'),
     path('api/admin/managers/unassigned/', views.api_unassigned_managers, name='api_unassigned_managers'),

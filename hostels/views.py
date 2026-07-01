@@ -8,10 +8,38 @@ import json
 import os
 import urllib.request
 import urllib.error
-from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm
+from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
 from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, RoomStatus
 from django.contrib.auth.decorators import login_required
 from .local_ai import get_local_ai_response
+
+KAMPALA_AREA_UNIVERSITIES = [
+    'Makerere University',
+    'Kyambogo University',
+    'Kampala International University',
+    'Uganda Christian University',
+    'Ndejje University',
+    'Bugema University',
+    'Cavendish University Uganda',
+    'St. Lawrence University Uganda',
+    'Mutesa I Royal University',
+]
+
+
+def get_university_options():
+    university_names = []
+    seen = set()
+    for name in KAMPALA_AREA_UNIVERSITIES:
+        if name and name not in seen:
+            university_names.append(name)
+            seen.add(name)
+
+    for name in Hostel.objects.exclude(university='').values_list('university', flat=True):
+        if name and name not in seen:
+            university_names.append(name)
+            seen.add(name)
+
+    return [{'name': name} for name in university_names]
 
 
 def home(request):
@@ -41,7 +69,7 @@ def home(request):
 
     cities = sorted(Hostel.objects.values_list('city', flat=True).exclude(city='').distinct())
     countries = sorted(Hostel.objects.values_list('country', flat=True).exclude(country='').distinct())
-    universities = sorted(Hostel.objects.values_list('university', flat=True).exclude(university='').distinct())
+    universities = get_university_options()
 
     rated_hostels = Hostel.objects.exclude(rating__isnull=True)
     avg_rating = 0.0
@@ -78,7 +106,7 @@ def home(request):
         'selected_country': country,
         'selected_university': university,
         'total_hostels': Hostel.objects.count(),
-        'total_universities': Hostel.objects.exclude(university='').values_list('university', flat=True).distinct().count(),
+        'total_universities': len(universities),
         'avg_rating': avg_rating,
         'total_cities': len(cities),
     }
@@ -287,11 +315,10 @@ def login(request):
         password = form.cleaned_data['password']
         user = authenticate(request, username=email, password=password)
         if user:
+            auth_login(request, user)
             if not user.is_email_verified:
-                messages.error(request, 'Please verify your email before logging in. Check your inbox for the verification link.')
-            else:
-                auth_login(request, user)
-                return redirect('home')
+                messages.info(request, 'You signed in successfully. Your email verification is still pending, but you can continue using the site.')
+            return redirect('home')
         messages.error(request, 'Invalid email or password')
     else:
         messages.error(request, 'Invalid email or password')
@@ -558,13 +585,14 @@ def how_it_works(request):
 
 @require_http_methods(["GET"])
 def universities(request):
-    universities_qs = Hostel.objects.exclude(university='').values_list('university', flat=True).distinct()
+    university_options = get_university_options()
     universities_data = []
-    for uni in universities_qs:
-        count = Hostel.objects.filter(university=uni).count()
-        top_hostel = Hostel.objects.filter(university=uni).order_by('-rating').first()
+    for uni in university_options:
+        name = uni['name']
+        count = Hostel.objects.filter(university=name).count()
+        top_hostel = Hostel.objects.filter(university=name).order_by('-rating').first()
         universities_data.append({
-            'name': uni,
+            'name': name,
             'count': count,
             'top_hostel': top_hostel.name if top_hostel else '',
             'rating': float(top_hostel.rating) if top_hostel and top_hostel.rating else 0,
@@ -680,6 +708,74 @@ def admin_manager_assign(request):
         messages.error(request, 'Access denied. Admin only.')
         return redirect('home')
     return render(request, 'admin/manager_assign.html')
+
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def hostel_upload(request):
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        messages.error(request, 'Access denied. Admin only.')
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = HostelUploadForm(request.POST)
+        if form.is_valid():
+            hostel = Hostel.objects.create(
+                name=form.cleaned_data['name'],
+                description=form.cleaned_data['description'] or '',
+                address=form.cleaned_data['address'],
+                city=form.cleaned_data['city'],
+                country=form.cleaned_data['country'],
+                university=form.cleaned_data['university'] or '',
+                distance=form.cleaned_data['distance'] or 'Near campus',
+                price=form.cleaned_data['price'] or 0,
+                rating=form.cleaned_data['rating'] or 0,
+                amenities=[item.strip() for item in form.cleaned_data['amenities'].split(',') if item.strip()],
+                contact=form.cleaned_data['contact'] or '',
+                phone=form.cleaned_data['phone'] or '',
+                email=form.cleaned_data['email'] or '',
+                image_url=form.cleaned_data['image_url'] or '',
+                check_in_time=form.cleaned_data['check_in_time'] or '14:00:00',
+                check_out_time=form.cleaned_data['check_out_time'] or '11:00:00',
+            )
+            Room.objects.create(
+                hostel=hostel,
+                room_number=form.cleaned_data['room_number'],
+                room_name=form.cleaned_data['room_name'],
+                room_type=form.cleaned_data['room_type'],
+                capacity=form.cleaned_data['capacity'],
+                available_quantity=form.cleaned_data['available_quantity'],
+                price_per_night=form.cleaned_data['price_per_night'],
+            )
+
+            manager_email = form.cleaned_data['manager_email']
+            if manager_email:
+                user, created = User.objects.get_or_create(
+                    email=manager_email,
+                    defaults={
+                        'first_name': 'Manager',
+                        'last_name': 'User',
+                        'is_email_verified': True,
+                    }
+                )
+                if created:
+                    user.set_password('ChangeMe123')
+                    user.save()
+                profile_obj, _ = Profile.objects.get_or_create(
+                    user=user,
+                    defaults={'full_name': user.get_full_name() or user.email, 'email': user.email, 'role': 'manager'}
+                )
+                profile_obj.role = 'manager'
+                profile_obj.hostel = hostel
+                profile_obj.save()
+
+            messages.success(request, 'Hostel created successfully.')
+            return redirect('hostel_upload')
+    else:
+        form = HostelUploadForm()
+
+    return render(request, 'admin/hostel_upload.html', {'form': form})
 
 
 @require_http_methods(['GET', 'POST'])

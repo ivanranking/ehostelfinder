@@ -14,7 +14,7 @@
 
         <div class="flex items-center justify-between mb-8">
             <h1 class="text-3xl font-['Space_Grotesk'] font-bold">My Bookings</h1>
-            <a href="{% url 'hostel_detail' booking.hostel.id %}" class="hidden md:block text-[var(--accent)] hover:underline">Browse Hostels</a>
+            <a href="{% url 'home' %}" class="hidden md:block text-[var(--accent)] hover:underline">Browse Hostels</a>
         </div>
 
         {% if bookings %}

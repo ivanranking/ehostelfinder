@@ -146,6 +146,29 @@ class LegalPagesTests(BaseTestCase):
         self.assertTemplateUsed(response, 'cookie_policy.html')
 
 
+class MyBookingsViewTests(BaseTestCase):
+    """Tests for the my bookings page"""
+
+    def test_my_bookings_page_loads_without_error(self):
+        self.client.force_login(self.user)
+        Booking.objects.create(
+            hostel=self.hostel,
+            room=self.hostel.rooms.first() if hasattr(self.hostel, 'rooms') else None,
+            customer=self.user,
+            check_in='2026-07-10',
+            check_out='2026-07-12',
+            guests=1,
+            nights=2,
+            total_price=120000,
+            booking_reference='BK123456',
+            booking_status='Pending',
+            payment_status='Pending'
+        )
+        response = self.client.get(reverse('my_bookings'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'My Bookings')
+
+
 class UserRegistrationTests(BaseTestCase):
     """Tests for user registration"""
     
@@ -166,6 +189,20 @@ class UserRegistrationTests(BaseTestCase):
         })
         self.assertEqual(response.status_code, 302)  # Redirect after success
         self.assertTrue(User.objects.filter(email='newuser@example.com').exists())
+
+    def test_registration_allows_immediate_login(self):
+        response = self.client.post(reverse('signup'), {
+            'email': 'loginuser@example.com',
+            'first_name': 'Login',
+            'last_name': 'User',
+            'password': 'StrongPass123',
+            'confirm_password': 'StrongPass123',
+            'terms': 'on'
+        })
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(email='loginuser@example.com')
+        self.assertTrue(user.is_email_verified)
+        self.assertTrue(self.client.login(email='loginuser@example.com', password='StrongPass123'))
     
     def test_registration_password_mismatch(self):
         response = self.client.post(reverse('signup'), {
@@ -239,6 +276,59 @@ class UserLoginTests(BaseTestCase):
         response = self.client.get(reverse('logout'))
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('home'))
+
+
+class HostelUploadTests(BaseTestCase):
+    def test_admin_can_create_hostel_and_assign_manager(self):
+        admin_user = User.objects.create(
+            id=str(uuid.uuid4()),
+            email='admin@example.com',
+            first_name='Admin',
+            last_name='User'
+        )
+        admin_user.set_password('StrongPass123')
+        admin_user.save()
+        Profile.objects.create(
+            user=admin_user,
+            full_name='Admin User',
+            email='admin@example.com',
+            role='admin'
+        )
+
+        self.client.force_login(admin_user)
+        response = self.client.post(reverse('hostel_upload'), {
+            'name': 'New Hostel',
+            'description': 'A hostel created for testing',
+            'address': '456 Test Road',
+            'city': 'Kampala',
+            'country': 'Uganda',
+            'university': 'Makerere University',
+            'distance': '3 km',
+            'price': '180000',
+            'rating': '4.8',
+            'amenities': 'Wi-Fi, Breakfast',
+            'contact': '+256700000001',
+            'phone': '+256700000001',
+            'email': 'newhostel@example.com',
+            'image_url': 'https://example.com/hostel.jpg',
+            'check_in_time': '14:00',
+            'check_out_time': '11:00',
+            'room_number': '101',
+            'room_name': 'Standard Room',
+            'room_type': 'Single',
+            'capacity': '1',
+            'available_quantity': '2',
+            'price_per_night': '300000',
+            'manager_email': 'manager@example.com',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        hostel = Hostel.objects.get(name='New Hostel')
+        self.assertEqual(hostel.city, 'Kampala')
+        manager_user = User.objects.get(email='manager@example.com')
+        manager_profile = Profile.objects.get(user=manager_user)
+        self.assertEqual(manager_profile.role, 'manager')
+        self.assertEqual(manager_profile.hostel, hostel)
 
 
 class APIEndpointTests(BaseTestCase):

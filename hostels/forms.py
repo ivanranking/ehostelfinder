@@ -45,10 +45,19 @@ class UserRegistrationForm(forms.ModelForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
+        user.is_email_verified = True
         import uuid
         user.id = str(uuid.uuid4())
         if commit:
             user.save()
+            Profile.objects.get_or_create(
+                user=user,
+                defaults={
+                    'full_name': f"{user.first_name} {user.last_name}".strip(),
+                    'email': user.email,
+                    'role': 'customer'
+                }
+            )
         return user
 
 
@@ -105,3 +114,30 @@ class ManagerProfileForm(forms.ModelForm):
         if commit:
             profile.save()
         return profile
+
+
+class HostelUploadForm(forms.Form):
+    name = forms.CharField(max_length=255)
+    description = forms.CharField(widget=forms.Textarea, required=False)
+    address = forms.CharField(max_length=255)
+    city = forms.CharField(max_length=100)
+    country = forms.CharField(max_length=100)
+    university = forms.CharField(max_length=255, required=False)
+    distance = forms.CharField(max_length=255, required=False)
+    price = forms.DecimalField(required=False, min_value=0)
+    rating = forms.DecimalField(required=False, min_value=0, max_value=5)
+    amenities = forms.CharField(required=False)
+    contact = forms.CharField(max_length=255, required=False)
+    phone = forms.CharField(max_length=20, required=False)
+    email = forms.EmailField(required=False)
+    image_url = forms.URLField(required=False)
+    check_in_time = forms.TimeField(required=False)
+    check_out_time = forms.TimeField(required=False)
+
+    room_number = forms.CharField(max_length=20)
+    room_name = forms.CharField(max_length=100)
+    room_type = forms.ChoiceField(choices=[(choice, choice) for choice in ['Single', 'Double', 'Triple', 'Quadruple', 'Family', 'Dormitory', 'Suite']])
+    capacity = forms.IntegerField(min_value=1)
+    available_quantity = forms.IntegerField(min_value=1)
+    price_per_night = forms.DecimalField(min_value=0)
+    manager_email = forms.EmailField(required=False)

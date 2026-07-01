@@ -87,10 +87,12 @@ WSGI_APPLICATION = 'ehostelfinder.wsgi.application'
 
 
 # Database
-# Use DATABASE_URL from Supabase
-if os.getenv('DATABASE_URL'):
+# Prefer the Supabase connection string from the environment.
+# This ensures the app uses the remote Supabase/Postgres service rather than a local Django database.
+database_url = os.getenv('DATABASE_URL') or os.getenv('SUPABASE_DATABASE_URL')
+if database_url:
     DATABASES = {
-        'default': dj_database_url.parse(os.getenv('DATABASE_URL'), conn_max_age=600, ssl_require=True)
+        'default': dj_database_url.parse(database_url, conn_max_age=600, ssl_require=True)
     }
 else:
     DATABASES = {
