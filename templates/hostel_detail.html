@@ -13,74 +13,164 @@
         <div class="lg:col-span-2">
             <!-- Images -->
             <div class="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--border)] mb-6">
-                <img src="{{ hostel.image_url }}" alt="{{ hostel.name }}" 
+                {% if hostel.cover_image %}
+                <img src="{{ hostel.cover_image }}" alt="{{ hostel.name }}" 
                      class="w-full h-96 object-cover">
+                {% endif %}
             </div>
             
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <span class="badge badge-success mb-2 inline-block">{% if hostel.available %}Available{% else %}Limited{% endif %}</span>
+                    <span class="badge badge-success mb-2 inline-block">{% if rooms|length > 0 %}Available{% else %}No Rooms{% endif %}</span>
                     <h1 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold">{{ hostel.name }}</h1>
                     <p class="text-[var(--muted)] mt-2 flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0a3 3 0 016 0z"/>
                         </svg>
-                        {{ hostel.address }} • {{ hostel.distance }}
+                        {{ hostel.address }}, {{ hostel.city }}
                     </p>
+                    {% if hostel.university %}
+                    <p class="text-[var(--muted)] mt-1 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                        </svg>
+                        {{ hostel.university }}
+                    </p>
+                    {% endif %}
                 </div>
                 <div class="flex items-center gap-4">
                     <div class="text-right">
-                        <div class="text-3xl font-bold font-['Space_Grotesk'] text-[var(--accent)]">${{ hostel.price }}</div>
-                        <div class="text-sm text-[var(--muted)]">per month</div>
+                        <div class="text-3xl font-bold font-['Space_Grotesk'] text-[var(--accent)]">
+                            {% if rooms|length > 0 %}${{ rooms.0.price_per_night }}/month{% else %}N/A{% endif %}
+                        </div>
+                        <div class="text-sm text-[var(--muted)]">starting price</div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- Location -->
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
+                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Location & Hours</h2>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-[var(--muted)]">Check-in time:</span>
+                        <span>{{ hostel.check_in_time }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[var(--muted)]">Check-out time:</span>
+                        <span>{{ hostel.check_out_time }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-[var(--muted)]">Address:</span>
+                        <span class="text-right">{{ hostel.address }}</span>
+                    </div>
+                    {% if hostel.distance %}
+                    <div class="flex justify-between">
+                        <span class="text-[var(--muted)]">Distance:</span>
+                        <span class="text-right">{{ hostel.distance }}</span>
+                    </div>
+                    {% endif %}
+                    {% if hostel.contact %}
+                    <div class="flex justify-between">
+                        <span class="text-[var(--muted)]">Contact:</span>
+                        <span class="text-right">{{ hostel.contact }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             
             <!-- Amenities -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
                 <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Amenities</h2>
-                <div class="flex flex-wrap gap-2">
+                {% if hostel.amenities %}
+                <div class="flex flex-wrap gap-2 mb-4">
                     {% for amenity in hostel.amenities %}
-                    <span class="px-4 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm">{{ amenity }}</span>
+                    <span class="px-4 py-2 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-sm text-[var(--accent)]">{{ amenity }}</span>
                     {% endfor %}
                 </div>
+                {% endif %}
+                {% if facilities %}
+                <div class="flex flex-wrap gap-2">
+                    {% for amenity in facilities %}
+                    <span class="px-4 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm">{{ amenity.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if not hostel.amenities and not facilities %}
+                <p class="text-[var(--muted)]">No amenities listed yet.</p>
+                {% endif %}
             </div>
             
             <!-- Description -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
-                <h2 class="text-xl font-['Space Grotesk'] font-semibold mb-4">About This Hostel</h2>
-                <p class="text-[var(--muted)] leading-relaxed whitespace-pre-line">{{ hostel.description }}</p>
+                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">About This Hostel</h2>
+                <p class="text-[var(--muted)] leading-relaxed">{{ hostel.description }}</p>
             </div>
             
-            <!-- Contact -->
+            <!-- Rooms -->
+            {% if rooms %}
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
-                <h2 class="text-xl font-['Space Grotesk'] font-semibold mb-4">Contact Information</h2>
-                <div class="flex items-center gap-3 text-[var(--accent)]">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                    </svg>
-                    <span class="font-semibold">{{ hostel.contact }}</span>
+                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Available Rooms</h2>
+                <div class="space-y-4">
+                    {% for room in rooms %}
+                    <div class="border border-[var(--border)] rounded-lg p-4">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="font-semibold">{{ room.room_name }} ({{ room.room_type }})</h3>
+                            <span class="text-[var(--accent)] font-bold">${{ room.price_per_night }}/night</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-sm text-[var(--muted)]">
+                            <div>Capacity: {{ room.capacity }} person(s)</div>
+                            <div>Available: {{ room.available_quantity }}</div>
+                            <div>{{ room.size_sq_meters }} m²</div>
+                            <div class="flex gap-2">
+                                {% if room.wifi %}<span>WiFi</span>{% endif %}
+                                {% if room.air_conditioning %}<span>AC</span>{% endif %}
+                                {% if room.private_bathroom %}<span>Private Bath</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
+            {% endif %}
             
             <!-- Reviews Section -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)]">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-xl font-['Space Grotesk'] font-semibold">Reviews</h2>
+                    <h2 class="text-xl font-['Space_Grotesk'] font-semibold">Reviews</h2>
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl font-bold font-['Space Grotesk'] text-[var(--accent)]">{{ hostel.rating }}</span>
+                        <span class="text-2xl font-bold font-['Space_Grotesk'] text-[var(--accent)]">
+                            {{ hostel.rating }}
+                        </span>
                         <div class="flex">
-                            {% for i in "x"|rjust:5 %}
-                            <svg class="w-5 h-5 {% if forloop.counter <= hostel.rating|floatformat:0 %}text-[var(--accent)]{% else %}text-[var(--border)]{% endif %}" fill="currentColor" viewBox="0 0 20 20">
+                            {% for i in "12345"|make_list %}
+                            <svg class="w-5 h-5 {% if forloop.counter <= hostel.rating %}text-[var(--accent)]{% else %}text-[var(--border)]{% endif %}" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                             </svg>
                             {% endfor %}
                         </div>
-                        <span class="text-[var(--muted)]">({{ hostel.review_count }} reviews)</span>
+                        <span class="text-[var(--muted)]">({{ reviews|length }} reviews)</span>
                     </div>
                 </div>
+                
+                {% if reviews %}
+                <div class="space-y-4">
+                    {% for review in reviews|slice:":5" %}
+                    <div class="border-t border-[var(--border)] pt-4">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="font-semibold">{{ review.customer_name }}</div>
+                            <div class="text-sm text-[var(--muted)]">{{ review.created_at }}</div>
+                        </div>
+                        <p class="text-[var(--muted)]">{{ review.comment }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-[var(--muted)] text-center py-4">No reviews yet. Be the first to review!</p>
+                {% endif %}
             </div>
         </div>
         
@@ -88,42 +178,26 @@
         <div class="lg:col-span-1">
             <!-- Booking Card -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] sticky top-24 mb-6">
-                <h3 class="text-xl font-['Space Grotesk'] font-semibold mb-4">Book This Hostel</h3>
+                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Book This Hostel</h3>
                 
                 {% if user.is_authenticated %}
                     <form id="bookingForm" class="space-y-4">
                         <input type="hidden" name="hostelId" value="{{ hostel.id }}">
+                        <input type="hidden" name="roomId" value="{% if rooms|length > 0 %}{{ rooms.0.id }}{% endif %}">
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-in Date</label>
-                            <input type="date" name="checkIn" required
-                                   class="input-field">
+                            <input type="date" name="checkIn" required class="input-field">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-out Date</label>
-                            <input type="date" name="checkOut" required
-                                   class="input-field">
+                            <input type="date" name="checkOut" required class="input-field">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Number of Guests</label>
-                            <input type="number" name="guests" value="1" min="1" required
-                                   class="input-field">
-                        </div>
-                        <div class="bg-[var(--bg)] rounded-lg p-4 mb-4">
-                            <div class="flex justify-between mb-2">
-                                <span class="text-[var(--muted)]">Monthly Rate</span>
-                                <span>${{ hostel.price }}</span>
-                            </div>
-                            <div class="flex justify-between mb-2">
-                                <span class="text-[var(--muted)]">Duration</span>
-                                <span id="durationDisplay">1 month</span>
-                            </div>
-                            <div class="border-t border-[var(--border)] pt-2 mt-2 flex justify-between font-bold">
-                                <span>Total Price</span>
-                                <span id="totalPrice">${{ hostel.price }}</span>
-                            </div>
+                            <input type="number" name="guests" value="1" min="1" required class="input-field">
                         </div>
                         <button type="submit" class="btn-primary w-full text-center">
-                            Confirm Booking
+                            Request Booking
                         </button>
                     </form>
                 {% else %}
@@ -136,18 +210,16 @@
             
             <!-- Message Card -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)]">
-                <h3 class="text-xl font-['Space Grotesk'] font-semibold mb-4">Send a Message</h3>
+                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Send a Message</h3>
                 <form id="messageForm" class="space-y-4">
                     <input type="hidden" name="hostelId" value="{{ hostel.id }}">
                     <div>
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Subject</label>
-                        <input type="text" name="subject" required placeholder="Message subject"
-                               class="input-field">
+                        <input type="text" name="subject" required placeholder="Message subject" class="input-field">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Message</label>
-                        <textarea name="content" rows="3" required placeholder="Your message..."
-                                  class="input-field resize-none"></textarea>
+                        <textarea name="content" rows="3" required placeholder="Your message..." class="input-field resize-none"></textarea>
                     </div>
                     <button type="submit" class="btn-primary w-full text-center">
                         Send Message
@@ -156,89 +228,14 @@
             </div>
         </div>
     </div>
-    
-    <!-- Messages Section -->
-    <div class="mt-12">
-        <h2 class="text-2xl font-['Space_Grotesk'] font-semibold mb-6">Recent Messages</h2>
-        <div id="messagesList" class="space-y-4">
-            {% for message in messages %}
-            <div class="bg-[var(--card)] rounded-xl p-5 border border-[var(--border)]">
-                <div class="flex items-start justify-between mb-3">
-                    <div>
-                        <span class="font-semibold">{{ message.full_name|default:'Anonymous' }}</span>
-                        <span class="text-[var(--muted)] text-sm ml-2">{{ message.created_at|date:"M d, Y" }}</span>
-                    </div>
-                    <span class="badge">Query</span>
-                </div>
-                <h4 class="font-['Space_Grotesk'] font-medium mb-2">{{ message.subject|default:'Message' }}</h4>
-                <p class="text-[var(--muted)]">{{ message.content|default:message.message }}</p>
-            </div>
-                    <span class="badge">Query</span>
-                </div>
-                <h4 class="font-['Space_Grotesk'] font-medium mb-2">Inquiry</h4>
-                <p class="text-[var(--muted)]">{{ message.message }}</p>
-            </div>
-            {% empty %}
-            <div class="bg-[var(--card)] rounded-xl p-8 border border-[var(--border)] text-center">
-                <p class="text-[var(--muted)]">No messages yet. Be the first to ask a question!</p>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-                    <span class="badge">Query</span>
-                </div>
-                <h4 class="font-['Space Grotesk'] font-medium mb-2">{{ message.subject }}</h4>
-                <p class="text-[var(--muted)]">{{ message.content }}</p>
-            </div>
-            {% empty %}
-            <div class="bg-[var(--card)] rounded-xl p-8 border border-[var(--border)] text-center">
-                <p class="text-[var(--muted)]">No messages yet. Be the first to ask a question!</p>
-            </div>
-            {% endfor %}}
-        </div>
-    </div>
 </div>
 {% endblock %}
 
 {% block extra_css %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Update booking calculation
-    const checkInInput = document.querySelector('input[name="checkIn"]');
-    const checkOutInput = document.querySelector('input[name="checkOut"]');
-    const durationDisplay = document.getElementById('durationDisplay');
-    const totalPriceDisplay = document.getElementById('totalPrice');
-    const monthlyRate = {{ hostel.price }};
-    
-    function calculateDuration() {
-        if (checkInInput.value && checkOutInput.value) {
-            const checkIn = new Date(checkInInput.value);
-            const checkOut = new Date(checkOutInput.value);
-            const diffTime = Math.abs(checkOut - checkIn);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            const months = Math.ceil(diffDays / 30);
-            
-            durationDisplay.textContent = `${months} month${months > 1 ? 's' : ''}`;
-            totalPriceDisplay.textContent = `$${monthlyRate * months}`;
-            
-            document.querySelector('input[name="totalPrice"]').value = monthlyRate * months;
-        }
-    }
-    
-    checkInInput.addEventListener('change', calculateDuration);
-    checkOutInput.addEventListener('change', calculateDuration);
-    
-    // Add hidden input for total price
-    const bookingForm = document.getElementById('bookingForm');
-    if (bookingForm) {
-        const totalPriceInput = document.createElement('input');
-        totalPriceInput.type = 'hidden';
-        totalPriceInput.name = 'totalPrice';
-        totalPriceInput.value = monthlyRate;
-        bookingForm.appendChild(totalPriceInput);
-    }
-    
     // Handle booking form submission
+    const bookingForm = document.getElementById('bookingForm');
     if (bookingForm) {
         bookingForm.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -246,11 +243,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(bookingForm);
             const data = {
                 hostelId: parseInt(formData.get('hostelId')),
+                room_id: formData.get('roomId'),
                 checkIn: formData.get('checkIn'),
                 checkOut: formData.get('checkOut'),
                 guests: parseInt(formData.get('guests')),
-                totalPrice: parseInt(formData.get('totalPrice')),
-                status: 'pending'
             };
             
             fetch('/api/bookings/', {
@@ -268,10 +264,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(result => {
-                alert('Booking created successfully!');
+                alert('Booking request sent successfully! Reference: ' + result.booking_reference);
                 bookingForm.reset();
-                totalPriceDisplay.textContent = `$${monthlyRate}`;
-                durationDisplay.textContent = '1 month';
             })
             .catch(error => {
                 alert('Error creating booking: ' + (error.error || 'Please try again.'));
@@ -309,7 +303,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 alert('Message sent successfully!');
                 messageForm.reset();
-                window.location.reload();
             })
             .catch(error => {
                 console.error('Error:', error);

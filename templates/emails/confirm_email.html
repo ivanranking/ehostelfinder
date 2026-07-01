@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Confirm Your Email</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #fafafa; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; padding: 40px;">
+        <h1 style="color: #64ffda; margin-bottom: 20px;">Welcome to EHostelFinder!</h1>
+        <p style="margin-bottom: 20px;">Hi {{ user.first_name|default:"there" }},</p>
+        <p style="margin-bottom: 20px;">Please confirm your email address to complete your registration:</p>
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{ confirmation_url }}" style="background: #64ffda; color: #0a0a0a; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">Confirm Email Address</a>
+        </div>
+        <p style="color: #888888; font-size: 14px;">This link will expire in 24 hours.</p>
+        <p style="color: #888888; font-size: 14px;">If you didn't sign up, please ignore this email.</p>
+    </div>
+</body>
+</html>

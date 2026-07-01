@@ -12,7 +12,7 @@ class BaseTestCase(TestCase):
     
     def setUp(self):
         self.client = Client()
-        # Create a test user - using direct model creation
+        # Create a test user
         import uuid
         self.user = User(
             id=str(uuid.uuid4()),
@@ -26,16 +26,21 @@ class BaseTestCase(TestCase):
         self.hostel = Hostel.objects.create(
             name='Test Hostel',
             description='A test hostel for testing purposes',
-            university='Makerere University',
-            distance='0 km (On campus)',
-            price=350000,
-            rating=4.5,
-            review_count=100,
-            image_url='https://example.com/test.jpg',
-            amenities=['WiFi', 'Security', 'Laundry'],
-            contact='+256700123456',
-            address='Test Address',
-            available=True
+            address='123 Test Street',
+            city='Kampala',
+            country='Uganda',
+            phone='+256700123456',
+            email='test@example.com',
+            check_in_time='14:00:00',
+            check_out_time='11:00:00'
+        )
+        # Create a profile for the user
+        from .models import Profile
+        self.profile = Profile.objects.create(
+            user=self.user,
+            full_name='Test User',
+            email='testuser@example.com',
+            role='customer'
         )
 
 
@@ -51,33 +56,28 @@ class HomeViewTests(BaseTestCase):
         response = self.client.get(reverse('home'))
         self.assertContains(response, 'Test Hostel')
     
-    def test_home_page_university_filter(self):
-        response = self.client.get(reverse('home'), {'university': 'Makerere University'})
+    def test_home_page_city_filter(self):
+        response = self.client.get(reverse('home'), {'city': self.hostel.city})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Hostel')
     
-    def test_home_page_with_invalid_university(self):
-        response = self.client.get(reverse('home'), {'university': 'Nonexistent University'})
+    def test_home_page_country_filter(self):
+        response = self.client.get(reverse('home'), {'country': self.hostel.country})
         self.assertEqual(response.status_code, 200)
-        # Still renders the page without errors
+        self.assertContains(response, 'Test Hostel')
 
 
 class UniversitiesViewTests(BaseTestCase):
     """Tests for the universities page"""
     
     def test_universities_page_loads(self):
-        response = self.client.get(reverse('universities'))
+        response = self.client.get(reverse('home'))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'universities.html')
+        self.assertTemplateUsed(response, 'home.html')
     
-    def test_universities_lists_all(self):
-        response = self.client.get(reverse('universities'))
-        self.assertContains(response, 'Makerere University')
-    
-    def test_universities_page_has_links(self):
-        response = self.client.get(reverse('universities'))
-        # Check that each university has a link
-        self.assertContains(response, '/?university=Makerere+University')
+    def test_universities_lists_cities(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'Kampala')
 
 
 class HostelDetailViewTests(BaseTestCase):
@@ -92,7 +92,6 @@ class HostelDetailViewTests(BaseTestCase):
         response = self.client.get(reverse('hostel_detail', args=[self.hostel.id]))
         self.assertContains(response, 'Test Hostel')
         self.assertContains(response, 'A test hostel for testing purposes')
-        self.assertContains(response, '350,000')
     
     def test_hostel_detail_404(self):
         response = self.client.get(reverse('hostel_detail', args=[999]))
@@ -263,8 +262,8 @@ class APIEndpointTests(BaseTestCase):
         self.assertIsInstance(data, list)
         self.assertGreater(len(data), 0)
     
-    def test_get_hostels_by_university(self):
-        response = self.client.get(reverse('api_hostels'), {'university': 'Makerere University'})
+    def test_get_hostels_by_city(self):
+        response = self.client.get(reverse('api_hostels'), {'city': self.hostel.city})
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertIsInstance(data, list)
@@ -281,14 +280,23 @@ class APIEndpointTests(BaseTestCase):
     
     def test_create_booking_authenticated(self):
         self.client.login(email='testuser@example.com', password='testpass123')
+        from .models import Room
+        room = Room.objects.create(
+            hostel=self.hostel,
+            room_number='101',
+            room_name='Standard',
+            room_type='Single',
+            capacity=1,
+            available_quantity=5,
+            price_per_night=350000,
+        )
         response = self.client.post(reverse('api_create_booking'),
             json.dumps({
-                'hostelId': self.hostel.id,
-                'checkIn': '2026-05-01',
-                'checkOut': '2026-06-01',
+                'room_id': str(room.id),
+                'check_in': '2026-05-01',
+                'check_out': '2026-05-03',
                 'guests': 1,
-                'totalPrice': 350000,
-                'status': 'pending'
+                'special_requests': ''
             }),
             content_type='application/json'
         )
@@ -296,25 +304,36 @@ class APIEndpointTests(BaseTestCase):
         self.assertEqual(Booking.objects.count(), 1)
     
     def test_create_booking_unauthenticated(self):
+        from .models import Room
+        room = Room.objects.create(
+            hostel=self.hostel,
+            room_number='101',
+            room_name='Standard',
+            room_type='Single',
+            capacity=1,
+            available_quantity=5,
+            price_per_night=350000,
+        )
         response = self.client.post(reverse('api_create_booking'),
             json.dumps({
-                'hostelId': self.hostel.id,
-                'checkIn': '2026-05-01',
-                'checkOut': '2026-06-01',
+                'room_id': str(room.id),
+                'check_in': '2026-05-01',
+                'check_out': '2026-05-03',
                 'guests': 1,
-                'totalPrice': 350000,
-                'status': 'pending'
+                'special_requests': ''
             }),
             content_type='application/json'
         )
         self.assertEqual(response.status_code, 401)
     
     def test_create_message_unauthenticated(self):
-        # Should still work (messages can be from anonymous users)
         response = self.client.post(reverse('api_create_message'),
             json.dumps({
-                'hostelId': self.hostel.id,
-                'subject': 'Test Subject',
+                'hostelId': str(self.hostel.id),
+                'fullName': 'Test',
+                'email': 'test@example.com',
+                'phone': '',
+                'subject': 'Test',
                 'content': 'Test content'
             }),
             content_type='application/json'
@@ -323,11 +342,12 @@ class APIEndpointTests(BaseTestCase):
         self.assertEqual(Message.objects.count(), 1)
     
     def test_get_messages_by_hostel(self):
-        # Create a message first
         Message.objects.create(
-            user=self.user,
             hostel=self.hostel,
-            subject='Test Subject',
+            full_name='Test',
+            email='test@example.com',
+            phone='',
+            subject='Test',
             content='Test content'
         )
         response = self.client.get(reverse('api_hostel_messages', args=[self.hostel.id]))

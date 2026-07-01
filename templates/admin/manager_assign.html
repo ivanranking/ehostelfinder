@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Managers - EHostelFinder Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold font-['Space_Grotesk'] mb-2">Assign Managers to Hostels</h1>
+        <p class="text-[var(--muted)]">Manage hostel manager assignments</p>
+    </div>
+
+    <!-- Hostels and Managers Grid -->
+    <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Hostels Section -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <h2 class="text-xl font-semibold mb-4">Hostels</h2>
+            <div id="hostels-list" class="space-y-3">
+                <p class="text-[var(--muted)]">Loading hostels...</p>
+            </div>
+        </div>
+
+        <!-- Unassigned Managers Section -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <h2 class="text-xl font-semibold mb-4">Unassigned Managers</h2>
+            <div id="unassigned-managers" class="space-y-3">
+                <p class="text-[var(--muted)]">Loading unassigned managers...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load hostels
+    fetch('/api/hostels/')
+        .then(r => r.json())
+        .then(hostels => {
+            let html = '';
+            hostels.forEach(h => {
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg" data-hostel-id="${h.id}">
+                        <div>
+                            <h3 class="font-medium text-[var(--fg)]">${h.name}</h3>
+                            <p class="text-sm text-[var(--muted)]">${h.city}, ${h.country}</p>
+                        </div>
+                        <button onclick="assignManager('${h.id}')" class="text-xs px-3 py-1 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] transition-colors">
+                            Assign Manager
+                        </button>
+                    </div>
+                    <div id="hostel-${h.id}-managers" class="mt-2 pl-4">
+                        <p class="text-xs text-[var(--muted)]">Loading managers...</p>
+                    </div>
+                `;
+            });
+            document.getElementById('hostels-list').innerHTML = html;
+            
+            // Load managers for each hostel
+            hostels.forEach(h => {
+                fetch('/api/admin/hostels/' + h.id + '/managers/')
+                    .then(r => r.json())
+                    .then(managers => {
+                        const container = document.getElementById('hostel-' + h.id + '-managers');
+                        if (managers.length > 0) {
+                            let mHtml = '<p class="text-xs text-[var(--muted)] mb-1">Current Manager(s):</p>';
+                            managers.forEach(m => {
+                                mHtml += `
+                                    <div class="flex items-center justify-between text-sm py-1">
+                                        <span class="text-[var(--fg)]">${m.full_name}</span>
+                                        <button onclick="removeManager('${m.id}')" class="text-xs text-red-400 hover:text-red-300">Remove</button>
+                                    </div>
+                                `;
+                            });
+                            container.innerHTML = mHtml;
+                        } else {
+                            container.innerHTML = '<p class="text-xs text-[var(--muted)]">No manager assigned</p>';
+                        }
+                    });
+            });
+        });
+
+    // Load unassigned managers
+    fetch('/api/admin/managers/unassigned/')
+        .then(r => r.json())
+        .then(managers => {
+            let html = '';
+            managers.forEach(m => {
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg" data-manager-id="${m.id}">
+                        <div>
+                            <h3 class="font-medium text-[var(--fg)]">${m.full_name}</h3>
+                            <p class="text-sm text-[var(--muted)]">${m.email}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            if (managers.length === 0) {
+                html = '<p class="text-[var(--muted)]">All managers are assigned to hostels</p>';
+            }
+            document.getElementById('unassigned-managers').innerHTML = html;
+        });
+});
+
+function assignManager(hostelId) {
+    const managerId = prompt('Enter manager ID (from unassigned managers above):');
+    if (!managerId) return;
+    
+    fetch('/api/admin/managers/assign/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manager_id: managerId, hostel_id: hostelId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to assign manager');
+        }
+    });
+}
+
+function removeManager(managerId) {
+    if (!confirm('Remove this manager from their hostel?')) return;
+    
+    fetch('/api/admin/managers/remove/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manager_id: managerId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Failed to remove manager');
+        }
+    });
+}
+</script>
+{% endblock %}

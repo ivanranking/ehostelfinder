@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Universities - EHostelFinder{% endblock %}
+{% block title %}Partner Universities - EHostelFinder{% endblock %}
 
 {% block nav_universities %}active{% endblock %}
 
@@ -11,31 +11,54 @@
     <div class="text-center mb-16 opacity-0 animate-fade-in-up">
         <h1 class="text-4xl sm:text-5xl font-['Space_Grotesk'] font-bold mb-6">Partner Universities</h1>
         <p class="text-[var(--muted)] text-lg max-w-2xl mx-auto">
-            We work with top universities to provide verified, safe, and affordable accommodation options for students.
+            We work with top universities around Kampala to provide verified, safe, and affordable accommodation options for students.
         </p>
     </div>
     
+    {% if universities %}
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for uni in universities %}
-        <a href="/?university={{ uni|urlencode }}" 
+        <a href="{% url 'home' %}?university={{ uni.name|urlencode }}" 
            class="card-hover bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-{{ forloop.counter }}">
             <div class="flex items-center gap-4 mb-4">
                 <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
-                    <span class="text-[var(--bg)] font-bold text-xl">{{ uni|slice:":1"|upper }}</span>
+                    <span class="text-[var(--bg)] font-bold text-xl">{{ uni.name|slice:":1"|upper }}</span>
                 </div>
                 <div>
-                    <h3 class="font-['Space_Grotesk'] font-semibold text-lg">{{ uni }}</h3>
-                    <p class="text-[var(--muted)] text-sm">Hostels Available</p>
+                    <h3 class="font-['Space_Grotesk'] font-semibold text-lg leading-tight">{{ uni.name }}</h3>
+                    <p class="text-[var(--muted)] text-sm">{{ uni.count }} Hostel{{ uni.count|pluralize }}</p>
                 </div>
             </div>
+            {% if uni.top_hostel %}
             <div class="flex items-center justify-between text-sm">
+                <span class="text-[var(--muted)] truncate">{{ uni.top_hostel }}</span>
+                <div class="flex items-center gap-1 text-[var(--accent)] flex-shrink-0 ml-2">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    <span class="font-semibold">{{ uni.rating }}</span>
+                </div>
+            </div>
+            {% endif %}
+            <div class="flex items-center justify-between text-sm mt-2">
                 <span class="text-[var(--accent)] font-semibold">View Hostels</span>
-                <svg class="w-5 h-5 text-[var(--muted)] transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
                 </svg>
             </div>
         </a>
         {% endfor %}
     </div>
+    {% else %}
+    <div class="text-center py-20">
+        <div class="w-20 h-20 rounded-full bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+        </div>
+        <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-2">No universities found</h3>
+        <p class="text-[var(--muted)]">Universities will appear here once hostels are added with their affiliations.</p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

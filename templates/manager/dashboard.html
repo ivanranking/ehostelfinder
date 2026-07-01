@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% block title %}Manager Dashboard - EHostelFinder{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold font-['Space_Grotesk'] mb-2">Manager Dashboard</h1>
+        <p class="text-[var(--muted)]">Manage {{ hostel.name }} - {{ hostel.city }}</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </div>
+                <span class="text-sm text-[var(--muted)]">Total Rooms</span>
+            </div>
+            <span class="text-2xl font-bold" id="total-rooms">0</span>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <span class="text-sm text-[var(--muted)]">Available</span>
+            </div>
+            <span class="text-2xl font-bold" id="available-rooms">0</span>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </div>
+                <span class="text-sm text-[var(--muted)]">Occupied</span>
+            </div>
+            <span class="text-2xl font-bold" id="occupied-rooms">0</span>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-3-3h-4m-3 0a3 3 0 01-3-3V6a3 3 0 013-3h4a3 3 0 013 3v8a3 3 0 01-3 3z"/>
+                    </svg>
+                </div>
+                <span class="text-sm text-[var(--muted)]">Checked In</span>
+            </div>
+            <span class="text-2xl font-bold" id="checked-in-count">0</span>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-b border-[var(--border)] mb-6">
+        <nav class="flex gap-6">
+            <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)] active-tab" data-tab="checkins">Checked In Guests</button>
+            <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="rooms">Room Management</button>
+        </nav>
+    </div>
+
+    <!-- Check-ins Tab -->
+    <div id="checkins-tab" class="tab-content">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-[var(--bg-elevated)]">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Guest</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Check In</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Check Out</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Nights</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Total</th>
+                        <th class="px-6 py-4 text-right text-xs font-medium text-[var(--muted)] uppercase">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="checkins-table" class="divide-y divide-[var(--border)]">
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">Loading check-ins...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Rooms Tab -->
+    <div id="rooms-tab" class="tab-content hidden">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
+            <table class="w-full">
+                <thead class="bg-[var(--bg-elevated)]">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room #</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Type</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Capacity</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Price</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Available Qty</th>
+                        <th class="px-6 py-4 text-right text-xs font-medium text-[var(--muted)] uppercase">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="rooms-table" class="divide-y divide-[var(--border)]">
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab', 'border-b-2', 'border-[var(--accent)]'));
+            this.classList.add('active-tab', 'border-b-2', 'border-[var(--accent)]');
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+            document.getElementById(this.dataset.tab + '-tab').classList.remove('hidden');
+        });
+    });
+
+    // Load check-ins
+    fetch('/manager/checkins/')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('checked-in-count').textContent = data.length;
+            let html = '';
+            data.forEach(c => {
+                html += `
+                    <tr class="hover:bg-[var(--bg-elevated)]">
+                        <td class="px-6 py-4">
+                            <div>
+                                <p class="font-medium text-[var(--fg)]">${c.customer_name}</p>
+                                <p class="text-sm text-[var(--muted)]">${c.customer_email}</p>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${c.room_number} - ${c.room_name}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${c.check_in}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${c.check_out}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${c.guests}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">$${c.total_price}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="checkoutGuest(${c.id})" class="text-sm text-amber-500 hover:text-amber-400">Check Out</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            if (!html) html = '<tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">No checked-in guests</td></tr>';
+            document.getElementById('checkins-table').innerHTML = html;
+        });
+
+    // Load rooms
+    fetch('/manager/rooms/')
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('total-rooms').textContent = data.length;
+            const available = data.filter(r => r.status === 'Available').length;
+            const occupied = data.filter(r => r.status === 'Occupied').length;
+            document.getElementById('available-rooms').textContent = available;
+            document.getElementById('occupied-rooms').textContent = occupied;
+            let html = '';
+            data.forEach(r => {
+                html += `
+                    <tr class="hover:bg-[var(--bg-elevated)]">
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.room_number}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.room_type}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.capacity}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">$${r.price_per_night}</td>
+                        <td class="px-6 py-4">
+                            <select onchange="updateRoomStatus(${r.id}, this.value)" class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm">
+                                <option value="Available" ${r.status === 'Available' ? 'selected' : ''}>Available</option>
+                                <option value="Occupied" ${r.status === 'Occupied' ? 'selected' : ''}>Occupied</option>
+                                <option value="Maintenance" ${r.status === 'Maintenance' ? 'selected' : ''}>Maintenance</option>
+                            </select>
+                        </td>
+                        <td class="px-6 py-4">
+                            <input type="number" value="${r.available_quantity}" onchange="updateRoomQty(${r.id}, this.value)" class="w-16 bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm"/>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="saveRoom(${r.id})" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)]">Save</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('rooms-table').innerHTML = html;
+        });
+});
+
+function checkoutGuest(id) {
+    if (!confirm('Confirm check out for this guest?')) return;
+    fetch('/manager/checkout/' + id + '/', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) location.reload();
+        });
+}
+
+let roomChanges = {};
+function updateRoomStatus(id, status) { roomChanges[id] = roomChanges[id] || {}; roomChanges[id].status = status; }
+function updateRoomQty(id, qty) { roomChanges[id] = roomChanges[id] || {}; roomChanges[id].available_quantity = parseInt(qty); }
+function saveRoom(id) {
+    const changes = roomChanges[id] || {};
+    fetch('/manager/rooms/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_id: id, ...changes })
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            delete roomChanges[id];
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,31 +1,33 @@
 from django import forms
-from .models import Hostel, Booking, Message, User
+from .models import Booking, Hostel, Message, User, Profile
+
 
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ['hostel', 'full_name', 'email', 'phone', 'university', 'student_id', 'move_in_date', 'room_type', 'special_requests', 'status']
-        widgets = {
-            'status': forms.TextInput(attrs={'placeholder': 'pending'}),
-        }
+        fields = ['room', 'check_in', 'check_out', 'guests', 'special_requests']
+
 
 class MessageForm(forms.ModelForm):
     class Meta:
         model = Message
-        fields = ['hostel', 'full_name', 'email', 'phone', 'message']
+        fields = ['hostel', 'full_name', 'email', 'phone', 'subject', 'content']
+
 
 class HostelForm(forms.ModelForm):
     class Meta:
         model = Hostel
         fields = '__all__'
 
+
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, label="Password")
     confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm Password")
+    terms = forms.BooleanField(required=True, label="I agree to the Terms of Service and Privacy Policy")
     
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'password']
+        fields = ['email', 'first_name', 'last_name', 'password', 'terms']
     
     def clean(self):
         cleaned_data = super().clean()
@@ -49,6 +51,57 @@ class UserRegistrationForm(forms.ModelForm):
             user.save()
         return user
 
+
 class UserLoginForm(forms.Form):
     email = forms.EmailField()
     password = forms.CharField(widget=forms.PasswordInput)
+
+
+class ForgotPasswordForm(forms.Form):
+    email = forms.EmailField(label="Email Address")
+
+
+class ResetPasswordForm(forms.Form):
+    new_password = forms.CharField(widget=forms.PasswordInput, label="New Password")
+    confirm_password = forms.CharField(widget=forms.PasswordInput, label="Confirm New Password")
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        new_password = cleaned_data.get("new_password")
+        confirm_password = cleaned_data.get("confirm_password")
+        
+        if new_password and confirm_password and new_password != confirm_password:
+            raise forms.ValidationError("Passwords do not match")
+        
+        if new_password and len(new_password) < 8:
+            raise forms.ValidationError("Password must be at least 8 characters long")
+        
+        return cleaned_data
+
+
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['full_name', 'email', 'phone', 'profile_photo']
+    
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        profile.email = profile.user.email
+        if commit:
+            profile.save()
+        return profile
+
+
+class ManagerProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['full_name', 'email', 'phone', 'profile_photo']
+    
+    def save(self, commit=True, user=None, hostel=None):
+        profile = super().save(commit=False)
+        profile.user = user
+        profile.role = 'manager'
+        profile.hostel = hostel
+        if commit:
+            profile.save()
+        return profile

@@ -1,3 +1,7 @@
-Django
+Django>=6.0,<6.1
 python-dotenv
 psycopg2-binary
+dj-database-url
+google-auth
+gunicorn
+whitenoise

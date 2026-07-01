@@ -113,6 +113,12 @@
 </div>
 
 <script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
 document.getElementById('contact-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -130,14 +136,15 @@ document.getElementById('contact-form').addEventListener('submit', async functio
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken'),
             }
         });
         
         const data = await response.json();
         
-        if (response.ok && data.success) {
+        if (response.ok) {
             messageDiv.className = 'mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-emerald-400';
-            messageDiv.innerHTML = `<p>${data.message}</p>`;
+            messageDiv.innerHTML = '<p>Message sent successfully!</p>';
             messageDiv.classList.remove('hidden');
             this.reset();
         } else {
@@ -145,7 +152,7 @@ document.getElementById('contact-form').addEventListener('submit', async functio
         }
     } catch (error) {
         messageDiv.className = 'mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400';
-        messageDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+        messageDiv.innerHTML = '<p>Error: ' + error.message + '</p>';
         messageDiv.classList.remove('hidden');
     } finally {
         submitBtn.disabled = false;

@@ -115,87 +115,29 @@ async function askAI() {
   responseContent.innerHTML = "<div class='typing-indicator'><span></span><span></span><span></span></div>";
 
   try {
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyDST-CssEljn9b57fxyLzxPSsDvW3udlmA",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { 
-                  text: `You are a helpful hostel assistant for EHostelFinder. Answer questions about hostel services, bookings, and amenities. Be friendly, concise, and helpful. Context: EHostelFinder helps students find safe, comfortable, affordable accommodation near universities. Question: ${question}`
-                }
-              ]
-            }
-          ]
-        })
-      }
-    );
+    const response = await fetch("/api/ai-chat/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    });
 
+    let data = await response.json();
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errMessage = data.error || data.message || `Server returned ${response.status}`;
+      throw new Error(errMessage);
     }
-
-    const data = await response.json();
-
-    if (data.candidates && data.candidates[0] && data.candidates[0].content) {
-      const aiText = data.candidates[0].content.parts[0].text;
-      responseContent.innerHTML = formatResponse(aiText);
-    } else {
-      throw new Error("Invalid response from AI");
-    }
+    let aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || data.reply || 'Sorry, I could not generate a response.';
+    responseContent.innerHTML = formatResponse(aiText);
   } catch (error) {
     console.error("AI Error:", error);
     responseContent.innerHTML = `
       <div class="error-message">
-        <strong>Connection Error</strong>
+        <strong>Error</strong>
         <p>Sorry, we couldn't connect to the AI service.</p>
         <p><small>${error.message}</small></p>
       </div>
     `;
   }
 }
-
-function formatResponse(text) {
-  // Format the response with proper line breaks, paragraphs, and bold text
-  let formatted = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>');
-  
-  // Wrap in paragraphs if not already
-  if (!formatted.startsWith('<p>')) {
-    formatted = '<p>' + formatted + '</p>';
-  }
-  
-  return formatted;
-}
-
-function handleKeyPress(event) {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    askAI();
-  }
-}
-
-function setQuestion(question) {
-  document.getElementById('question').value = question;
-}
-
-// Auto-resize textarea
-document.addEventListener('DOMContentLoaded', function() {
-  const textarea = document.getElementById('question');
-  if (textarea) {
-    textarea.addEventListener('input', function() {
-      this.style.height = 'auto';
-      this.style.height = (this.scrollHeight) + 'px';
-    });
-  }
-});
 </script>
 {% endblock %}

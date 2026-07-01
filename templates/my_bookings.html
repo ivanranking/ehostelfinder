@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}My Bookings - EHostelFinder{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] px-4 py-12">
+    <div class="max-w-4xl mx-auto">
+        <a href="/" class="inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors mb-8">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+        </a>
+
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-['Space_Grotesk'] font-bold">My Bookings</h1>
+            <a href="{% url 'hostel_detail' booking.hostel.id %}" class="hidden md:block text-[var(--accent)] hover:underline">Browse Hostels</a>
+        </div>
+
+        {% if bookings %}
+            <div class="space-y-4">
+                {% for booking in bookings %}
+                <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-1">{{ booking.hostel.name }}</h3>
+                            <p class="text-[var(--muted)] text-sm">{{ booking.room.room_name }} ({{ booking.room.room_type }})</p>
+                            <p class="text-[var(--muted)] text-sm">{{ booking.check_in }} to {{ booking.check_out }} &middot; {{ booking.nights }} night(s)</p>
+                            <p class="text-sm mt-2">Reference: <strong>{{ booking.booking_reference }}</strong></p>
+                        </div>
+                        <div class="text-right">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-medium
+                                {% if booking.booking_status == 'Pending' %}bg-yellow-500/10 text-yellow-500 border border-yellow-500/20
+                                {% elif booking.booking_status == 'Confirmed' %}bg-blue-500/10 text-blue-500 border border-blue-500/20
+                                {% elif booking.booking_status == 'Checked In' %}bg-emerald-500/10 text-emerald-500 border border-emerald-500/20
+                                {% elif booking.booking_status == 'Checked Out' %}bg-gray-500/10 text-gray-400 border border-gray-500/20
+                                {% elif booking.booking_status == 'Cancelled' %}bg-red-500/10 text-red-500 border border-red-500/20
+                                {% endif %}">
+                                {{ booking.booking_status }}
+                            </span>
+                            <p class="text-lg font-bold mt-2 text-[var(--accent)]">UGX {{ booking.total_price|floatformat:0 }}</p>
+                            <p class="text-xs text-[var(--muted)]">Payment: {{ booking.payment_status }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 sm:p-10 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-4">No bookings yet</h2>
+                <p class="text-[var(--muted)] mb-6">Start exploring hostels and make your first booking!</p>
+                <a href="/" class="btn-primary inline-block">Browse Hostels</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+</style>
+{% endblock %}
