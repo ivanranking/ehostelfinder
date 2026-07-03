@@ -16,6 +16,7 @@ from .local_ai import get_local_ai_response
 
 KAMPALA_AREA_UNIVERSITIES = [
     'Makerere University',
+    'Makerere University Business School',
     'Kyambogo University',
     'Kampala International University',
     'Uganda Christian University',

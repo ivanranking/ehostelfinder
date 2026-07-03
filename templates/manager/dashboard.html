@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_number}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_type}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.capacity}</td>
-                        <td class="px-6 py-4 text-[var(--fg)]">$${r.price_per_night}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.price_per_night} UGX/semester</td>
                         <td class="px-6 py-4">
                             <select onchange="updateRoomStatus(${r.id}, this.value)" class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm">
                                 <option value="Available" ${r.status === 'Available' ? 'selected' : ''}>Available</option>
