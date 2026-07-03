@@ -2,8 +2,7 @@ from django.db import migrations
 
 
 def clear_hostels(apps, schema_editor):
-    Hostel = apps.get_model('hostels', 'Hostel')
-    Hostel.objects.all().delete()
+    pass  # Disabled: no longer clearing hostels on deploy
 
 
 class Migration(migrations.Migration):

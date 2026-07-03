@@ -120,6 +120,52 @@
     </div>
 </section>
 
+<!-- Hostels Listing Section -->
+<section class="py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% if hostels %}
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for hostel in hostels %}
+            <a href="{% url 'hostel_detail' hostel.id %}" class="card-hover bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden">
+                <div class="aspect-[4/3] overflow-hidden">
+                    {% if hostel.image_url %}
+                    <img src="{{ hostel.image_url }}" alt="{{ hostel.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                    <div class="w-full h-full bg-[var(--bg-elevated)] flex items-center justify-center">
+                        <span class="text-[var(--muted)]">No image</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-6">
+                    <h3 class="font-['Space_Grotesk'] font-bold text-lg mb-2">{{ hostel.name }}</h3>
+                    <p class="text-[var(--muted)] text-sm mb-3">{{ hostel.city }}, {{ hostel.country }}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[var(--accent)] font-semibold">${{ hostel.price|default:'0' }}/night</span>
+                        <div class="flex items-center gap-1 text-yellow-500">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                            <span class="text-sm font-medium">{{ hostel.rating }}</span>
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-20">
+            <div class="w-20 h-20 rounded-full bg-[var(--card)] border border-[var(--border)] flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-2">No hostels found</h3>
+            <p class="text-[var(--muted)]">Try adjusting your search filters or check back later for new listings.</p>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
 <!-- Stats Section -->
 <section class="py-20 border-y border-[var(--border)]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -3,7 +3,7 @@ services:
     name: ehostelfinder
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
     startCommand: gunicorn ehostelfinder.wsgi:application --log-file -
     envVars:
       - key: PYTHON_VERSION
@@ -14,3 +14,5 @@ services:
         value: https://ehostelfinder.onrender.com
       - key: ALLOWED_HOSTS
         value: .onrender.com
+      - key: SECRET_KEY
+        generateValue: true
