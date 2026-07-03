@@ -3,126 +3,78 @@
 {% block title %}Upload Hostel - EHostelFinder{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="mb-8">
         <h1 class="text-3xl font-bold font-['Space_Grotesk'] mb-2">Upload a Hostel</h1>
-        <p class="text-[var(--muted)]">Create a hostel, add an initial room, and assign a manager.</p>
+        <p class="text-[var(--muted)]">Add the hostel details you want to show on the website.</p>
     </div>
 
-    <form method="post" class="grid lg:grid-cols-2 gap-8">
+    <form method="post" class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-6">
         {% csrf_token %}
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
-            <h2 class="text-xl font-semibold">Hostel Details</h2>
-            <div class="grid sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Name</label>
-                    <input name="name" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Address</label>
-                    <input name="address" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">City</label>
-                    <input name="city" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Country</label>
-                    <input name="country" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">University</label>
-                    <input name="university" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Distance</label>
-                    <input name="distance" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Price</label>
-                    <input type="number" step="0.01" name="price" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Rating</label>
-                    <input type="number" step="0.1" min="0" max="5" name="rating" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Amenities</label>
-                    <input name="amenities" placeholder="Wi-Fi, Breakfast" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Contact</label>
-                    <input name="contact" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Phone</label>
-                    <input name="phone" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Email</label>
-                    <input type="email" name="email" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Image URL</label>
-                    <input type="url" name="image_url" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Check In</label>
-                    <input type="time" name="check_in_time" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Check Out</label>
-                    <input type="time" name="check_out_time" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="text-sm text-[var(--muted)]">Name</label>
+                <input name="name" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
             </div>
             <div>
-                <label class="text-sm text-[var(--muted)]">Description</label>
-                <textarea name="description" rows="4" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"></textarea>
+                <label class="text-sm text-[var(--muted)]">Address</label>
+                <input name="address" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">City</label>
+                <input name="city" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Country</label>
+                <input name="country" value="Uganda" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">University</label>
+                <input name="university" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Single Price</label>
+                <input type="number" step="0.01" name="price_single" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Double Price</label>
+                <input type="number" step="0.01" name="price_double" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Triple Price</label>
+                <input type="number" step="0.01" name="price_triple" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Quadruple Price</label>
+                <input type="number" step="0.01" name="price_quadruple" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Rating</label>
+                <input type="number" step="0.1" min="0" max="5" name="rating" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Amenities</label>
+                <input name="amenities" placeholder="Wi-Fi, Breakfast" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Image URL</label>
+                <input type="url" name="image_url" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Room Availability</label>
+                <div class="mt-2 flex flex-col gap-2">
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_single" checked class="w-4 h-4 text-[var(--accent)]"> Single room available</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_double" checked class="w-4 h-4 text-[var(--accent)]"> Double room available</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_triple" checked class="w-4 h-4 text-[var(--accent)]"> Triple room available</label>
+                    <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_quadruple" checked class="w-4 h-4 text-[var(--accent)]"> Quadruple room available</label>
+                </div>
             </div>
         </div>
-
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-4">
-            <h2 class="text-xl font-semibold">Initial Room & Manager</h2>
-            <div class="grid sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Room Number</label>
-                    <input name="room_number" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Room Name</label>
-                    <input name="room_name" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Room Type</label>
-                    <select name="room_type" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
-                        <option>Single</option>
-                        <option>Double</option>
-                        <option>Triple</option>
-                        <option>Quadruple</option>
-                        <option>Family</option>
-                        <option>Dormitory</option>
-                        <option>Suite</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Capacity</label>
-                    <input type="number" name="capacity" min="1" value="1" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Available Quantity</label>
-                    <input type="number" name="available_quantity" min="1" value="1" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--muted)]">Price per Night</label>
-                    <input type="number" step="0.01" name="price_per_night" required class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="text-sm text-[var(--muted)]">Manager Email</label>
-                    <input type="email" name="manager_email" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
-                </div>
-            </div>
-            <button type="submit" class="btn-primary w-full">Create Hostel</button>
+        <div>
+            <label class="text-sm text-[var(--muted)]">Description</label>
+            <textarea name="description" rows="4" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"></textarea>
         </div>
+        <button type="submit" class="btn-primary w-full">Create Hostel</button>
     </form>
 </div>
 {% endblock %}

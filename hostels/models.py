@@ -161,6 +161,7 @@ class Room(models.Model):
     television = models.BooleanField(default=False)
     wifi = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=RoomStatus.choices, default=RoomStatus.AVAILABLE)
+    is_available = models.BooleanField(default=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 

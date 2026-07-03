@@ -44,6 +44,7 @@ if allowed_hosts_env:
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -54,6 +55,8 @@ INSTALLED_APPS = [
 
 # Custom user model
 AUTH_USER_MODEL = 'hostels.User'
+LOGIN_URL = '/login/'
+LOGOUT_REDIRECT_URL = '/'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

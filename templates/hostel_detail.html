@@ -139,6 +139,30 @@
             
             <!-- Reviews Section -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)]">
+                {% if user.is_authenticated %}
+                <form method="post" class="mb-6 space-y-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="review_submit" value="1">
+                    <div class="flex items-center gap-3">
+                        <label class="text-sm font-medium text-[var(--muted)]">Your Rating</label>
+                        <select name="rating" required class="rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
+                            <option value="">Select</option>
+                            <option value="5">5 - Excellent</option>
+                            <option value="4">4 - Very Good</option>
+                            <option value="3">3 - Good</option>
+                            <option value="2">2 - Fair</option>
+                            <option value="1">1 - Poor</option>
+                        </select>
+                    </div>
+                    <textarea name="comment" rows="3" placeholder="Write your review..." class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2"></textarea>
+                    <button type="submit" class="btn-primary">Submit Review</button>
+                </form>
+                {% else %}
+                <div class="mb-6 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-sm text-[var(--muted)]">
+                    <a href="/login/" class="text-[var(--accent)]">Login</a> to leave a review.
+                </div>
+                {% endif %}
+
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-['Space_Grotesk'] font-semibold">Reviews</h2>
                     <div class="flex items-center gap-2">

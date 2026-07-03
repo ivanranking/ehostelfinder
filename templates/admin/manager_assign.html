@@ -9,9 +9,35 @@
         <p class="text-[var(--muted)]">Manage hostel manager assignments</p>
     </div>
 
+    <!-- Create Manager Form -->
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">Create New Manager Account</h2>
+        <form id="create-manager-form" class="grid md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Full Name</label>
+                <input type="text" id="manager-full-name" required class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm" placeholder="John Doe">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input type="email" id="manager-email" required class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm" placeholder="manager@example.com">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Phone</label>
+                <input type="tel" id="manager-phone" class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm" placeholder="+1234567890">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Password</label>
+                <input type="password" id="manager-password" required class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm" placeholder="Min 8 characters">
+            </div>
+            <div class="md:col-span-2">
+                <button type="submit" class="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] transition-colors">Create Manager</button>
+                <span id="create-manager-status" class="ml-3 text-sm"></span>
+            </div>
+        </form>
+    </div>
+
     <!-- Hostels and Managers Grid -->
     <div class="grid lg:grid-cols-2 gap-8">
-        <!-- Hostels Section -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
             <h2 class="text-xl font-semibold mb-4">Hostels</h2>
             <div id="hostels-list" class="space-y-3">
@@ -19,7 +45,6 @@
             </div>
         </div>
 
-        <!-- Unassigned Managers Section -->
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
             <h2 class="text-xl font-semibold mb-4">Unassigned Managers</h2>
             <div id="unassigned-managers" class="space-y-3">
@@ -31,79 +56,123 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Load hostels
-    fetch('/api/hostels/')
+    const createForm = document.getElementById('create-manager-form');
+    const statusSpan = document.getElementById('create-manager-status');
+    
+    createForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const fullName = document.getElementById('manager-full-name').value;
+        const email = document.getElementById('manager-email').value;
+        const phone = document.getElementById('manager-phone').value;
+        const password = document.getElementById('manager-password').value;
+        
+        statusSpan.textContent = 'Creating...';
+        statusSpan.className = 'ml-3 text-sm text-[var(--muted)]';
+        
+        fetch('/api/admin/managers/create/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ full_name: fullName, email: email, phone: phone, password: password })
+        })
         .then(r => r.json())
-        .then(hostels => {
-            let html = '';
-            hostels.forEach(h => {
-                html += `
-                    <div class="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg" data-hostel-id="${h.id}">
+        .then(data => {
+            if (data.success) {
+                statusSpan.textContent = 'Manager created successfully!';
+                statusSpan.className = 'ml-3 text-sm text-green-400';
+                createForm.reset();
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                statusSpan.textContent = data.error || 'Failed to create manager';
+                statusSpan.className = 'ml-3 text-sm text-red-400';
+            }
+        });
+    });
+
+    Promise.all([
+        fetch('/api/hostels/').then(r => r.json()),
+        fetch('/api/admin/managers/unassigned/').then(r => r.json())
+    ])
+    .then(([hostels, managers]) => {
+        const managerOptions = managers.map(m => `<option value="${m.id}">${m.full_name} (${m.email})</option>`).join('');
+
+        let html = '';
+        hostels.forEach(h => {
+            html += `
+                <div class="p-3 bg-[var(--bg)] rounded-lg" data-hostel-id="${h.id}">
+                    <div class="flex items-center justify-between gap-2">
                         <div>
                             <h3 class="font-medium text-[var(--fg)]">${h.name}</h3>
                             <p class="text-sm text-[var(--muted)]">${h.city}, ${h.country}</p>
                         </div>
-                        <button onclick="assignManager('${h.id}')" class="text-xs px-3 py-1 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] transition-colors">
-                            Assign Manager
+                    </div>
+                    <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                        <select id="manager-select-${h.id}" class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm">
+                            <option value="">Select a manager</option>
+                            ${managerOptions}
+                        </select>
+                        <button onclick="assignManager('${h.id}', 'manager-select-${h.id}')" class="text-xs px-3 py-2 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] transition-colors">
+                            Assign
                         </button>
                     </div>
                     <div id="hostel-${h.id}-managers" class="mt-2 pl-4">
                         <p class="text-xs text-[var(--muted)]">Loading managers...</p>
                     </div>
-                `;
-            });
-            document.getElementById('hostels-list').innerHTML = html;
-            
-            // Load managers for each hostel
-            hostels.forEach(h => {
-                fetch('/api/admin/hostels/' + h.id + '/managers/')
-                    .then(r => r.json())
-                    .then(managers => {
-                        const container = document.getElementById('hostel-' + h.id + '-managers');
-                        if (managers.length > 0) {
-                            let mHtml = '<p class="text-xs text-[var(--muted)] mb-1">Current Manager(s):</p>';
-                            managers.forEach(m => {
-                                mHtml += `
-                                    <div class="flex items-center justify-between text-sm py-1">
-                                        <span class="text-[var(--fg)]">${m.full_name}</span>
-                                        <button onclick="removeManager('${m.id}')" class="text-xs text-red-400 hover:text-red-300">Remove</button>
-                                    </div>
-                                `;
-                            });
-                            container.innerHTML = mHtml;
-                        } else {
-                            container.innerHTML = '<p class="text-xs text-[var(--muted)]">No manager assigned</p>';
-                        }
-                    });
-            });
+                </div>
+            `;
+        });
+        document.getElementById('hostels-list').innerHTML = html;
+
+        hostels.forEach(h => {
+            fetch('/api/admin/hostels/' + h.id + '/managers/')
+                .then(r => r.json())
+                .then(managersForHostel => {
+                    const container = document.getElementById('hostel-' + h.id + '-managers');
+                    if (managersForHostel.length > 0) {
+                        let mHtml = '<p class="text-xs text-[var(--muted)] mb-1">Current Manager(s):</p>';
+                        managersForHostel.forEach(m => {
+                            mHtml += `
+                                <div class="flex items-center justify-between text-sm py-1">
+                                    <span class="text-[var(--fg)]">${m.full_name}</span>
+                                    <button onclick="removeManager('${m.id}')" class="text-xs text-red-400 hover:text-red-300">Remove</button>
+                                </div>
+                            `;
+                        });
+                        container.innerHTML = mHtml;
+                    } else {
+                        container.innerHTML = '<p class="text-xs text-[var(--muted)]">No manager assigned</p>';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('hostel-' + h.id + '-managers').innerHTML = '<p class="text-xs text-red-400">Error loading managers</p>';
+                });
         });
 
-    // Load unassigned managers
-    fetch('/api/admin/managers/unassigned/')
-        .then(r => r.json())
-        .then(managers => {
-            let html = '';
-            managers.forEach(m => {
-                html += `
-                    <div class="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg" data-manager-id="${m.id}">
-                        <div>
-                            <h3 class="font-medium text-[var(--fg)]">${m.full_name}</h3>
-                            <p class="text-sm text-[var(--muted)]">${m.email}</p>
-                        </div>
+        let managerHtml = '';
+        managers.forEach(m => {
+            managerHtml += `
+                <div class="flex items-center justify-between p-3 bg-[var(--bg)] rounded-lg" data-manager-id="${m.id}">
+                    <div>
+                        <h3 class="font-medium text-[var(--fg)]">${m.full_name}</h3>
+                        <p class="text-sm text-[var(--muted)]">${m.email}</p>
                     </div>
-                `;
-            });
-            if (managers.length === 0) {
-                html = '<p class="text-[var(--muted)]">All managers are assigned to hostels</p>';
-            }
-            document.getElementById('unassigned-managers').innerHTML = html;
+                </div>
+            `;
         });
+        if (managers.length === 0) {
+            managerHtml = '<p class="text-[var(--muted)]">All managers are assigned to hostels</p>';
+        }
+        document.getElementById('unassigned-managers').innerHTML = managerHtml;
+    });
 });
 
-function assignManager(hostelId) {
-    const managerId = prompt('Enter manager ID (from unassigned managers above):');
-    if (!managerId) return;
-    
+function assignManager(hostelId, selectId) {
+    const select = document.getElementById(selectId);
+    const managerId = select.value;
+    if (!managerId) {
+        alert('Please select a manager first');
+        return;
+    }
+
     fetch('/api/admin/managers/assign/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,7 +190,7 @@ function assignManager(hostelId) {
 
 function removeManager(managerId) {
     if (!confirm('Remove this manager from their hostel?')) return;
-    
+
     fetch('/api/admin/managers/remove/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -15,12 +15,15 @@ urlpatterns = [
     
     # Manager dashboard
     path('manager/', views.manager_dashboard, name='manager_dashboard'),
+    path('manager/bookings/', views.manager_bookings, name='manager_bookings'),
+    path('manager/bookings/<int:booking_id>/update/', views.manager_update_booking, name='manager_update_booking'),
     path('manager/checkins/', views.manager_checkins, name='manager_checkins'),
     path('manager/rooms/', views.manager_rooms, name='manager_rooms'),
     path('manager/checkout/<int:booking_id>/', views.manager_checkout, name='manager_checkout'),
     path('admin/hostels/upload/', views.hostel_upload, name='hostel_upload'),
     path('admin/managers/', views.admin_manager_assign, name='admin_manager_assign'),
     path('api/admin/managers/', views.api_managers, name='api_managers'),
+    path('api/admin/managers/create/', views.admin_create_manager, name='api_create_manager'),
     path('api/admin/managers/unassigned/', views.api_unassigned_managers, name='api_unassigned_managers'),
     path('api/admin/hostels/<int:hostel_id>/managers/', views.api_hostel_managers, name='api_hostel_managers'),
     path('api/admin/managers/assign/', views.admin_assign_manager, name='admin_assign_manager'),

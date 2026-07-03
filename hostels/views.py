@@ -4,12 +4,13 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.db.models import Avg
 import json
 import os
 import urllib.request
 import urllib.error
 from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
-from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, RoomStatus
+from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, RoomStatus, BookingStatus
 from django.contrib.auth.decorators import login_required
 from .local_ai import get_local_ai_response
 
@@ -182,6 +183,31 @@ def hostel_detail(request, id):
         return redirect('home')
 
     if request.method == 'POST':
+        if 'review_submit' in request.POST:
+            if not request.user.is_authenticated:
+                messages.error(request, 'You must be logged in to leave a review')
+                return redirect('login')
+
+            rating = request.POST.get('rating', '').strip()
+            comment = request.POST.get('comment', '').strip()
+
+            if not rating or not rating.isdigit() or int(rating) not in range(1, 6):
+                messages.error(request, 'Please select a valid rating from 1 to 5.')
+                return redirect('hostel_detail', id=hostel.id)
+
+            Review.objects.create(
+                hostel=hostel,
+                customer=request.user,
+                rating=int(rating),
+                comment=comment,
+            )
+
+            hostel.review_count = hostel.reviews.count()
+            hostel.rating = round(hostel.reviews.aggregate(avg=Avg('rating'))['avg'] or 0, 2)
+            hostel.save(update_fields=['review_count', 'rating'])
+            messages.success(request, 'Your review has been submitted successfully.')
+            return redirect('hostel_detail', id=hostel.id)
+
         if not request.user.is_authenticated:
             messages.error(request, 'You must be logged in to send a message')
             return redirect('login')
@@ -726,49 +752,35 @@ def hostel_upload(request):
                 description=form.cleaned_data['description'] or '',
                 address=form.cleaned_data['address'],
                 city=form.cleaned_data['city'],
-                country=form.cleaned_data['country'],
+                country=form.cleaned_data.get('country') or 'Uganda',
                 university=form.cleaned_data['university'] or '',
-                distance=form.cleaned_data['distance'] or 'Near campus',
-                price=form.cleaned_data['price'] or 0,
+                distance='Near campus',
+                price=form.cleaned_data['price_single'] or 0,
                 rating=form.cleaned_data['rating'] or 0,
                 amenities=[item.strip() for item in form.cleaned_data['amenities'].split(',') if item.strip()],
-                contact=form.cleaned_data['contact'] or '',
-                phone=form.cleaned_data['phone'] or '',
-                email=form.cleaned_data['email'] or '',
                 image_url=form.cleaned_data['image_url'] or '',
-                check_in_time=form.cleaned_data['check_in_time'] or '14:00:00',
-                check_out_time=form.cleaned_data['check_out_time'] or '11:00:00',
-            )
-            Room.objects.create(
-                hostel=hostel,
-                room_number=form.cleaned_data['room_number'],
-                room_name=form.cleaned_data['room_name'],
-                room_type=form.cleaned_data['room_type'],
-                capacity=form.cleaned_data['capacity'],
-                available_quantity=form.cleaned_data['available_quantity'],
-                price_per_night=form.cleaned_data['price_per_night'],
             )
 
-            manager_email = form.cleaned_data['manager_email']
-            if manager_email:
-                user, created = User.objects.get_or_create(
-                    email=manager_email,
-                    defaults={
-                        'first_name': 'Manager',
-                        'last_name': 'User',
-                        'is_email_verified': True,
-                    }
+            room_types = [
+                ('Single', form.cleaned_data['price_single'], request.POST.get('room_available_single')),
+                ('Double', form.cleaned_data['price_double'], request.POST.get('room_available_double')),
+                ('Triple', form.cleaned_data['price_triple'], request.POST.get('room_available_triple')),
+                ('Quadruple', form.cleaned_data['price_quadruple'], request.POST.get('room_available_quadruple')),
+            ]
+            for index, (room_type, price, is_avail) in enumerate(room_types, start=1):
+                if price is None or price == 0:
+                    continue
+                capacity = 1 if room_type == 'Single' else 2 if room_type == 'Double' else 3 if room_type == 'Triple' else 4
+                Room.objects.create(
+                    hostel=hostel,
+                    room_number=str(index),
+                    room_name=f'{room_type} Room',
+                    room_type=room_type,
+                    capacity=capacity,
+                    available_quantity=1,
+                    price_per_night=price,
+                    is_available=is_avail == 'on',
                 )
-                if created:
-                    user.set_password('ChangeMe123')
-                    user.save()
-                profile_obj, _ = Profile.objects.get_or_create(
-                    user=user,
-                    defaults={'full_name': user.get_full_name() or user.email, 'email': user.email, 'role': 'manager'}
-                )
-                profile_obj.role = 'manager'
-                profile_obj.hostel = hostel
-                profile_obj.save()
 
             messages.success(request, 'Hostel created successfully.')
             return redirect('hostel_upload')
@@ -776,6 +788,59 @@ def hostel_upload(request):
         form = HostelUploadForm()
 
     return render(request, 'admin/hostel_upload.html', {'form': form})
+
+
+@require_http_methods(['GET'])
+def manager_bookings(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    hostel = profile.hostel
+    if not hostel:
+        return JsonResponse({'error': 'No hostel assigned'}, status=400)
+    bookings = Booking.objects.filter(hostel=hostel).select_related('customer', 'room').order_by('-booked_at')
+    bookings_data = [{
+        'id': str(b.id),
+        'booking_reference': b.booking_reference,
+        'customer_name': b.customer.get_full_name() or b.customer.email,
+        'customer_email': b.customer.email,
+        'room_number': b.room.room_number,
+        'room_name': b.room.room_name,
+        'check_in': b.check_in.isoformat(),
+        'check_out': b.check_out.isoformat(),
+        'guests': b.guests,
+        'nights': b.nights,
+        'total_price': str(b.total_price),
+        'booking_status': b.booking_status,
+        'payment_status': b.payment_status,
+        'special_requests': b.special_requests or '',
+        'booked_at': b.booked_at.isoformat(),
+    } for b in bookings]
+    return JsonResponse(bookings_data, safe=False)
+
+
+@require_http_methods(['POST'])
+def manager_update_booking(request, booking_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+    hostel = profile.hostel
+    if not hostel:
+        return JsonResponse({'error': 'No hostel assigned'}, status=400)
+    try:
+        data = json.loads(request.body)
+        booking = get_object_or_404(Booking, id=booking_id, hostel=hostel)
+        status = data.get('booking_status')
+        if status and status in dict(BookingStatus.choices).keys():
+            booking.booking_status = status
+            booking.save(update_fields=['booking_status'])
+        return JsonResponse({'success': True, 'message': 'Booking updated'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 @require_http_methods(['GET', 'POST'])
@@ -826,6 +891,7 @@ def manager_rooms(request):
             'available_quantity': r.available_quantity,
             'price_per_night': str(r.price_per_night),
             'status': r.status,
+            'is_available': r.is_available,
         } for r in rooms]
         return JsonResponse(rooms_data, safe=False)
     else:
@@ -834,9 +900,13 @@ def manager_rooms(request):
             room_id = data.get('room_id')
             status = data.get('status')
             available_quantity = data.get('available_quantity')
+            is_available = data.get('is_available')
             room = get_object_or_404(Room, id=room_id, hostel=hostel)
             if status in dict(RoomStatus.choices).keys():
                 room.status = status
+                room.is_available = status == 'Available'
+            if is_available is not None:
+                room.is_available = is_available == 'true' or is_available is True
             if available_quantity is not None:
                 room.available_quantity = int(available_quantity)
             room.save()
@@ -845,6 +915,7 @@ def manager_rooms(request):
             return JsonResponse({'error': str(e)}, status=400)
 
 
+@csrf_exempt
 @require_http_methods(['POST'])
 def admin_assign_manager(request):
     if not request.user.is_authenticated:
@@ -926,6 +997,68 @@ def api_managers(request):
     } for m in managers]
     
     return JsonResponse(managers_data, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(['POST'])
+def admin_create_manager(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Authentication required'}, status=401)
+
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        full_name = data.get('full_name', '').strip()
+        email = data.get('email', '').strip()
+        phone = data.get('phone', '').strip()
+        password = data.get('password', '')
+
+        if not full_name or not email or not password:
+            return JsonResponse({'error': 'Full name, email, and password are required'}, status=400)
+
+        if len(password) < 8:
+            return JsonResponse({'error': 'Password must be at least 8 characters'}, status=400)
+
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({'error': 'User with this email already exists'}, status=400)
+
+        import uuid
+        name_parts = full_name.split(' ', 1)
+        first_name = name_parts[0] if name_parts else full_name
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+        user = User.objects.create(
+            id=str(uuid.uuid4()),
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_email_verified=True,
+        )
+        user.set_password(password)
+        user.save()
+
+        manager_profile = Profile.objects.create(
+            user=user,
+            full_name=full_name,
+            email=email,
+            phone=phone or None,
+            role='manager',
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Manager {full_name} created successfully',
+            'manager': {
+                'id': str(manager_profile.id),
+                'full_name': manager_profile.full_name,
+                'email': manager_profile.email,
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
 
 
 @require_http_methods(['GET'])

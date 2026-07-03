@@ -269,9 +269,12 @@
                     {% if user.is_authenticated %}
                         <a href="/my-bookings/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block">My Bookings</a>
                         <a href="/profile/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block">Profile</a>
-                        {% if user.profile.role == 'admin' %}
-                        <a href="/admin/hostels/upload/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Upload Hostel</a>
-                        {% endif %}
+{% if user.profile.role == 'admin' %}
+                         <a href="/admin/hostels/upload/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Upload Hostel</a>
+                         <a href="/admin/managers/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Assign Managers</a>
+                         {% elif user.profile.role == 'manager' %}
+                         <a href="/manager/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">My Dashboard</a>
+                         {% endif %}
                         <div class="hidden sm:flex items-center gap-3 px-3 py-2 rounded-full bg-[var(--card)] border border-[var(--border)]">
                             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent)] to-cyan-500 flex items-center justify-center text-sm font-bold text-[var(--bg)]">
                                 {{ user.first_name|slice:":1"|upper }}
@@ -307,12 +310,18 @@
                     AI Assistant
                 </a>
                 {% if user.is_authenticated %}
-                    <div class="pt-3 border-t border-[var(--border)]">
-                        <p class="text-sm text-[var(--muted)] mb-2">Welcome, {{ user.first_name }}</p>
-                        <a href="/my-bookings/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">My Bookings</a>
-                        <a href="/profile/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Profile</a>
-                        <a href="/logout/" class="w-full btn-secondary text-center block mt-2">Logout</a>
-                    </div>
+<div class="pt-3 border-t border-[var(--border)]">
+                            <p class="text-sm text-[var(--muted)] mb-2">Welcome, {{ user.first_name }}</p>
+                            <a href="/my-bookings/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">My Bookings</a>
+                            <a href="/profile/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Profile</a>
+{% if user.profile.role == 'admin' %}
+                             <a href="/admin/hostels/upload/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">Upload Hostel</a>
+                             <a href="/admin/managers/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">Assign Managers</a>
+                             {% elif user.profile.role == 'manager' %}
+                             <a href="/manager/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">My Dashboard</a>
+                             {% endif %}
+                            <a href="/logout/" class="w-full btn-secondary text-center block mt-2">Logout</a>
+                        </div>
                 {% else %}
                     <div class="pt-3 border-t border-[var(--border)] space-y-2">
                         <a href="/login/" class="w-full btn-secondary text-center block">Login</a>

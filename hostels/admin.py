@@ -1,5 +1,38 @@
+from django import forms
 from django.contrib import admin
 from .models import User, Profile, Hostel, HostelImage, HostelFacility, Room, RoomImage, Booking, Payment, Review, Favorite, Notification, Message, ContactMessage, EmailConfirmation
+
+
+class HostelAdminForm(forms.ModelForm):
+    single_price = forms.DecimalField(required=False, min_value=0, label='Single Price')
+    double_price = forms.DecimalField(required=False, min_value=0, label='Double Price')
+    triple_price = forms.DecimalField(required=False, min_value=0, label='Triple Price')
+    quadruple_price = forms.DecimalField(required=False, min_value=0, label='Quadruple Price')
+    amenities = forms.CharField(required=False, widget=forms.TextInput, label='Amenities')
+
+    class Meta:
+        model = Hostel
+        fields = ['name', 'description', 'address', 'city', 'university', 'rating', 'amenities', 'image_url']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['single_price'].initial = self.instance.price
+            self.fields['double_price'].initial = self.instance.price
+            self.fields['triple_price'].initial = self.instance.price
+            self.fields['quadruple_price'].initial = self.instance.price
+            if isinstance(self.instance.amenities, list):
+                self.fields['amenities'].initial = ', '.join(self.instance.amenities)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.country = 'Unknown'
+        instance.price = self.cleaned_data.get('single_price') or 0
+        amenities_text = self.cleaned_data.get('amenities') or ''
+        instance.amenities = [item.strip() for item in amenities_text.split(',') if item.strip()]
+        if commit:
+            instance.save()
+        return instance
 
 
 @admin.register(User)
@@ -20,6 +53,8 @@ class ProfileAdmin(admin.ModelAdmin):
 
 @admin.register(Hostel)
 class HostelAdmin(admin.ModelAdmin):
+    form = HostelAdminForm
+    fields = ['name', 'description', 'address', 'city', 'university', 'single_price', 'double_price', 'triple_price', 'quadruple_price', 'rating', 'amenities', 'image_url']
     list_display = ['name', 'city', 'country', 'university', 'price', 'rating', 'available']
     list_filter = ['city', 'country', 'university', 'available']
     search_fields = ['name', 'address', 'city', 'university']
@@ -84,7 +119,11 @@ class ContactMessageAdmin(admin.ModelAdmin):
 
 @admin.register(EmailConfirmation)
 class EmailConfirmationAdmin(admin.ModelAdmin):
-    list_display = ['user', 'token', 'expires_at', 'is_confirmed', 'created_at']
-    list_filter = ['is_confirmed', 'created_at']
+    list_display = ['user', 'token', 'expires_at', 'confirmed_status', 'created_at']
+    list_filter = ['confirmed_at', 'created_at']
     search_fields = ['user__email', 'token']
     readonly_fields = ['token', 'created_at', 'expires_at']
+
+    @admin.display(boolean=True, description='Confirmed')
+    def confirmed_status(self, obj):
+        return obj.is_confirmed
