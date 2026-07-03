@@ -31,15 +31,33 @@ KAMPALA_AREA_UNIVERSITIES = [
 def get_university_options():
     university_names = []
     seen = set()
+    
+    def normalize_university(name):
+        if not name:
+            return ''
+        name = name.strip()
+        name_lower = name.lower()
+        if 'makerere' in name_lower and 'business school' in name_lower:
+            return 'Makerere University Business School'
+        if 'makerere' in name_lower:
+            return 'Makerere University'
+        return name
+    
     for name in KAMPALA_AREA_UNIVERSITIES:
-        if name and name not in seen:
-            university_names.append(name)
-            seen.add(name)
+        if name:
+            normalized = normalize_university(name)
+            lower = normalized.lower()
+            if lower not in seen:
+                university_names.append(normalized)
+                seen.add(lower)
 
     for name in Hostel.objects.exclude(university='').values_list('university', flat=True):
-        if name and name not in seen:
-            university_names.append(name)
-            seen.add(name)
+        if name:
+            normalized = normalize_university(name)
+            lower = normalized.lower()
+            if lower not in seen:
+                university_names.append(normalized)
+                seen.add(lower)
 
     return [{'name': name} for name in university_names]
 
@@ -169,8 +187,6 @@ def hostel_detail(request, id):
                 'email': hostel.email,
                 'latitude': str(hostel.latitude) if hostel.latitude else None,
                 'longitude': str(hostel.longitude) if hostel.longitude else None,
-                'check_in_time': hostel.check_in_time.strftime('%H:%M') if hostel.check_in_time else '14:00',
-                'check_out_time': hostel.check_out_time.strftime('%H:%M') if hostel.check_out_time else '11:00',
                 'cover_image': cover.image_url if cover else None,
                 'images': [{'url': img.image_url, 'is_cover': img.is_cover} for img in images],
             },
