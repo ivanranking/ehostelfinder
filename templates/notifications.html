@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - EHostelFinder{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] px-4 py-12">
+    <div class="max-w-3xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <a href="/" class="inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors mb-4">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Home
+                </a>
+                <h1 class="text-3xl font-['Space_Grotesk'] font-bold">Notifications</h1>
+            </div>
+            {% if unread_count > 0 %}
+            <button onclick="markAllRead()" class="text-sm text-[var(--accent)] hover:underline">Mark all as read</button>
+            {% endif %}
+        </div>
+
+        {% if notifications %}
+        <div class="space-y-3">
+            {% for notification in notifications %}
+            <div class="notification-item bg-[var(--card)] rounded-xl border border-[var(--border)] p-5 {% if not notification.is_read %}border-l-2 border-l-[var(--accent)]{% endif %}" data-id="{{ notification.id }}">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-semibold">{{ notification.title }}</h3>
+                            {% if not notification.is_read %}
+                            <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
+                            {% endif %}
+                        </div>
+                        <p class="text-[var(--muted)] text-sm">{{ notification.message }}</p>
+                        <p class="text-xs text-[var(--muted)] mt-2">{{ notification.created_at|timesince }} ago</p>
+                    </div>
+                    {% if not notification.is_read %}
+                    <button onclick="markRead('{{ notification.id }}', this)" class="text-xs text-[var(--accent)] hover:underline flex-shrink-0">Mark read</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 sm:p-10 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-4">No notifications</h2>
+            <p class="text-[var(--muted)]">You're all caught up! Notifications will appear here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .notification-item {
+        transition: all 0.3s ease;
+    }
+    .notification-item:hover {
+        border-color: var(--accent);
+    }
+</style>
+
+<script>
+function markRead(id, btn) {
+    fetch(`/api/notifications/${id}/read/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const item = btn.closest('.notification-item');
+            item.classList.remove('border-l-2', 'border-l-[var(--accent)]');
+            const dot = item.querySelector('.w-2.h-2');
+            if (dot) dot.remove();
+            btn.remove();
+            
+            // Update unread count in navbar
+            const badge = document.getElementById('notification-badge');
+            if (badge) {
+                const count = parseInt(badge.textContent) - 1;
+                if (count <= 0) {
+                    badge.remove();
+                } else {
+                    badge.textContent = count;
+                }
+            }
+        }
+    });
+}
+
+function markAllRead() {
+    fetch('/api/notifications/read-all/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+</script>
+{% endblock %}

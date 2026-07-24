@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}My Favorites - EHostelFinder{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] px-4 py-12">
+    <div class="max-w-7xl mx-auto">
+        <a href="/" class="inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors mb-8">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+        </a>
+
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-['Space_Grotesk'] font-bold">My Favorites</h1>
+            <span class="text-[var(--muted)]">{{ favorites|length }} saved hostel{{ favorites|length|pluralize }}</span>
+        </div>
+
+        {% if favorites %}
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for fav in favorites %}
+            <div class="card-hover bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden relative">
+                <a href="{% url 'hostel_detail' fav.hostel.id %}">
+                    <div style="aspect-ratio: 4/3; overflow: hidden;">
+                        {% if fav.hostel.image_url %}
+                        <img src="{{ fav.hostel.image_url }}" alt="{{ fav.hostel.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div style=\"width:100%;height:100%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;\"><span class=\"text-[var(--muted)]\">No image</span></div>'">
+                        {% else %}
+                        <div style="width: 100%; height: 100%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center;">
+                            <span class="text-[var(--muted)]">No image</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </a>
+                <button onclick="toggleFavorite('{{ fav.hostel.id }}', this)" class="absolute top-3 right-3 w-10 h-10 rounded-full bg-[var(--bg)]/80 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform">
+                    <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                </button>
+                <a href="{% url 'hostel_detail' fav.hostel.id %}">
+                    <div class="p-5">
+                        <h3 class="font-['Space_Grotesk'] font-bold text-lg mb-1">{{ fav.hostel.name }}</h3>
+                        <p class="text-[var(--muted)] text-sm mb-3">{{ fav.hostel.city }}, {{ fav.hostel.country }}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[var(--accent)] font-semibold">
+                                {% with available_room=fav.hostel.rooms.filter.status.Available.first %}
+                                {{ fav.hostel.price|default:'0' }} UGX/semester
+                                {% endwith %}
+                            </span>
+                            <div class="flex items-center gap-1 text-yellow-500">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                <span class="text-sm font-medium">{{ fav.hostel.rating|default:'0' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 sm:p-10 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-4">No favorites yet</h2>
+            <p class="text-[var(--muted)] mb-6">Start exploring hostels and save your favorites!</p>
+            <a href="/" class="btn-primary inline-block">Browse Hostels</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+</style>
+
+<script>
+function toggleFavorite(hostelId, btn) {
+    fetch('/api/favorites/toggle/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ hostel_id: hostelId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.favorited === false) {
+            // Remove the card with animation
+            const card = btn.closest('.card-hover');
+            card.style.transition = 'all 0.3s ease';
+            card.style.transform = 'scale(0.95)';
+            card.style.opacity = '0';
+            setTimeout(() => {
+                card.remove();
+                if (document.querySelectorAll('.card-hover').length === 0) {
+                    location.reload();
+                }
+            }, 300);
+        }
+    });
+}
+</script>
+{% endblock %}

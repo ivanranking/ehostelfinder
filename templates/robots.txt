@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login/
+Disallow: /signup/
+Disallow: /forgot-password/
+Disallow: /reset-password/
+
+Sitemap: {{ SITE_URL|default:"https://ehostelfinder.com" }}/sitemap.xml
+

@@ -88,6 +88,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ehostelfinder.wsgi.application'
 
+# Custom error handlers
+handler404 = 'hostels.views.custom_404'
+handler500 = 'hostels.views.custom_500'
 
 # Database
 # Prefer the Supabase connection string from the environment.

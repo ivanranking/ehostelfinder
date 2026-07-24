@@ -6,7 +6,7 @@
     <title>{% block title %}EHostelFinder - Find Your Perfect Hostel{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+<style>
         :root {
             --bg: #0a0a0a;
             --bg-elevated: #141414;
@@ -17,6 +17,23 @@
             --accent: #64ffda;
             --accent-hover: #4fd8b0;
         }
+        [data-theme="light"] {
+            --bg: #f8f9fa;
+            --bg-elevated: #e9ecef;
+            --card: #ffffff;
+            --border: #dee2e6;
+            --fg: #212529;
+            --muted: #6c757d;
+            --accent: #0d6efd;
+            --accent-hover: #0b5ed7;
+        }
+        [data-theme="light"] .bg-grid {
+            background-image: 
+                linear-gradient(rgba(13, 110, 253, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(13, 110, 253, 0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        [data-theme="light"] #ai-chat-overlay { background: rgba(0,0,0,0.3); }
         
         * {
             box-sizing: border-box;
@@ -236,6 +253,34 @@
             color: #60a5fa;
         }
     </style>
+    
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed top-20 right-4 z-[100] flex flex-col gap-2"></div>
+
+    <style>
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            min-width: 280px;
+            max-width: 400px;
+            animation: slideInRight 0.3s ease forwards;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .toast-success { background: #059669; color: white; }
+        .toast-error { background: #dc2626; color: white; }
+        .toast-info { background: #2563eb; color: white; }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-removing { animation: slideOutRight 0.3s ease forwards; }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-grid">
@@ -265,8 +310,29 @@
                     </a>
                 </div>
                 
-                <div class="flex items-center gap-3">
+<div class="flex items-center gap-3">
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" class="p-2 rounded-full bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] transition-all" onclick="toggleTheme()" title="Toggle theme">
+                        <svg id="dark-icon" class="w-4 h-4 text-[var(--fg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <svg id="light-icon" class="w-4 h-4 text-[var(--fg)] hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                    </button>
                     {% if user.is_authenticated %}
+                        <a href="/favorites/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                            Favorites
+                        </a>
+                        <a href="/notifications/" class="relative text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block" id="notification-link">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span id="notification-badge" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center hidden">0</span>
+                        </a>
                         <a href="/my-bookings/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block">My Bookings</a>
                         <a href="/profile/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block">Profile</a>
 {% if user.profile.role == 'admin' %}
@@ -690,5 +756,68 @@
             background: var(--card);
         }
     </style>
+    
+<!-- Theme Toggle System -->
+    <script>
+    function toggleTheme() {
+        const html = document.documentElement;
+        const darkIcon = document.getElementById('dark-icon');
+        const lightIcon = document.getElementById('light-icon');
+        const isDark = html.getAttribute('data-theme') !== 'light';
+        
+        if (isDark) {
+            html.setAttribute('data-theme', 'light');
+            darkIcon.classList.add('hidden');
+            lightIcon.classList.remove('hidden');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.removeAttribute('data-theme');
+            darkIcon.classList.remove('hidden');
+            lightIcon.classList.add('hidden');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+    
+    // Load saved theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('dark-icon').classList.add('hidden');
+            document.getElementById('light-icon').classList.remove('hidden');
+        }
+    });
+    </script>
+    
+    <!-- Toast Notification System -->
+    <script>
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add('toast-removing');
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+    
+    // Load notification count
+    document.addEventListener('DOMContentLoaded', function() {
+        const badge = document.getElementById('notification-badge');
+        if (badge) {
+            fetch('/api/notifications/')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.unread_count > 0) {
+                        badge.textContent = data.unread_count;
+                        badge.classList.remove('hidden');
+                    }
+                })
+                .catch(() => {});
+        }
+    });
+    </script>
 </body>
 </html>

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error - EHostelFinder{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12">
+    <div class="text-center max-w-md">
+        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mx-auto mb-8">
+            <span class="text-5xl font-bold text-[var(--bg)]">500</span>
+        </div>
+        <h1 class="text-4xl font-['Space_Grotesk'] font-bold mb-4">Server Error</h1>
+        <p class="text-[var(--muted)] text-lg mb-8">Something went wrong on our end. We're working on fixing it. Please try again in a moment.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="/" class="btn-primary text-lg px-8 py-4">Go Home</a>
+            <a href="/contact/" class="btn-secondary text-lg px-8 py-4">Contact Support</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+    .btn-secondary {
+        background: transparent;
+        color: var(--fg);
+        font-weight: 500;
+        padding: 14px 24px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+</style>
+{% endblock %}

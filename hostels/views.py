@@ -4,13 +4,16 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.db.models import Avg
+from django.db.models import Avg, Q
+from django.core.paginator import Paginator
+from django.utils import timezone
 import json
 import os
 import urllib.request
 import urllib.error
+import uuid
 from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
-from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, RoomStatus, BookingStatus
+from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, Notification, Payment, PaymentMethod, PaymentStatus, RoomStatus, BookingStatus
 from django.contrib.auth.decorators import login_required
 from .local_ai import get_local_ai_response
 
@@ -68,6 +71,12 @@ def home(request):
     country = request.GET.get('country', '')
     min_price = request.GET.get('min_price', '')
     max_price = request.GET.get('max_price', '')
+    sort_by = request.GET.get('sort', '-created_at')
+    page = request.GET.get('page', 1)
+
+    valid_sorts = ['name', '-name', 'price', '-price', 'rating', '-rating', 'created_at', '-created_at']
+    if sort_by not in valid_sorts:
+        sort_by = '-created_at'
 
     hostels = Hostel.objects.all()
     if university and university != 'All Universities':
@@ -87,6 +96,14 @@ def home(request):
         except ValueError:
             pass
 
+    hostels = hostels.order_by(sort_by)
+
+    paginator = Paginator(hostels, 12)
+    try:
+        page_obj = paginator.page(page)
+    except:
+        page_obj = paginator.page(1)
+
     cities = sorted(Hostel.objects.values_list('city', flat=True).exclude(city='').distinct())
     countries = sorted(Hostel.objects.values_list('country', flat=True).exclude(country='').distinct())
     universities = get_university_options()
@@ -98,7 +115,7 @@ def home(request):
         avg_rating = round(avg, 1)
 
     hostel_list = []
-    for h in hostels:
+    for h in page_obj:
         cover = h.images.filter(is_cover=True).first()
         available_room = h.rooms.filter(status='Available').first()
         hostel_list.append({
@@ -117,6 +134,10 @@ def home(request):
             'amenities': h.amenities or [],
         })
 
+    favorite_ids = []
+    if request.user.is_authenticated:
+        favorite_ids = list(Favorite.objects.filter(customer=request.user).values_list('hostel_id', flat=True))
+
     context = {
         'hostels': hostel_list,
         'cities': cities,
@@ -125,10 +146,13 @@ def home(request):
         'selected_city': city,
         'selected_country': country,
         'selected_university': university,
+        'selected_sort': sort_by,
         'total_hostels': Hostel.objects.count(),
         'total_universities': len(universities),
         'avg_rating': avg_rating,
         'total_cities': len(cities),
+        'page_obj': page_obj,
+        'favorite_ids': [str(fid) for fid in favorite_ids],
     }
     return render(request, 'home.html', context)
 
@@ -451,8 +475,11 @@ def create_booking(request):
         data = json.loads(request.body)
         room = get_object_or_404(Room, id=data.get('room_id'))
         
-        check_in = data.get('check_in')
-        check_out = data.get('check_out')
+        from datetime import datetime
+        check_in_str = data.get('check_in')
+        check_out_str = data.get('check_out')
+        check_in = datetime.strptime(check_in_str, '%Y-%m-%d').date()
+        check_out = datetime.strptime(check_out_str, '%Y-%m-%d').date()
         guests = int(data.get('guests', 1))
         
         nights = (check_out - check_in).days
@@ -1220,3 +1247,163 @@ def my_bookings(request):
     user = request.user
     bookings = Booking.objects.filter(customer=user).select_related('hostel', 'room').order_by('-booked_at')
     return render(request, 'my_bookings.html', {'bookings': bookings})
+
+
+# ========== FAVORITES ==========
+
+@login_required
+@require_http_methods(['POST'])
+def toggle_favorite(request):
+    try:
+        data = json.loads(request.body)
+        hostel_id = data.get('hostel_id')
+        hostel = get_object_or_404(Hostel, id=hostel_id)
+        
+        favorite, created = Favorite.objects.get_or_create(
+            customer=request.user,
+            hostel=hostel
+        )
+        
+        if not created:
+            favorite.delete()
+            return JsonResponse({'favorited': False, 'message': 'Removed from favorites'})
+        
+        return JsonResponse({'favorited': True, 'message': 'Added to favorites'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+def my_favorites(request):
+    favorites = Favorite.objects.filter(customer=request.user).select_related('hostel')
+    return render(request, 'my_favorites.html', {'favorites': favorites})
+
+
+# ========== BOOKING CANCELLATION ==========
+
+@login_required
+@require_http_methods(['POST'])
+def cancel_booking(request, booking_id):
+    try:
+        booking = get_object_or_404(Booking, id=booking_id, customer=request.user)
+        
+        if booking.booking_status in ['Checked In', 'Checked Out']:
+            return JsonResponse({'error': 'Cannot cancel an active or completed booking'}, status=400)
+        
+        if booking.booking_status == 'Cancelled':
+            return JsonResponse({'error': 'Booking is already cancelled'}, status=400)
+        
+        booking.booking_status = 'Cancelled'
+        booking.payment_status = 'Refunded'
+        booking.save(update_fields=['booking_status', 'payment_status'])
+        
+        Notification.objects.create(
+            user=request.user,
+            title='Booking Cancelled',
+            message=f'Your booking {booking.booking_reference} has been cancelled successfully.'
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Booking cancelled successfully'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# ========== NOTIFICATIONS ==========
+
+@login_required
+def view_notifications(request):
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+    unread_count = notifications.filter(is_read=False).count()
+    return render(request, 'notifications.html', {
+        'notifications': notifications,
+        'unread_count': unread_count,
+    })
+
+
+@login_required
+@require_http_methods(['GET'])
+def api_notifications(request):
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:20]
+    unread_count = notifications.filter(is_read=False).count()
+    data = [{
+        'id': str(n.id),
+        'title': n.title,
+        'message': n.message,
+        'is_read': n.is_read,
+        'created_at': n.created_at.isoformat(),
+    } for n in notifications]
+    return JsonResponse({'notifications': data, 'unread_count': unread_count})
+
+
+@login_required
+@require_http_methods(['POST'])
+def mark_notification_read(request, notification_id):
+    try:
+        notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(['POST'])
+def mark_all_notifications_read(request):
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return JsonResponse({'success': True})
+
+
+# ========== PAYMENT PROCESSING ==========
+
+@login_required
+@require_http_methods(['POST'])
+def process_payment(request):
+    try:
+        data = json.loads(request.body)
+        booking_id = data.get('booking_id')
+        payment_method = data.get('payment_method', 'Credit Card')
+        
+        booking = get_object_or_404(Booking, id=booking_id, customer=request.user)
+        
+        if booking.payment_status == 'Paid':
+            return JsonResponse({'error': 'Booking already paid'}, status=400)
+        
+        import uuid
+        transaction_ref = f"TXN-{uuid.uuid4().hex[:12].upper()}"
+        
+        payment = Payment.objects.create(
+            booking=booking,
+            amount=booking.total_price,
+            payment_method=payment_method,
+            payment_status='Paid',
+            transaction_reference=transaction_ref,
+            paid_at=timezone.now(),
+        )
+        
+        booking.payment_status = 'Paid'
+        booking.booking_status = 'Confirmed'
+        booking.save(update_fields=['payment_status', 'booking_status'])
+        
+        Notification.objects.create(
+            user=request.user,
+            title='Payment Successful',
+            message=f'Payment of UGX {booking.total_price} for booking {booking.booking_reference} was successful.'
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'transaction_reference': transaction_ref,
+            'message': 'Payment processed successfully',
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+# ========== ERROR HANDLERS ==========
+
+def custom_404(request, exception):
+    return render(request, '404.html', status=404)
+
+def custom_500(request):
+    return render(request, '500.html', status=500)
