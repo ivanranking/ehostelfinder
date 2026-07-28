@@ -7,61 +7,88 @@
     <div class="max-w-3xl mx-auto">
         <div class="flex items-center justify-between mb-8">
             <div>
-                <a href="/" class="inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors mb-4">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                    Back to Home
-                </a>
-                <h1 class="text-3xl font-['Space_Grotesk'] font-bold">Notifications</h1>
+                <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-2">Notifications</h1>
+                <p class="text-[var(--muted)]">Stay updated with your account activity</p>
             </div>
             {% if unread_count > 0 %}
-            <button onclick="markAllRead()" class="text-sm text-[var(--accent)] hover:underline">Mark all as read</button>
+            <button onclick="markAllRead()" class="text-sm text-[var(--accent)] hover:underline flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Mark all as read
+            </button>
             {% endif %}
         </div>
 
         {% if notifications %}
-        <div class="space-y-3">
+        <div class="space-y-3" id="notifications-list">
             {% for notification in notifications %}
-            <div class="notification-item bg-[var(--card)] rounded-xl border border-[var(--border)] p-5 {% if not notification.is_read %}border-l-2 border-l-[var(--accent)]{% endif %}" data-id="{{ notification.id }}">
+            <div class="notification-item bg-[var(--card)] rounded-xl border border-[var(--border)] p-5 hover:border-[var(--accent)] transition-all {% if not notification.is_read %}border-l-2 border-l-[var(--accent)]{% endif %}" data-id="{{ notification.id }}">
                 <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <h3 class="font-semibold">{{ notification.title }}</h3>
-                            {% if not notification.is_read %}
-                            <span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>
-                            {% endif %}
+                    <div class="flex items-start gap-3 flex-1">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .896-3 2s1.343 2 3 2 3-.896 3-2 1.343-2 3-2m0-2v1M4 4v16h16"/>
+                            </svg>
                         </div>
-                        <p class="text-[var(--muted)] text-sm">{{ notification.message }}</p>
-                        <p class="text-xs text-[var(--muted)] mt-2">{{ notification.created_at|timesince }} ago</p>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h3 class="font-semibold">{{ notification.title }}</h3>
+                                {% if not notification.is_read %}
+                                <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" title="New"></span>
+                                {% endif %}
+                            </div>
+                            <p class="text-[var(--muted)] text-sm mb-2">{{ notification.message }}</p>
+                            <p class="text-xs text-[var(--muted)]">{{ notification.created_at|timesince }} ago</p>
+                        </div>
                     </div>
                     {% if not notification.is_read %}
-                    <button onclick="markRead('{{ notification.id }}', this)" class="text-xs text-[var(--accent)] hover:underline flex-shrink-0">Mark read</button>
+                    <button onclick="markRead('{{ notification.id }}', this)" class="text-xs text-[var(--accent)] hover:underline flex-shrink-0 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Mark read
+                    </button>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
         {% else %}
-        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 sm:p-10 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-12 text-center">
+            <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-[var(--accent)]/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                 </svg>
             </div>
-            <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-4">No notifications</h2>
-            <p class="text-[var(--muted)]">You're all caught up! Notifications will appear here.</p>
+            <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-3">All caught up!</h2>
+            <p class="text-[var(--muted)] mb-8 max-w-md mx-auto">You have no new notifications. We'll let you know when something happens.</p>
+            <a href="{% url 'home' %}" class="btn-primary inline-flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
+                </svg>
+                Explore Hostels
+            </a>
         </div>
         {% endif %}
     </div>
 </div>
 
 <style>
-    .notification-item {
-        transition: all 0.3s ease;
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 10px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
     }
-    .notification-item:hover {
-        border-color: var(--accent);
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
     }
 </style>
 
@@ -69,7 +96,7 @@
 function markRead(id, btn) {
     fetch(`/api/notifications/${id}/read/`, {
         method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' }
     })
     .then(r => r.json())
     .then(data => {
@@ -91,20 +118,23 @@ function markRead(id, btn) {
                 }
             }
         }
-    });
+    })
+    .catch(() => showToast('Could not mark as read', 'error'));
 }
 
 function markAllRead() {
     fetch('/api/notifications/read-all/', {
         method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' }
     })
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            showToast('All notifications marked as read', 'success');
             location.reload();
         }
-    });
+    })
+    .catch(() => showToast('Could not mark as read', 'error'));
 }
 </script>
 {% endblock %}

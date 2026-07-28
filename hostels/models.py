@@ -153,6 +153,8 @@ class Room(models.Model):
     capacity = models.PositiveIntegerField()
     available_quantity = models.PositiveIntegerField(default=1)
     price_per_night = models.DecimalField(max_digits=10, decimal_places=2)
+    single_bed_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, help_text="Price per single bed in shared rooms")
+    floor = models.IntegerField(blank=True, null=True, help_text="Floor number in the building")
     description = models.TextField(blank=True, null=True)
     size_sq_meters = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     private_bathroom = models.BooleanField(default=False)
@@ -166,7 +168,11 @@ class Room(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.hostel.name} - {self.room_number} ({self.room_name})"
+        return f"{self.hostel.name} - Room {self.room_number} ({self.room_name})"
+
+    @property
+    def is_shared_room(self):
+        return self.room_type in ['Double', 'Triple', 'Quadruple', 'Dormitory']
 
 
 class RoomImage(models.Model):
@@ -382,3 +388,74 @@ class PasswordResetToken(models.Model):
 
     def __str__(self):
         return f"PasswordResetToken for {self.user.email}"
+
+
+# ========== ROOMMATE FINDER ==========
+
+class RoommateRequest(models.Model):
+    GENDER_CHOICES = (
+        ('any', 'Any'),
+        ('male', 'Male'),
+        ('female', 'Female'),
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roommate_requests')
+    hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name='roommate_requests')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, blank=True, null=True, related_name='roommate_requests')
+    preferred_gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='any')
+    budget_min = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    budget_max = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    about_me = models.TextField(blank=True, default='')
+    lifestyle_preferences = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['hostel', 'is_active']),
+            models.Index(fields=['user']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} looking at {self.hostel.name}"
+
+
+class ChatRoom(models.Model):
+    participants = models.ManyToManyField(User, related_name='chat_rooms')
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, blank=True, null=True, related_name='chat_rooms')
+    hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name='chat_rooms')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['hostel']),
+        ]
+
+    def __str__(self):
+        participants_list = list(self.participants.all()[:2])
+        names = [p.get_full_name() or p.email for p in participants_list]
+        return f"Chat: {', '.join(names)}"
+
+    @property
+    def last_message(self):
+        return self.messages.order_by('-created_at').first()
+
+
+class ChatMessage(models.Model):
+    chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages', blank=True, null=True)
+    content = models.TextField()
+    is_ai = models.BooleanField(default=False, help_text="True if message sent by AI assistant")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['chat_room', 'created_at']),
+            models.Index(fields=['sender']),
+        ]
+
+    def __str__(self):
+        return f"{self.sender.email}: {self.content[:50]}"

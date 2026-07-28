@@ -118,6 +118,8 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     capacity INT NOT NULL CHECK (capacity > 0),
     available_quantity INT NOT NULL DEFAULT 1 CHECK (available_quantity > 0),
     price_per_night NUMERIC(10, 2) NOT NULL CHECK (price_per_night >= 0),
+    single_bed_price NUMERIC(10, 2),
+    floor INT,
     description TEXT,
     size_sq_meters NUMERIC(5, 2),
     private_bathroom BOOLEAN NOT NULL DEFAULT FALSE,
@@ -126,6 +128,7 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     television BOOLEAN NOT NULL DEFAULT FALSE,
     wifi BOOLEAN NOT NULL DEFAULT FALSE,
     status room_status NOT NULL DEFAULT 'Available',
+    is_available BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -1108,13 +1111,123 @@ JOIN auth.users u ON u.id = b.customer_id
 JOIN public.profiles p ON p.id = b.customer_id;
 
 -- ------------------------------------------------------------
--- 34. REALTIME PUBLICATION CONFIGURATION
+-- 34. ROOMMATE FINDER TABLES
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.roommate_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    hostel_id UUID NOT NULL REFERENCES public.hostels(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL,
+    preferred_gender TEXT NOT NULL DEFAULT 'any',
+    budget_min NUMERIC(10, 2),
+    budget_max NUMERIC(10, 2),
+    about_me TEXT,
+    lifestyle_preferences JSONB DEFAULT '[]'::jsonb,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.chat_rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    hostel_id UUID NOT NULL REFERENCES public.hostels(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.chat_room_participants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chatroom_id UUID NOT NULL REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    UNIQUE (chatroom_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    chat_room_id UUID NOT NULL REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_roommate_requests_hostel_id ON public.roommate_requests(hostel_id);
+CREATE INDEX idx_roommate_requests_user_id ON public.roommate_requests(user_id);
+CREATE INDEX idx_roommate_requests_is_active ON public.roommate_requests(hostel_id, is_active);
+
+CREATE INDEX idx_chat_rooms_hostel_id ON public.chat_rooms(hostel_id);
+CREATE INDEX idx_chat_messages_chat_room_id ON public.chat_messages(chat_room_id);
+CREATE INDEX idx_chat_messages_sender_id ON public.chat_messages(sender_id);
+
+ALTER TABLE public.chat_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_room_participants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view chat rooms"
+    ON public.chat_rooms FOR SELECT
+    TO authenticated
+    USING (true);
+
+CREATE POLICY "Customers can create chat rooms"
+    ON public.chat_rooms FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
+
+CREATE POLICY "Participants can manage their chat room"
+    ON public.chat_rooms FOR UPDATE
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.chat_room_participants
+            WHERE chatroom_id = public.chat_rooms.id
+              AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Participants can view messages"
+    ON public.chat_messages FOR SELECT
+    TO authenticated
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.chat_room_participants
+            WHERE chatroom_id = public.chat_messages.chat_room_id
+              AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Participants can send messages"
+    ON public.chat_messages FOR INSERT
+    TO authenticated
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.chat_room_participants
+            WHERE chatroom_id = public.chat_messages.chat_room_id
+              AND user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Participants can update their own messages"
+    ON public.chat_messages FOR UPDATE
+    TO authenticated
+    USING (sender_id = auth.uid());
+
+CREATE POLICY "Participants can manage their participation"
+    ON public.chat_room_participants FOR ALL
+    TO authenticated
+    USING (user_id = auth.uid());
+
+-- ------------------------------------------------------------
+-- 35. REALTIME PUBLICATION CONFIGURATION
 -- ------------------------------------------------------------
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.payments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.roommate_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_rooms;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 
 -- ------------------------------------------------------------
 -- 35. COMPLETION VERIFICATION

@@ -145,23 +145,81 @@
             <!-- Rooms -->
             {% if rooms %}
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
-                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Available Rooms</h2>
+                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/>
+                    </svg>
+                    Available Rooms
+                </h2>
                 <div class="space-y-4">
                     {% for room in rooms %}
-                    <div class="border border-[var(--border)] rounded-lg p-4">
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-semibold">{{ room.room_name }} ({{ room.room_type }})</h3>
-                            <span class="text-[var(--accent)] font-bold">{{ room.price_per_night }} UGX/semester</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-sm text-[var(--muted)]">
-                            <div>Capacity: {{ room.capacity }} person(s)</div>
-                            <div>Available: {{ room.available_quantity }}</div>
-                            <div>{{ room.size_sq_meters }} m²</div>
-                            <div class="flex gap-2">
-                                {% if room.wifi %}<span>WiFi</span>{% endif %}
-                                {% if room.air_conditioning %}<span>AC</span>{% endif %}
-                                {% if room.private_bathroom %}<span>Private Bath</span>{% endif %}
+                    <div class="border border-[var(--border)] rounded-xl p-5 hover:border-[var(--accent)] transition-all room-card" data-room-id="{{ room.id }}">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+                            <div>
+                                <h3 class="font-semibold text-lg">{{ room.room_name }}</h3>
+                                <p class="text-sm text-[var(--muted)]">{{ room.room_type }} Room</p>
                             </div>
+                            <div class="text-right">
+                                <div class="text-xl font-bold text-[var(--accent)]">{{ room.price_per_night }} UGX/semester</div>
+                                <div class="text-xs text-[var(--muted)]">per semester</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm mb-4">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-3-3h-4m-4 0H5a3 3 0 00-3 3v2h5v-2z"/>
+                                </svg>
+                                <span class="text-[var(--muted)]">Capacity:</span> {{ room.capacity }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span class="text-[var(--muted)]">Available:</span> {{ room.available_quantity }}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-12h2a2 2 0 012 2v2M8 8h8v8H8V8z"/>
+                                </svg>
+                                <span class="text-[var(--muted)]">{{ room.size_sq_meters }} m²</span>
+                            </div>
+                            {% if room.private_bathroom or room.air_conditioning or room.wifi %}
+                            <div class="col-span-2 sm:col-span-3 flex flex-wrap gap-3 pt-2 border-t border-[var(--border)]">
+                                {% if room.wifi %}
+                                <span class="px-2 py-1 rounded bg-[var(--accent)]/10 text-[var(--accent)] text-xs">WiFi</span>
+                                {% endif %}
+                                {% if room.air_conditioning %}
+                                <span class="px-2 py-1 rounded bg-[var(--accent)]/10 text-[var(--accent)] text-xs">Air Conditioning</span>
+                                {% endif %}
+                                {% if room.private_bathroom %}
+                                <span class="px-2 py-1 rounded bg-[var(--accent)]/10 text-[var(--accent)] text-xs">Private Bathroom</span>
+                                {% endif %}
+                                {% if room.balcony %}
+                                <span class="px-2 py-1 rounded bg-[var(--accent)]/10 text-[var(--accent)] text-xs">Balcony</span>
+                                {% endif %}
+                                {% if room.television %}
+                                <span class="px-2 py-1 rounded bg-[var(--accent)]/10 text-[var(--accent)] text-xs">TV</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <button onclick="openBookingModal(this)" class="btn-primary flex-1 text-sm py-2 px-4 flex items-center justify-center gap-1" data-room-type="{{ room.room_type }}" data-room-id="{{ room.id }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Book This Room
+                            </button>
+                            {% if room.room_type == 'Double' or room.room_type == 'Triple' or room.room_type == 'Quadruple' or room.room_type == 'Dormitory' %}
+                            <div class="relative group">
+                                <button onclick="openRoommateFinder(this)" class="btn-secondary text-sm py-2 px-4 flex items-center justify-center gap-1" data-room-id="{{ room.id }}" data-hostel-id="{{ hostel.id }}" data-single-price="{{ room.single_bed_price }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 22">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m0-8a4 4 0 100 8 4 4 0 000-8z"/>
+                                    </svg>
+                                    Book Single Occupancy
+                                </button>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -235,7 +293,12 @@
         <div class="lg:col-span-1">
             <!-- Booking Card -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] sticky top-24 mb-6">
-                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Book This Hostel</h3>
+                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Book Your Stay
+                </h3>
                 
                 {% if user.is_authenticated %}
                     <form id="bookingForm" class="space-y-4">
@@ -250,23 +313,54 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Number of Guests</label>
-                            <input type="number" name="guests" value="1" min="1" required class="input-field">
+                            <input type="number" name="guests" value="1" min="1" required class="input-field" onchange="updateTotalPrice()">
                         </div>
-                        <button type="submit" class="btn-primary w-full text-center">
+                        <div id="total-price" class="text-sm text-[var(--muted)] hidden"></div>
+                        <button type="submit" class="btn-primary w-full text-center flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
                             Request Booking
                         </button>
                     </form>
                 {% else %}
                     <div class="text-center py-6">
                         <p class="text-[var(--muted)] mb-4">Please login to book this hostel</p>
-                        <a href="/login/" class="btn-primary w-full text-center block">Login to Book</a>
+                        <a href="/login/" class="btn-primary w-full text-center block flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1m0-11V5"/>
+                            </svg>
+                            Login to Book
+                        </a>
                     </div>
                 {% endif %}
             </div>
             
+            <!-- Roommate Finder Card -->
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
+                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-3-3h-4m-4 0H5a3 3 0 00-3 3v2h5v-2z"/>
+                    </svg>
+                    Need a Roommate?
+                </h3>
+                <p class="text-sm text-[var(--muted)] mb-4">Looking for someone to share a room? Find compatible roommates in this hostel.</p>
+                <a href="{% url 'roommate_finder' %}" class="btn-secondary w-full text-center block flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Find Roommate
+                </a>
+            </div>
+            
             <!-- Message Card -->
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)]">
-                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4">Send a Message</h3>
+                <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
+                    </svg>
+                    Send a Message
+                </h3>
                 <form id="messageForm" class="space-y-4">
                     <input type="hidden" name="hostelId" value="{{ hostel.id }}">
                     <div>
@@ -277,7 +371,10 @@
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Message</label>
                         <textarea name="content" rows="3" required placeholder="Your message..." class="input-field resize-none"></textarea>
                     </div>
-                    <button type="submit" class="btn-primary w-full text-center">
+                    <button type="submit" class="btn-primary w-full text-center flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
                         Send Message
                     </button>
                 </form>
@@ -285,9 +382,28 @@
         </div>
     </div>
 </div>
+
+<!-- Booking Modal -->
+<div id="booking-modal" class="fixed inset-0 z-[60] bg-black/50 hidden items-center justify-center p-4">
+    <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 max-w-md w-full">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-['Space_Grotesk'] font-semibold">Confirm Booking</h3>
+            <button onclick="closeBookingModal()" class="text-[var(--muted)] hover:text-[var(--fg)]">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+<div id="booking-details" class="mb-6 space-y-2 text-sm"></div>
+        <div class="flex gap-3">
+            <button onclick="closeBookingModal()" class="btn-secondary flex-1">Cancel</button>
+            <button onclick="confirmBooking()" class="btn-primary flex-1">Confirm Booking</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
-{% block extra_css %}
+{% block extra_js %}
 <script>
 // Lightbox gallery
 const hostelImages = {{ hostel.images|safe }};
@@ -337,6 +453,100 @@ function nextImage() {
     counter.textContent = (currentImageIndex + 1) + ' / ' + images.length;
 }
 
+// Booking modal functions
+function openBookingModal(btn) {
+    if (!btn) return;
+    const roomCard = btn.closest('.room-card');
+    const roomName = roomCard.querySelector('h3').textContent;
+    const price = roomCard.querySelector('.text-xl.font-bold').textContent;
+    const roomId = btn.dataset.roomId;
+    
+    document.getElementById('booking-details').innerHTML = `
+        <div class="flex justify-between">
+            <span class="text-[var(--muted)]">Room:</span>
+            <span>${roomName}</span>
+        </div>
+        <div class="flex justify-between">
+            <span class="text-[var(--muted)]">Price:</span>
+            <span class="text-[var(--accent)] font-semibold">${price}</span>
+        </div>
+    `;
+    
+    const form = document.getElementById('bookingForm');
+    if (form) {
+        form.querySelector('input[name="room_id"]').value = roomId;
+    }
+    
+    document.getElementById('booking-modal').classList.remove('hidden');
+    document.getElementById('booking-modal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeBookingModal() {
+    document.getElementById('booking-modal').classList.add('hidden');
+    document.getElementById('booking-modal').classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+// Open roommate finder with room pre-selected
+function openRoommateFinder(btn) {
+    if (!btn) return;
+    const roomId = btn.dataset.roomId;
+    const hostelId = btn.dataset.hostelId;
+    const singlePrice = btn.dataset.singlePrice;
+    window.location.href = `/roommate-finder/?room_id=${roomId}&hostel_id=${hostelId}&single_price=${singlePrice}`;
+}
+
+// Update total price estimate
+function updateTotalPrice() {
+    const guests = document.querySelector('input[name="guests"]').value;
+    const nightsDisplay = document.getElementById('total-price');
+    if (guests && guests > 1) {
+        nightsDisplay.classList.remove('hidden');
+        nightsDisplay.textContent = `${guests} guests selected`;
+    } else {
+        nightsDisplay.classList.add('hidden');
+    }
+}
+
+// Confirm booking function
+function confirmBooking() {
+    const form = document.getElementById('bookingForm');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const data = {
+        room_id: formData.get('room_id'),
+        check_in: formData.get('checkIn'),
+        check_out: formData.get('checkOut'),
+        guests: parseInt(formData.get('guests')),
+        special_requests: ''
+    };
+    
+    fetch('/api/bookings/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(result => {
+        showToast('Booking request sent! Reference: ' + result.booking_reference, 'success');
+        closeBookingModal();
+        form.reset();
+    })
+    .catch(error => {
+        showToast('Error: ' + (error.error || 'Please try again.'), 'error');
+    });
+}
+
 // Keyboard navigation for lightbox
 document.addEventListener('keydown', function(e) {
     if (document.getElementById('lightbox').classList.contains('hidden')) return;
@@ -351,36 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (bookingForm) {
         bookingForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            const formData = new FormData(bookingForm);
-            const data = {
-                room_id: formData.get('room_id'),
-                check_in: formData.get('checkIn'),
-                check_out: formData.get('checkOut'),
-                guests: parseInt(formData.get('guests')),
-            };
-            
-            fetch('/api/bookings/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
-                }
-                return response.json();
-            })
-            .then(result => {
-                showToast('Booking request sent! Reference: ' + result.booking_reference, 'success');
-                bookingForm.reset();
-            })
-            .catch(error => {
-                showToast('Error: ' + (error.error || 'Please try again.'), 'error');
-            });
+            openBookingModal();
         });
     }
     

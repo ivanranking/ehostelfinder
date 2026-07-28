@@ -1,7 +1,10 @@
 """
 Local AI response system for when external API is unavailable.
 Provides keyword-based responses for common hostel questions.
+Also supports Hugging Face free inference API.
 """
+
+import os, urllib.request, urllib.error, json
 
 HOSTEL_RESPONSES = {
     "amenities": [
@@ -57,6 +60,21 @@ HOSTEL_RESPONSES = {
         "- Emergency contact numbers available",
         "- Guest ID verification required",
         "EHostelFinder verifies all listed properties!"
+    ],
+    "price": [
+        "Room Pricing Information:",
+        "- Prices are per semester (not per night)",
+        "- Single occupancy: Full room price",
+        "- Shared rooms: Price splits between roommates",
+        "- Payment plans may be available for some hostels",
+        "- Contact hostel directly for custom arrangements"
+    ],
+    "availability": [
+        "Room Availability:",
+        "- Check the 'Available Rooms' section on each hostel page",
+        "- Room quantities update in real-time",
+        "- Book early to secure your preferred room",
+        "- Join waitlist if room is unavailable"
     ]
 }
 
@@ -80,7 +98,40 @@ def get_local_ai_response(question: str) -> str:
         "💳 **Payment methods** - How to pay securely",
         "❌ **Cancellation policy** - Refund and cancellation terms",
         "🔒 **Safety features** - Security measures in place",
+        "💰 **Pricing** - Room costs and payment plans",
+        "📊 **Availability** - Room availability status",
         "",
         "Feel free to ask about any of these topics, or contact our support team for more help!"
     ]
     return '\n'.join(default_responses)
+
+def get_hf_ai_response(question: str, context: str = None) -> str:
+    """Use Hugging Face free inference API for AI responses."""
+    hf_token = os.environ.get("HUGGING_FACE_TOKEN", "")
+    if not hf_token:
+        return get_local_ai_response(question)
+    
+    try:
+        system_prompt = "You are a helpful hostel booking assistant for EHostelFinder in Uganda. Answer concisely about: room types (Single, Double, Triple, Quadruple, Dormitory), pricing, amenities, booking process, check-in, safety, cancellations, and roommate matching. Keep answers brief and helpful."
+        
+        payload = {
+            "inputs": f"<s>[INST] <<SYS>> {system_prompt} <</SYS>> {question} [/INST]</s>",
+            "parameters": {"max_new_tokens": 200, "temperature": 0.7, "top_p": 0.95}
+        }
+        
+        req = urllib.request.Request(
+            "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+            data=json.dumps(payload).encode(),
+            headers={"Authorization": f"Bearer {hf_token}", "Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode())
+            if isinstance(result, list) and len(result) > 0:
+                return result[0].get("generated_text", get_local_ai_response(question)).strip()
+            if isinstance(result, dict):
+                return result.get("generated_text", get_local_ai_response(question))
+    except Exception:
+        pass
+    
+    return get_local_ai_response(question)

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - EHostelFinder{% endblock %}
+
+{% block nav_roommate %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: calc(100vh - 180px);
+        min-height: 500px;
+    }
+    .message-bubble {
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+    .message-bubble.sent {
+        background: var(--accent);
+        color: var(--bg);
+        border-radius: 18px 18px 4px 18px;
+    }
+    .message-bubble.received {
+        background: var(--card);
+        color: var(--fg);
+        border-radius: 18px 18px 18px 4px;
+    }
+    .typing-indicator span {
+        animation: pulse-dot 1.4s infinite ease-in-out;
+    }
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes pulse-dot {
+        0%, 80%, 100% { opacity: 0.3; }
+        40% { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] px-4 py-12">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden chat-container flex flex-col">
+            <!-- Chat Header -->
+            <div class="bg-gradient-to-r from-[var(--accent)]/10 to-emerald-500/10 px-6 py-4 border-b border-[var(--border)]">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-['Space_Grotesk'] font-bold">
+                                {% if room.hostel %}{{ room.hostel.name }}{% else %}Roommate Chat{% endif %}
+                            </h2>
+                            <div class="flex items-center gap-2 text-sm text-[var(--muted)]">
+                                {% for participant in room.participants.all %}
+                                    {% if participant.id != user.id %}
+                                        {% if participant.first_name or participant.last_name %}
+                                            {{ participant.first_name }} {{ participant.last_name }}
+                                        {% else %}
+                                            {{ participant.email }}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <a href="{% url 'roommate_finder' %}" class="btn-secondary text-sm py-2 px-4 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                        </svg>
+                        Back
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-[var(--bg)]">
+                {% for message in messages %}
+                <div class="flex {% if message.sender and message.sender.id == user.id %}justify-end{% else %}justify-start{% endif %}">
+                    <div class="message-bubble {% if message.sender and message.sender.id == user.id %}sent{% else %}received{% endif %} px-4 py-3">
+                        <p class="text-sm">{{ message.content }}</p>
+                        <p class="text-xs mt-1 {% if message.sender and message.sender.id == user.id %}text-[var(--bg)]/70{% else %}text-[var(--muted)]{% endif %}">
+                            {{ message.created_at|time:"H:i" }}
+                            {% if message.is_ai %}
+                                <span class="ml-1 text-[var(--accent)]">(AI)</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="flex items-center justify-center h-full">
+                    <div class="text-center">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
+                            </svg>
+                        </div>
+                        <p class="text-[var(--muted)]">No messages yet. Start the conversation!</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Message Input -->
+            <div class="p-4 border-t border-[var(--border)] bg-[var(--card)]">
+                <form id="message-form" class="flex gap-3">
+                    {% csrf_token %}
+                    <input type="text" name="content" id="message-input" placeholder="Type your message..." 
+                           class="flex-1 input-field" autocomplete="off" required maxlength="1000">
+                    <button type="submit" class="btn-primary px-6 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .input-field {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--fg);
+        outline: none;
+        transition: all 0.2s ease;
+    }
+    .input-field:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+    }
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+    .btn-secondary {
+        background: var(--bg);
+        color: var(--fg);
+        font-weight: 500;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--card);
+    }
+</style>
+
+<script>
+function getCSRFToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+
+// Auto-scroll to bottom of messages
+function scrollToBottom() {
+    const messagesEl = document.getElementById('chat-messages');
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+// Initial scroll
+document.addEventListener('DOMContentLoaded', scrollToBottom);
+
+document.getElementById('message-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('message-input');
+    const content = input.value.trim();
+    if (!content) return;
+    
+    // Optimistic UI update
+    const messagesEl = document.getElementById('chat-messages');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'flex justify-end';
+    msgDiv.innerHTML = `
+        <div class="message-bubble sent px-4 py-3">
+            <p class="text-sm">${escapeHtml(content)}</p>
+            <p class="text-xs mt-1 text-[var(--bg)]/70">${new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}</p>
+        </div>
+    `;
+    messagesEl.appendChild(msgDiv);
+    scrollToBottom();
+    input.value = '';
+    
+    try {
+        const response = await fetch('/api/chat/{{ room.id }}/send/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+            body: JSON.stringify({ content: content })
+        });
+        const data = await response.json();
+        if (!data.success) {
+            showToast(data.error || 'Could not send message', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    }
+});
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Handle Enter key for sending
+document.getElementById('message-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById('message-form').dispatchEvent(new Event('submit'));
+    }
+});
+</script>
+{% endblock %}

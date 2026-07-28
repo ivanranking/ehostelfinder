@@ -1,0 +1,402 @@
+{% extends "base.html" %}
+
+{% block title %}Roommate Finder - EHostelFinder{% endblock %}
+
+{% block nav_roommate %}active{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] px-4 py-12">
+    <div class="max-w-4xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-2">Roommate Finder</h1>
+                <p class="text-[var(--muted)]">Connect with students looking for roommates in your preferred hostel</p>
+            </div>
+            <a href="{% url 'my_chat_rooms' %}" class="btn-secondary flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
+                </svg>
+                My Chats ({{ my_chat_rooms|length }})
+            </a>
+        </div>
+
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                Your Request
+            </h2>
+            
+            {% if my_request %}
+            <div class="bg-[var(--bg)] rounded-2xl border border-[var(--border)] p-6 mb-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-lg mb-2">Active Request</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[var(--muted)]">Hostel:</span>
+                                <span>{{ my_request.hostel.name }}</span>
+                            </div>
+                            {% if my_request.room %}
+                            <div class="flex items-center gap-2">
+                                <span class="text-[var(--muted)]">Room:</span>
+                                <span>{{ my_request.room.room_name }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="flex items-center gap-2">
+                                <span class="text-[var(--muted)]">Preferred Gender:</span>
+                                <span class="px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-xs font-medium">{{ my_request.get_preferred_gender_display }}</span>
+                            </div>
+                            {% if my_request.budget_min or my_request.budget_max %}
+                            <div class="flex items-center gap-2">
+                                <span class="text-[var(--muted)]">Budget:</span>
+                                <span>{% if my_request.budget_min %}{{ my_request.budget_min|floatformat:0 }}{% endif %}{% if my_request.budget_max %} - {{ my_request.budget_max|floatformat:0 }}{% endif %} UGX/month</span>
+                            </div>
+                            {% endif %}
+                            {% if my_request.about_me %}
+                            <div class="mt-3 pt-3 border-t border-[var(--border)]">
+                                <p class="text-[var(--muted)] mb-1">About:</p>
+                                <p class="text-sm">{{ my_request.about_me }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <button onclick="cancelRoommateRequest()" class="text-xs px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Cancel Request
+                </button>
+            </div>
+            {% endif %}
+
+            <div id="create-request-section" class="{% if my_request %}hidden{% endif %}">
+                <form id="roommate-form" class="space-y-5">
+                    {% csrf_token %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Preferred Gender</label>
+                            <select name="preferred_gender" class="input-field">
+                                <option value="any">Any Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Hostel</label>
+                            <select name="hostel_id" class="input-field" required id="hostel-select">
+                                <option value="">Select a hostel</option>
+                                {% for hostel in hostels %}
+                                <option value="{{ hostel.id }}" {% if preselected_hostel_id and hostel.id == preselected_hostel_id|add:'0' %}selected{% endif %}>{{ hostel.name }} - {{ hostel.city }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% if preselected_room_id %}
+                    <input type="hidden" name="room_id" value="{{ preselected_room_id }}">
+                    <div class="bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-lg p-4">
+                        <p class="text-sm text-[var(--accent)]">Single occupancy price: <span class="font-semibold">{{ single_price }} UGX/semester</span></p>
+                        <p class="text-xs mt-1 text-[var(--muted)]">You're creating a request for single occupancy - someone can share this room with you at this price.</p>
+                    </div>
+                    {% endif %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Min Budget (UGX)</label>
+                            <input type="number" name="budget_min" class="input-field" placeholder="e.g. 200000">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Max Budget (UGX)</label>
+                            <input type="number" name="budget_max" class="input-field" placeholder="e.g. 500000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">About Yourself</label>
+                        <textarea name="about_me" class="input-field" rows="4" placeholder="Tell potential roommates about yourself - your study habits, interests, cleanliness, etc."></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary w-full flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Create Roommate Request
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8">
+            <h2 class="text-xl font-semibold mb-6 flex items-center gap-2">
+                <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-3-3h-4m-4 0H5a3 3 0 00-3 3v2h5m4 0v-2a3 3 0 013-3V5a3 3 0 01-3-3h-4"/>
+                </svg>
+                Available Requests
+            </h2>
+            <div id="requests-list" class="space-y-4">
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .input-field {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--fg);
+        outline: none;
+        transition: all 0.2s ease;
+    }
+    .input-field:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(100, 255, 218, 0.1);
+    }
+    .input-field::placeholder {
+        color: var(--muted);
+    }
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+    .btn-secondary {
+        background: var(--bg);
+        color: var(--fg);
+        font-weight: 500;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        transition: all 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: var(--card);
+    }
+</style>
+
+<script>
+function getCSRFToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+
+// Notification permission popup
+function showNotificationPrompt() {
+    const dismissed = localStorage.getItem('notification-prompt-dismissed') === 'true';
+    if (dismissed) return;
+    
+    const promptEl = document.getElementById('notification-prompt');
+    if (promptEl && 'Notification' in window) {
+        if (Notification.permission === 'default') {
+            promptEl.classList.remove('hidden');
+        } else {
+            promptEl.classList.add('hidden');
+        }
+    }
+}
+
+function requestNotificationPermission() {
+    if (!('Notification' in window)) return;
+    
+    Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+            localStorage.setItem('notifications-enabled', 'true');
+            showToast('Notifications enabled!', 'success');
+        }
+        document.getElementById('notification-prompt').classList.add('hidden');
+    });
+}
+
+function dismissNotificationPrompt() {
+    localStorage.setItem('notification-prompt-dismissed', 'true');
+    document.getElementById('notification-prompt').classList.add('hidden');
+}
+
+async function loadRoommateRequests() {
+    const listEl = document.getElementById('requests-list');
+    try {
+        const response = await fetch('/api/roommate-requests/');
+        const requests = await response.json();
+        
+        if (requests.length === 0) {
+            listEl.innerHTML = '<div class="text-center py-8"><p class="text-[var(--muted)]">No roommate requests available right now.</p><p class="text-sm text-[var(--muted)] mt-2">Be the first to create one!</p></div>';
+            return;
+        }
+        
+        listEl.innerHTML = requests.map(req => `
+            <div class="bg-[var(--bg)] rounded-2xl border border-[var(--border)] p-6 hover:border-[var(--accent)] transition-all">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold">${req.user.full_name || req.user.email}</h3>
+                            <p class="text-sm text-[var(--muted)]">${req.hostel.name} • ${req.hostel.city}</p>
+                        </div>
+                    </div>
+                    <button onclick="connectWithRoommate('${req.id}')" class="btn-primary text-sm py-2 px-4 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
+                        </svg>
+                        Connect
+                    </button>
+                </div>
+                <div class="space-y-2 text-sm">
+                    ${req.budget_min || req.budget_max ? `
+                        <div class="flex items-center gap-2">
+                            <span class="text-[var(--muted)]">Budget:</span>
+                            <span class="text-[var(--fg)]">${req.budget_min ? req.budget_min + ' - ' : ''}${req.budget_max || 'any'} UGX</span>
+                        </div>
+                    ` : ''}
+                    ${req.about_me ? `
+                        <div>
+                            <span class="text-[var(--muted)]">About:</span>
+                            <p class="mt-1">${req.about_me}</p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        listEl.innerHTML = '<div class="text-center py-8"><p class="text-[var(--muted)]">Error loading requests. Please try again.</p><button onclick="loadRoommateRequests()" class="btn-secondary text-sm mt-2">Retry</button></div>';
+    }
+}
+
+async function connectWithRoommate(requestId) {
+    try {
+        const response = await fetch(`/api/roommate-requests/${requestId}/toggle/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() }
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast('Chat started!', 'success');
+            setTimeout(() => window.location.href = `/chat/${data.chat_room_id}/`, 1000);
+        } else {
+            showToast(data.error || 'Could not connect', 'error');
+        }
+    } catch (error) {
+        showToast('Connection failed', 'error');
+    }
+}
+
+async function cancelRoommateRequest() {
+    if (!confirm('Cancel your roommate request? This will remove you from the matching pool.')) return;
+    try {
+        const response = await fetch('/api/roommate-requests/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+            body: JSON.stringify({ is_active: false })
+        });
+        const data = await response.json();
+        if (data.success || data.cancelled) {
+            showToast('Request cancelled', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Could not cancel', 'error');
+        }
+    } catch (error) {
+        showToast('Error cancelling request', 'error');
+    }
+}
+
+document.getElementById('roommate-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {
+        hostel_id: formData.get('hostel_id'),
+        room_id: formData.get('room_id') || null,
+        preferred_gender: formData.get('preferred_gender'),
+        budget_min: formData.get('budget_min') || null,
+        budget_max: formData.get('budget_max') || null,
+        about_me: formData.get('about_me')
+    };
+    
+    if (!data.hostel_id) {
+        showToast('Please select a hostel', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/roommate-requests/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast('Request created successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Could not create request', 'error');
+        }
+    } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+    }
+});
+
+// Pre-select hostel from URL params
+document.addEventListener('DOMContentLoaded', function() {
+    loadRoommateRequests();
+    showNotificationPrompt();
+    
+    // Auto-select hostel if preselected
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedHostelId = urlParams.get('hostel_id');
+    if (preselectedHostelId) {
+        const hostelSelect = document.getElementById('hostel-select');
+        if (hostelSelect) {
+            hostelSelect.value = preselectedHostelId;
+        }
+    }
+});
+</script>
+
+<!-- Notification Permission Prompt -->
+<div id="notification-prompt" class="fixed bottom-20 right-6 z-40 hidden">
+    <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-2xl max-w-sm">
+        <div class="flex items-start gap-4">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold mb-1">Enable Notifications</h3>
+                <p class="text-sm text-[var(--muted)] mb-3">Get notified when someone messages you about roommates.</p>
+                <div class="flex gap-2">
+                    <button onclick="requestNotificationPermission()" class="btn-primary text-xs py-2 px-3">Allow</button>
+                    <button onclick="dismissNotificationPrompt()" class="btn-secondary text-xs py-2 px-3">Not now</button>
+                </div>
+            </div>
+            <button onclick="dismissNotificationPrompt()" class="text-[var(--muted)] hover:text-[var(--fg)]">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

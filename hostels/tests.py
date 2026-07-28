@@ -1,8 +1,9 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Hostel, Booking, Message
+from .models import Hostel, Booking, Message, RoommateRequest, ChatRoom, ChatMessage, Room, Profile
 import json
+import uuid
 
 User = get_user_model()
 
@@ -445,3 +446,148 @@ class APIEndpointTests(BaseTestCase):
         data = json.loads(response.content)
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 1)
+
+
+class RoommateFinderTests(TestCase):
+    """Tests for roommate finder feature"""
+
+    def setUp(self):
+        self.client = Client()
+        import uuid
+        self.user = User(
+            id=str(uuid.uuid4()),
+            email='roommateuser@example.com',
+            first_name='Roommate',
+            last_name='User'
+        )
+        self.user.set_password('testpass123')
+        self.user.save()
+        from .models import Profile
+        self.profile = Profile.objects.create(
+            user=self.user,
+            full_name='Roommate User',
+            email='roommateuser@example.com',
+            role='customer'
+        )
+        self.hostel = Hostel.objects.create(
+            name='Roommate Test Hostel',
+            description='A hostel for roommate testing',
+            address='123 Roommate St',
+            city='Kampala',
+            country='Uganda'
+        )
+
+    def test_roommate_finder_requires_login(self):
+        response = self.client.get(reverse('roommate_finder'))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, '/login/')
+
+    def test_roommate_finder_page_loads(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('roommate_finder'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'roommate_finder.html')
+
+    def test_create_roommate_request(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('api_roommate_requests'),
+            json.dumps({
+                'hostel_id': str(self.hostel.id),
+                'preferred_gender': 'any',
+                'budget_min': None,
+                'budget_max': None,
+                'about_me': 'Looking for a roommate'
+            }),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertTrue(RoommateRequest.objects.filter(user=self.user).exists())
+
+    def test_get_roommate_requests(self):
+        self.client.force_login(self.user)
+        RoommateRequest.objects.create(
+            user=self.user,
+            hostel=self.hostel,
+            preferred_gender='male',
+            about_me='Test request'
+        )
+        response = self.client.get(reverse('api_roommate_requests'))
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertIsInstance(data, list)
+
+    def test_cancel_roommate_request(self):
+        self.client.force_login(self.user)
+        RoommateRequest.objects.create(
+            user=self.user,
+            hostel=self.hostel,
+            is_active=True
+        )
+        response = self.client.post(
+            reverse('api_roommate_requests'),
+            json.dumps({'is_active': False}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertTrue(data['cancelled'])
+        self.assertFalse(RoommateRequest.objects.filter(user=self.user, is_active=True).exists())
+
+    def test_connect_creates_chat_room(self):
+        self.client.force_login(self.user)
+        other_user = User(
+            id=str(uuid.uuid4()),
+            email='otheruser@example.com',
+            first_name='Other',
+            last_name='User'
+        )
+        other_user.set_password('testpass123')
+        other_user.save()
+        Profile.objects.create(
+            user=other_user,
+            full_name='Other User',
+            email='otheruser@example.com',
+            role='customer'
+        )
+        request = RoommateRequest.objects.create(
+            user=other_user,
+            hostel=self.hostel,
+            preferred_gender='any'
+        )
+        response = self.client.post(
+            reverse('api_roommate_request_toggle', args=[request.id]),
+            json.dumps({}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertTrue(ChatRoom.objects.filter(participants=self.user).exists())
+
+    def test_my_chat_rooms_page_loads(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('my_chat_rooms'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'my_chat_rooms.html')
+
+    def test_chat_room_detail_requires_login(self):
+        chat_room = ChatRoom.objects.create(hostel=self.hostel)
+        response = self.client.get(reverse('chat_room_detail', args=[chat_room.id]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_send_message(self):
+        self.client.force_login(self.user)
+        chat_room = ChatRoom.objects.create(hostel=self.hostel)
+        chat_room.participants.add(self.user)
+        response = self.client.post(
+            reverse('api_send_message', args=[chat_room.id]),
+            json.dumps({'content': 'Hello from test!'}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        self.assertTrue(ChatMessage.objects.filter(chat_room=chat_room).exists())

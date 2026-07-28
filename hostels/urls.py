@@ -71,6 +71,15 @@ path('hostel/<str:id>/', views.hostel_detail, name='hostel_detail'),
     
     # Booking cancellation
     path('api/bookings/<str:booking_id>/cancel/', views.cancel_booking, name='api_cancel_booking'),
+    
+    # Roommate Finder
+    path('roommate-finder/', views.roommate_finder, name='roommate_finder'),
+    path('my-chat-rooms/', views.my_chat_rooms, name='my_chat_rooms'),
+    path('api/roommate-requests/', views.api_roommate_requests, name='api_roommate_requests'),
+    path('api/roommate-requests/<str:request_id>/toggle/', views.api_roommate_request_toggle, name='api_roommate_request_toggle'),
+    path('api/chat-rooms/', views.api_chat_rooms, name='api_chat_rooms'),
+    path('chat/<str:room_id>/', views.chat_room_detail, name='chat_room_detail'),
+    path('api/chat/<str:room_id>/send/', views.api_send_message, name='api_send_message'),
 ]
 
 handler404 = 'hostels.views.custom_404'
