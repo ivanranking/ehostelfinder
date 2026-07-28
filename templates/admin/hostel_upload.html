@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}Upload Hostel - EHostelFinder{% endblock %}
+{% block title %}Upload Hostel - EHostelFinder Admin{% endblock %}
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -8,6 +8,16 @@
         <h1 class="text-3xl font-bold font-['Space_Grotesk'] mb-2">Upload a Hostel</h1>
         <p class="text-[var(--muted)]">Add the hostel details you want to show on the website.</p>
     </div>
+
+    {% if messages %}
+    <div class="mb-6 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-500/20 text-green-400{% else %}bg-red-500/20 text-red-400{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <form method="post" class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 space-y-6">
         {% csrf_token %}

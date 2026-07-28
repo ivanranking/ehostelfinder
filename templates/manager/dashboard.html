@@ -118,6 +118,14 @@
 
     <!-- Rooms Tab -->
     <div id="rooms-tab" class="tab-content hidden">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 mb-4">
+            <button onclick="openRoomModal()" class="btn-primary flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Add New Room
+            </button>
+        </div>
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
             <table class="w-full">
                 <thead class="bg-[var(--bg-elevated)]">
@@ -126,6 +134,7 @@
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Type</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Capacity</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Price</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Single Price</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Status</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Available Qty</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Available</th>
@@ -134,11 +143,98 @@
                 </thead>
                 <tbody id="rooms-table" class="divide-y divide-[var(--border)]">
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
+                        <td colspan="9" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- Room Modal -->
+<div id="room-modal" class="fixed inset-0 z-[60] bg-black/50 hidden items-center justify-center p-4">
+    <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-['Space_Grotesk'] font-semibold">Add/Edit Room</h3>
+            <button onclick="closeRoomModal()" class="text-[var(--muted)] hover:text-[var(--fg)]">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <form id="room-form" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="room_id" id="room-id">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Number</label>
+                    <input type="text" name="room_number" id="room-number" required class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Name</label>
+                    <input type="text" name="room_name" id="room-name" required class="input-field">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Type</label>
+                    <select name="room_type" id="room-type" required class="input-field">
+                        <option value="Single">Single</option>
+                        <option value="Double">Double</option>
+                        <option value="Triple">Triple</option>
+                        <option value="Quadruple">Quadruple</option>
+                        <option value="Dormitory">Dormitory</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Capacity</label>
+                    <input type="number" name="capacity" id="room-capacity" min="1" required class="input-field">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Price Per Semester</label>
+                    <input type="number" name="price_per_night" id="room-price" min="0" step="0.01" required class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Single Bed Price</label>
+                    <input type="number" name="single_bed_price" id="room-single-price" min="0" step="0.01" class="input-field" placeholder="For shared rooms">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Floor</label>
+                    <input type="number" name="floor" id="room-floor" min="0" class="input-field">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Available Quantity</label>
+                    <input type="number" name="available_quantity" id="room-qty" min="1" required class="input-field">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-[var(--muted)] mb-2">Description</label>
+                <textarea name="description" id="room-description" rows="3" class="input-field resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-[var(--muted)] mb-2">Amenities</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center gap-2"><input type="checkbox" name="wifi" id="room-wifi" class="w-4 h-4 text-[var(--accent)]"> WiFi</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="air_conditioning" id="room-ac" class="w-4 h-4 text-[var(--accent)]"> Air Conditioning</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="private_bathroom" id="room-bath" class="w-4 h-4 text-[var(--accent)]"> Private Bathroom</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="balcony" id="room-balcony" class="w-4 h-4 text-[var(--accent)]"> Balcony</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" name="television" id="room-tv" class="w-4 h-4 text-[var(--accent)]"> Television</label>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Images (URLs)</label>
+                <input type="text" name="images" id="room-images" placeholder="comma-separated image URLs" class="input-field">
+                <p class="text-xs text-[var(--muted)] mt-1">Enter image URLs separated by commas</p>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeRoomModal()" class="btn-secondary flex-1">Cancel</button>
+                <button type="submit" class="btn-primary flex-1">Save Room</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -243,9 +339,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `
                     <tr class="hover:bg-[var(--bg-elevated)]">
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_number}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.room_name}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_type}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.capacity}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.price_per_night} UGX/semester</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.single_bed_price || '-'}</td>
                         <td class="px-6 py-4">
                             <select onchange="updateRoomStatus(${r.id}, this.value)" class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm">
                                 <option value="Available" ${r.status === 'Available' ? 'selected' : ''}>Available</option>
@@ -260,13 +358,95 @@ document.addEventListener('DOMContentLoaded', function() {
                             <input type="checkbox" ${r.is_available ? 'checked' : ''} onchange="updateRoomAvailability(${r.id}, this.checked)" class="w-5 h-5 text-[var(--accent)] bg-[var(--bg)] border-[var(--border)] rounded"/>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <button onclick="saveRoom(${r.id})" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)]">Save</button>
+                            <button onclick="editRoom(${r.id})" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] mr-2">Edit</button>
+                            <button onclick="saveRoom(${r.id})" class="text-sm text-emerald-500 hover:text-emerald-400">Save</button>
                         </td>
                     </tr>
                 `;
             });
+            if (!html) html = '<tr><td colspan="9" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
             document.getElementById('rooms-table').innerHTML = html;
         });
+});
+
+function openRoomModal(roomData = null) {
+    const modal = document.getElementById('room-modal');
+    if (roomData) {
+        document.getElementById('room-id').value = roomData.id;
+        document.getElementById('room-number').value = roomData.room_number;
+        document.getElementById('room-name').value = roomData.room_name;
+        document.getElementById('room-type').value = roomData.room_type;
+        document.getElementById('room-capacity').value = roomData.capacity;
+        document.getElementById('room-price').value = roomData.price_per_night;
+        document.getElementById('room-single-price').value = roomData.single_bed_price || '';
+        document.getElementById('room-floor').value = roomData.floor || '';
+        document.getElementById('room-qty').value = roomData.available_quantity;
+        document.getElementById('room-description').value = roomData.description || '';
+        document.getElementById('room-wifi').checked = roomData.wifi || false;
+        document.getElementById('room-ac').checked = roomData.air_conditioning || false;
+        document.getElementById('room-bath').checked = roomData.private_bathroom || false;
+        document.getElementById('room-balcony').checked = roomData.balcony || false;
+        document.getElementById('room-tv').checked = roomData.television || false;
+        document.getElementById('room-images').value = roomData.images || '';
+    } else {
+        document.getElementById('room-form').reset();
+        document.getElementById('room-id').value = '';
+    }
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRoomModal() {
+    const modal = document.getElementById('room-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function editRoom(id) {
+    fetch('/manager/rooms/')
+        .then(r => r.json())
+        .then(data => {
+            const room = data.find(r => r.id == id);
+            if (room) openRoomModal(room);
+        });
+}
+
+document.getElementById('room-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const data = {
+        room_id: formData.get('room_id') || null,
+        room_number: formData.get('room_number'),
+        room_name: formData.get('room_name'),
+        room_type: formData.get('room_type'),
+        capacity: parseInt(formData.get('capacity')),
+        price_per_night: formData.get('price_per_night'),
+        single_bed_price: formData.get('single_bed_price') || null,
+        floor: formData.get('floor') || null,
+        available_quantity: parseInt(formData.get('available_quantity')),
+        description: formData.get('description') || '',
+        wifi: formData.get('wifi') ? true : false,
+        air_conditioning: formData.get('air_conditioning') ? true : false,
+        private_bathroom: formData.get('private_bathroom') ? true : false,
+        balcony: formData.get('balcony') ? true : false,
+        television: formData.get('television') ? true : false,
+        images: formData.get('images') || null,
+    };
+    fetch('/manager/rooms/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+        body: JSON.stringify(data)
+    }).then(r => r.json()).then(res => {
+        if (res.success) {
+            showToast('Room saved successfully!', 'success');
+            closeRoomModal();
+            location.reload();
+        } else {
+            showToast(res.error || 'Failed to save room', 'error');
+        }
+    });
 });
 
 function updateRoomAvailability(id, checked) {

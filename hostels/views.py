@@ -257,6 +257,10 @@ def login(request):
         user = authenticate(request, username=form.cleaned_data["email"], password=form.cleaned_data["password"])
         if user:
             auth_login(request, user)
+            # Redirect managers to their dashboard
+            profile = getattr(user, 'profile', None)
+            if profile and profile.role == 'manager':
+                return redirect("manager_dashboard")
             return redirect("home")
         messages.error(request, "Invalid email or password")
     else:
@@ -694,56 +698,291 @@ def cancel_booking(request, booking_id):
         return JsonResponse({"error": str(e)}, status=400)
 
 def manager_dashboard(request):
-    if not request.user.is_authenticated or getattr(request.user, 'profile', None).role != 'manager':
+    if not request.user.is_authenticated:
         messages.error(request, "Access denied")
+        return redirect("login")
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager':
+        messages.error(request, "Access denied - Manager role required")
         return redirect("home")
-    bookings = Booking.objects.filter(hostel=request.user.profile.hostel).select_related('room', 'customer') if request.user.profile.hostel else Booking.objects.none()
-    return render(request, "manager_dashboard.html", {"bookings": bookings})
+    if not profile.hostel:
+        messages.error(request, "No hostel assigned to this manager")
+        return redirect("home")
+    return render(request, "manager/dashboard.html", {"hostel": profile.hostel})
 
 def manager_bookings(request):
-    return render(request, "manager_bookings.html")
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager' or not profile.hostel:
+        return JsonResponse({"error": "Access denied"}, status=403)
+    bookings = Booking.objects.filter(hostel=profile.hostel).select_related('room', 'customer').order_by('-booked_at')
+    data = []
+    for b in bookings:
+        data.append({
+            "id": str(b.id),
+            "customer_name": b.customer.get_full_name() or b.customer.email if b.customer else b.full_name,
+            "customer_email": b.customer.email if b.customer else '',
+            "room_number": b.room.room_number if b.room else '',
+            "room_name": b.room.room_name if b.room else '',
+            "check_in": b.check_in.isoformat(),
+            "check_out": b.check_out.isoformat(),
+            "nights": b.nights,
+            "guests": b.guests,
+            "total_price": str(b.total_price),
+            "booking_status": b.booking_status,
+            "payment_status": b.payment_status,
+        })
+    return JsonResponse(data, safe=False)
 
 def manager_update_booking(request, booking_id):
-    return JsonResponse({"success": True})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    try:
+        booking = get_object_or_404(Booking, id=booking_id, hostel=profile.hostel)
+        data = json.loads(request.body)
+        if 'booking_status' in data:
+            booking.booking_status = data['booking_status']
+        if 'payment_status' in data:
+            booking.payment_status = data['payment_status']
+        booking.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 def manager_checkins(request):
-    return render(request, "manager_checkins.html")
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager' or not profile.hostel:
+        return JsonResponse({"error": "Access denied"}, status=403)
+    bookings = Booking.objects.filter(hostel=profile.hostel, booking_status='Checked In').select_related('room', 'customer')
+    data = []
+    for b in bookings:
+        data.append({
+            "id": str(b.id),
+            "customer_name": b.customer.get_full_name() or b.customer.email if b.customer else b.full_name,
+            "customer_email": b.customer.email if b.customer else '',
+            "room_number": b.room.room_number if b.room else '',
+            "room_name": b.room.room_name if b.room else '',
+            "check_in": b.check_in.isoformat(),
+            "check_out": b.check_out.isoformat(),
+            "guests": b.guests,
+            "total_price": str(b.total_price),
+        })
+    return JsonResponse(data, safe=False)
 
 def manager_rooms(request):
-    return render(request, "manager_rooms.html")
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager' or not profile.hostel:
+        return JsonResponse({"error": "Access denied"}, status=403)
+    if request.method == "GET":
+        rooms = Room.objects.filter(hostel=profile.hostel).order_by('room_number')
+        data = []
+        for r in rooms:
+            data.append({
+                "id": str(r.id),
+                "room_number": r.room_number,
+                "room_name": r.room_name,
+                "room_type": r.room_type,
+                "capacity": r.capacity,
+                "price_per_night": str(r.price_per_night),
+                "single_bed_price": str(r.single_bed_price) if r.single_bed_price else None,
+                "floor": r.floor,
+                "status": r.status,
+                "available_quantity": r.available_quantity,
+                "is_available": r.is_available,
+                "wifi": r.wifi,
+                "air_conditioning": r.air_conditioning,
+                "private_bathroom": r.private_bathroom,
+                "balcony": r.balcony,
+                "television": r.television,
+                "description": r.description or '',
+            })
+        return JsonResponse(data, safe=False)
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            room_id = data.get('room_id')
+            if room_id:
+                room = get_object_or_404(Room, id=room_id, hostel=profile.hostel)
+            else:
+                room = Room(hostel=profile.hostel)
+            room.room_number = data.get('room_number', room.room_number)
+            room.room_name = data.get('room_name', room.room_name)
+            room.room_type = data.get('room_type', room.room_type)
+            room.capacity = int(data.get('capacity', room.capacity))
+            room.price_per_night = data.get('price_per_night', room.price_per_night)
+            room.single_bed_price = data.get('single_bed_price') or None
+            room.floor = data.get('floor') or None
+            room.status = data.get('status', room.status)
+            room.available_quantity = int(data.get('available_quantity', room.available_quantity))
+            room.is_available = data.get('is_available', room.is_available)
+            room.description = data.get('description', '')
+            room.wifi = data.get('wifi', room.wifi)
+            room.air_conditioning = data.get('air_conditioning', room.air_conditioning)
+            room.private_bathroom = data.get('private_bathroom', room.private_bathroom)
+            room.balcony = data.get('balcony', room.balcony)
+            room.television = data.get('television', room.television)
+            room.save()
+            # Handle room images
+            if data.get('images'):
+                images = [img.strip() for img in data.get('images').split(',') if img.strip()]
+                RoomImage.objects.filter(room=room).delete()
+                for img_url in images:
+                    RoomImage.objects.create(room=room, image_url=img_url)
+            return JsonResponse({"success": True, "id": str(room.id)})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
 def manager_checkout(request, booking_id):
-    return JsonResponse({"success": True})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'manager':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    try:
+        booking = get_object_or_404(Booking, id=booking_id, hostel=profile.hostel)
+        booking.booking_status = 'Checked Out'
+        booking.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 def hostel_upload(request):
-    return render(request, "hostel_upload.html")
+    if not request.user.is_authenticated:
+        messages.error(request, "Access denied - Please log in")
+        return redirect("login")
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        messages.error(request, "Access denied - Admin role required")
+        return redirect("home")
+    if request.method == 'POST':
+        form = HostelUploadForm(request.POST)
+        if form.is_valid():
+            h = Hostel.objects.create(
+                name=form.cleaned_data['name'],
+                description=form.cleaned_data.get('description', ''),
+                address=form.cleaned_data['address'],
+                city=form.cleaned_data['city'],
+                country=form.cleaned_data.get('country', 'Uganda'),
+                university=form.cleaned_data.get('university', ''),
+                rating=form.cleaned_data.get('rating'),
+                amenities=form.cleaned_data.get('amenities', ''),
+                image_url=form.cleaned_data.get('image_url', ''),
+                available=True
+            )
+            messages.success(request, f"Hostel '{h.name}' created successfully!")
+            return redirect('hostel_detail', id=str(h.id))
+    else:
+        form = HostelUploadForm()
+    return render(request, "admin/hostel_upload.html", {'form': form})
 
 def admin_manager_assign(request):
-    return render(request, "admin_manager_assign.html")
+    if not request.user.is_authenticated:
+        messages.error(request, "Access denied - Please log in")
+        return redirect("login")
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        messages.error(request, "Access denied - Admin role required")
+        return redirect("home")
+    return render(request, "admin/manager_assign.html")
 
 @require_http_methods(["GET"])
 def api_managers(request):
-    return JsonResponse({"managers": []})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    managers = Profile.objects.filter(role='manager').select_related('user')
+    return JsonResponse({
+        "managers": [{"id": m.user.id, "full_name": m.full_name, "email": m.email, "phone": m.phone, "hostel_id": str(m.hostel.id) if m.hostel else None} for m in managers]
+    })
 
 @require_http_methods(["POST"])
 def admin_create_manager(request):
-    return JsonResponse({"success": True})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    try:
+        data = json.loads(request.body)
+        email = data.get('email')
+        password = data.get('password')
+        full_name = data.get('full_name', '')
+        phone = data.get('phone', '')
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({"success": False, "error": "Email already exists"}, status=400)
+        user = User.objects.create(email=email, first_name=full_name.split()[0] if full_name else '', last_name=' '.join(full_name.split()[1:]) if full_name and len(full_name.split()) > 1 else '')
+        user.set_password(password)
+        user.save()
+        Profile.objects.create(user=user, full_name=full_name, email=email, phone=phone, role='manager')
+        return JsonResponse({"success": True, "id": user.id})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
 
 @require_http_methods(["GET"])
 def api_unassigned_managers(request):
-    return JsonResponse({"managers": []})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    managers = Profile.objects.filter(role='manager', hostel__isnull=True).select_related('user')
+    return JsonResponse({
+        "managers": [{"id": m.user.id, "full_name": m.full_name, "email": m.email, "phone": m.phone} for m in managers]
+    })
 
 @require_http_methods(["GET"])
 def api_hostel_managers(request, hostel_id):
-    return JsonResponse({"managers": []})
+    hostel = get_object_or_404(Hostel, id=hostel_id)
+    managers = Profile.objects.filter(role='manager', hostel=hostel).select_related('user')
+    return JsonResponse({
+        "managers": [{"id": m.user.id, "full_name": m.full_name, "email": m.email, "phone": m.phone} for m in managers]
+    })
 
 @require_http_methods(["POST"])
 def admin_assign_manager(request):
-    return JsonResponse({"success": True})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    try:
+        data = json.loads(request.body)
+        manager_id = data.get('manager_id')
+        hostel_id = data.get('hostel_id')
+        manager_profile = get_object_or_404(Profile, user_id=manager_id, role='manager')
+        hostel = get_object_or_404(Hostel, id=hostel_id)
+        manager_profile.hostel = hostel
+        manager_profile.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
 
 @require_http_methods(["POST"])
 def admin_remove_manager(request):
-    return JsonResponse({"success": True})
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role != 'admin':
+        return JsonResponse({"error": "Access denied"}, status=403)
+    try:
+        data = json.loads(request.body)
+        manager_id = data.get('manager_id')
+        manager_profile = get_object_or_404(Profile, user_id=manager_id, role='manager')
+        manager_profile.hostel = None
+        manager_profile.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
 
 def custom_404(request, exception):
     return render(request, "404.html", status=404)
