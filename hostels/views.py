@@ -13,6 +13,28 @@ from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, Rese
 from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, Notification, Payment, RoomStatus, BookingStatus, RoommateRequest, ChatRoom, ChatMessage
 from .local_ai import get_local_ai_response
 
+
+def normalize_amenities(amenities):
+    """Normalize amenities data that may be corrupted (e.g. ['wifi\\r\\nparking'] instead of ['wifi', 'parking']).
+    Handles various formats: list with single string containing newlines, raw string, proper list, etc."""
+    if not amenities:
+        return []
+    if isinstance(amenities, str):
+        # Split by comma or newline
+        return [a.strip() for a in amenities.replace('\r\n', '\n').replace('\r', '\n').replace('\n', ',').split(',') if a.strip()]
+    if isinstance(amenities, list):
+        result = []
+        for item in amenities:
+            if isinstance(item, str):
+                # Check if this single string contains newlines or commas that need splitting
+                if '\n' in item or '\r' in item or ',' in item:
+                    items = item.replace('\r\n', '\n').replace('\r', '\n').replace('\n', ',').split(',')
+                    result.extend([a.strip() for a in items if a.strip()])
+                else:
+                    result.append(item.strip())
+        return result
+    return []
+
 KAMPALA_AREA_UNIVERSITIES = ["Makerere University", "Makerere University Business School", "Kyambogo University", "Kampala International University", "Uganda Christian University", "Ndejje University", "Bugema University", "Cavendish University Uganda", "St. Lawrence University Uganda", "Mutesa I Royal University"]
 
 def get_university_options():
@@ -71,7 +93,7 @@ def home(request):
         "available": h.available, "rating": float(h.rating) if h.rating else round(float(h.average_rating), 1),
         "distance": h.distance or "Near campus",
         "price": str(h.price) if h.price else (str(available_room.price_per_night) if available_room else "0"),
-        "amenities": h.amenities or [],
+        "amenities": normalize_amenities(h.amenities),
         })
     favorite_ids = []
     if request.user.is_authenticated:
@@ -116,10 +138,11 @@ def hostel_detail(request, id):
         "price": float(hostel.price) if hostel.price else 0,
         "rating": float(hostel.rating) if hostel.rating else round(float(hostel.average_rating), 1),
         "available": hostel.available, "contact": hostel.contact or "",
-        "amenities": hostel.amenities or [], "phone": hostel.phone, "email": hostel.email,
+"amenities": normalize_amenities(hostel.amenities), "phone": hostel.phone, "email": hostel.email,
         "latitude": str(hostel.latitude) if hostel.latitude else None,
         "longitude": str(hostel.longitude) if hostel.longitude else None,
-        "cover_image": cover.image_url if cover else None,
+"cover_image": cover.image_url if cover else hostel.image_url or None,
+        "image_url": hostel.image_url or None,
         "images": [{"url": img.image_url, "is_cover": img.is_cover} for img in images],
         },
         "rooms": rooms_data,
@@ -169,7 +192,7 @@ def api_hostels(request):
     results = []
     for h in hostels:
         cover = h.images.filter(is_cover=True).first()
-        results.append({"id": str(h.id), "name": h.name, "city": h.city, "country": h.country, "university": h.university, "address": h.address, "description": h.description, "average_rating": round(float(h.average_rating), 2), "rating": float(h.rating) if h.rating else round(float(h.average_rating), 2), "review_count": h.reviews.count(), "image_url": h.image_url or (cover.image_url if cover else None), "facilities": [f.facility_name for f in h.facilities.all()], "amenities": h.amenities or [], "distance": h.distance or "", "price": float(h.price) if h.price else 0, "contact": h.contact or "", "available": h.available})
+        results.append({"id": str(h.id), "name": h.name, "city": h.city, "country": h.country, "university": h.university, "address": h.address, "description": h.description, "average_rating": round(float(h.average_rating), 2), "rating": float(h.rating) if h.rating else round(float(h.average_rating), 2), "review_count": h.reviews.count(), "image_url": h.image_url or (cover.image_url if cover else None), "facilities": [f.facility_name for f in h.facilities.all()], "amenities": normalize_amenities(h.amenities), "distance": h.distance or "", "price": float(h.price) if h.price else 0, "contact": h.contact or "", "available": h.available})
     return JsonResponse(results, safe=False)
 
 @require_http_methods(["GET"])
@@ -304,10 +327,20 @@ def signup(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            # Send confirmation email asynchronously to avoid blocking the response
             try:
-                from .email_utils import send_email_confirmation
-                send_email_confirmation(user, request)
-            except: pass
+                import threading
+                def send_email_async():
+                    from .email_utils import send_email_confirmation
+                    try:
+                        send_email_confirmation(user, request)
+                    except Exception:
+                        pass  # Silently fail if email sending fails
+                thread = threading.Thread(target=send_email_async)
+                thread.daemon = True
+                thread.start()
+            except Exception:
+                pass
             messages.success(request, "Account created! Please check your email to confirm.")
             return redirect("login")
     else:
@@ -865,6 +898,7 @@ def hostel_upload(request):
     if request.method == 'POST':
         form = HostelUploadForm(request.POST)
         if form.is_valid():
+            image_url = form.cleaned_data.get('image_url', '')
             h = Hostel.objects.create(
                 name=form.cleaned_data['name'],
                 description=form.cleaned_data.get('description', ''),
@@ -873,11 +907,23 @@ def hostel_upload(request):
                 country=form.cleaned_data.get('country', 'Uganda'),
                 university=form.cleaned_data.get('university', ''),
                 rating=form.cleaned_data.get('rating'),
-                amenities=form.cleaned_data.get('amenities', ''),
-                image_url=form.cleaned_data.get('image_url', ''),
+                amenities=[a.strip() for a in form.cleaned_data.get('amenities', '').split(',') if a.strip()],
+                image_url=image_url,
                 available=True
             )
-            messages.success(request, f"Hostel '{h.name}' created successfully!")
+            # Also create a HostelImage record so it shows up in hostel_detail
+            if image_url:
+                HostelImage.objects.create(hostel=h, image_url=image_url, is_cover=True)
+            # Create default room types
+            if form.cleaned_data.get('price_single'):
+                Room.objects.create(hostel=h, room_name='Single Room', room_number=f'{h.name[:10].upper()}-S', room_type='Single', capacity=1, price_per_night=form.cleaned_data['price_single'], available_quantity=5, status='Available', is_available=True)
+            if form.cleaned_data.get('price_double'):
+                Room.objects.create(hostel=h, room_name='Double Room', room_number=f'{h.name[:10].upper()}-D', room_type='Double', capacity=2, price_per_night=form.cleaned_data['price_double'], available_quantity=10, status='Available', is_available=True, single_bed_price=form.cleaned_data['price_double'])
+            if form.cleaned_data.get('price_triple'):
+                Room.objects.create(hostel=h, room_name='Triple Room', room_number=f'{h.name[:10].upper()}-T', room_type='Triple', capacity=3, price_per_night=form.cleaned_data['price_triple'], available_quantity=5, status='Available', is_available=True, single_bed_price=form.cleaned_data['price_triple'])
+            if form.cleaned_data.get('price_quadruple'):
+                Room.objects.create(hostel=h, room_name='Quadruple Room', room_number=f'{h.name[:10].upper()}-Q', room_type='Quadruple', capacity=4, price_per_night=form.cleaned_data['price_quadruple'], available_quantity=3, status='Available', is_available=True, single_bed_price=form.cleaned_data['price_quadruple'])
+            messages.success(request, f"Hostel '{h.name}' created successfully with default rooms!")
             return redirect('hostel_detail', id=str(h.id))
     else:
         form = HostelUploadForm()
@@ -891,7 +937,36 @@ def admin_manager_assign(request):
     if not profile or profile.role != 'admin':
         messages.error(request, "Access denied - Admin role required")
         return redirect("home")
-    return render(request, "admin/manager_assign.html")
+    
+    # Get all hostels with manager info for direct rendering
+    hostels = Hostel.objects.all().order_by('name')
+    hostel_data = []
+    for h in hostels:
+        hostel_managers = Profile.objects.filter(role='manager', hostel=h).select_related('user')
+        hostel_data.append({
+            'id': str(h.id),
+            'name': h.name,
+            'city': h.city,
+            'country': h.country,
+            'managers': [{
+                'id': m.user.id,
+                'full_name': m.full_name,
+                'email': m.email,
+            } for m in hostel_managers],
+        })
+    
+    # Get unassigned managers
+    unassigned_managers = Profile.objects.filter(role='manager', hostel__isnull=True).select_related('user')
+    managers_data = [{
+        'id': m.user.id,
+        'full_name': m.full_name,
+        'email': m.email,
+    } for m in unassigned_managers]
+    
+    return render(request, "admin/manager_assign.html", {
+        'hostels_json': json.dumps(hostel_data),
+        'managers_json': json.dumps(managers_data),
+    })
 
 @require_http_methods(["GET"])
 def api_managers(request):
@@ -905,6 +980,7 @@ def api_managers(request):
         "managers": [{"id": m.user.id, "full_name": m.full_name, "email": m.email, "phone": m.phone, "hostel_id": str(m.hostel.id) if m.hostel else None} for m in managers]
     })
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def admin_create_manager(request):
     if not request.user.is_authenticated:
@@ -920,9 +996,13 @@ def admin_create_manager(request):
         phone = data.get('phone', '')
         if User.objects.filter(email=email).exists():
             return JsonResponse({"success": False, "error": "Email already exists"}, status=400)
-        user = User.objects.create(email=email, first_name=full_name.split()[0] if full_name else '', last_name=' '.join(full_name.split()[1:]) if full_name and len(full_name.split()) > 1 else '')
-        user.set_password(password)
-        user.save()
+        # Use the custom UserManager to properly create the user with hashed password
+        user = User.objects.create_user(
+            email=email,
+            first_name=full_name.split()[0] if full_name else '',
+            last_name=' '.join(full_name.split()[1:]) if full_name and len(full_name.split()) > 1 else '',
+            password=password
+        )
         Profile.objects.create(user=user, full_name=full_name, email=email, phone=phone, role='manager')
         return JsonResponse({"success": True, "id": user.id})
     except Exception as e:
@@ -948,6 +1028,7 @@ def api_hostel_managers(request, hostel_id):
         "managers": [{"id": m.user.id, "full_name": m.full_name, "email": m.email, "phone": m.phone} for m in managers]
     })
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def admin_assign_manager(request):
     if not request.user.is_authenticated:
@@ -967,6 +1048,7 @@ def admin_assign_manager(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def admin_remove_manager(request):
     if not request.user.is_authenticated:

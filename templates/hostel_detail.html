@@ -30,7 +30,9 @@
                     {% endif %}
                 </div>
                 {% elif hostel.cover_image %}
-                <img src="{{ hostel.cover_image }}" alt="{{ hostel.name }}" class="w-full h-96 object-cover cursor-pointer" onclick="openLightbox(0)" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\"w-full h-96 bg-[var(--bg-elevated)] flex items-center justify-center\"><span class=\"text-[var(--muted)]\">Image not available</span></div>';">
+                <img src="{{ hostel.cover_image }}" alt="{{ hostel.name }}" class="w-full h-96 object-cover cursor-pointer" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\"w-full h-96 bg-[var(--bg-elevated)] flex items-center justify-center\"><span class=\"text-[var(--muted)]\">Image not available</span></div>';">
+                {% elif hostel.image_url %}
+                <img src="{{ hostel.image_url }}" alt="{{ hostel.name }}" class="w-full h-96 object-cover cursor-pointer" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\"w-full h-96 bg-[var(--bg-elevated)] flex items-center justify-center\"><span class=\"text-[var(--muted)]\">Image not available</span></div>';">
                 {% else %}
                 <div class="w-full h-96 bg-[var(--bg-elevated)] flex items-center justify-center">
                     <span class="text-[var(--muted)]">No image available</span>
@@ -126,8 +128,8 @@
                 {% endif %}
                 {% if facilities %}
                 <div class="flex flex-wrap gap-2">
-                    {% for amenity in facilities %}
-                    <span class="px-4 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm">{{ amenity.name }}</span>
+                    {% for facility in facilities %}
+                    <span class="px-4 py-2 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm">{{ facility.name }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}

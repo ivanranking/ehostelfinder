@@ -1,40 +1,17 @@
-# EHostelFinder - Market Readiness TODO ✅
+# TODO - Fix Tasks - COMPLETED
 
-## Critical Bug Fixes ✅
-- [x] 1. Fix UUID URL patterns (change `<int:id>` to `<str:id>`)
-- [x] 2. Fix booking form field name mismatch (checkIn -> check_in, etc.)
-- [x] 3. Fix homepage dropdown `text-black` class
-- [x] 4. Fix review star rendering in hostel_detail.html
+## [✓] 1. Fix Password Show/Hide Eye Icons
+### 1.1 login.html - Fixed togglePassword to work with per-field unique IDs ✓
+### 1.2 signup.html - Fixed broken HTML `</svg` (missing `>`) ✓
+### 1.3 reset_password.html - Added eye toggle icons ✓
+### 1.4 admin/manager_assign.html - Already had proper togglePassword functionality ✓
 
-## Missing Features ✅
-- [x] 5. Favorites system (heart button + My Favorites page)
-- [x] 6. Booking cancellation endpoint + UI
-- [x] 7. Notification system (dropdown in navbar, view page)
-- [x] 8. Basic payment processing flow
-- [x] 9. Image gallery lightbox on hostel detail
-- [x] 10. Loading skeletons for lists
+## [✓] 2. Fix Authentication Slowness
+### 2.1 hostels/views.py - Made email sending async using threading in signup view ✓
 
-## Missing Pages ✅
-- [x] 11. Custom 404/500 error pages
-- [x] 12. robots.txt and sitemap.xml
-- [x] 13. .env.example file
-
-## Enhancements ✅
-- [x] 14. Password strength indicator on signup
-- [x] 15. Email notifications for booking changes
-- [x] 16. Sort/filter options on home page
-- [x] 17. Pagination for hostel listings
-- [x] 18. Toast notifications instead of inline messages
-- [x] 19. Responsive improvements for mobile
-
-## Summary
-All items complete! The app is now market-ready with:
-- 🐛 Bug fixes for all critical issues
-- ❤️ Favorites, notifications, payment, cancellation
-- 🖼️ Image gallery with lightbox
-- 🔍 Sort, filter, and pagination
-- 🍞 Toast notifications system
-- 🎨 Custom error pages
-- 🔒 SEO with robots.txt and sitemap.xml
-- 📧 Email notification hooks for booking changes
+## [✓] 3. Fix Amenities Display + Image Display in Hostel Detail
+### 3.1 hostels/views.py - Fixed amenities string-to-list parsing in hostel_upload view ✓
+### 3.2 hostels/views.py - Added HostelImage creation when uploading hostel with image_url ✓
+### 3.3 hostels/views.py - Added `image_url` fallback field to hostel detail context ✓
+### 3.4 templates/hostel_detail.html - Added fallback to hostel.image_url when no HostelImage records exist ✓
 
