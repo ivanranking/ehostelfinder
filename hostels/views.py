@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth import logout
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
@@ -10,7 +10,7 @@ from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 import json, os, urllib.request, urllib.error, uuid, secrets
 from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
-from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, Notification, Payment, RoomStatus, BookingStatus, RoommateRequest, ChatRoom, ChatMessage
+from .models import Hostel, HostelImage, User, ContactMessage, Profile, Room, RoomImage, Booking, Review, Favorite, Message, Notification, Payment, RoomStatus, BookingStatus, RoommateRequest, ChatRoom, ChatMessage
 from .local_ai import get_local_ai_response
 from .stripe_service import create_payment_intent, retrieve_payment_intent, handle_webhook_event, create_checkout_session
 from .flutterwave_service import get_flutterwave_service
@@ -178,8 +178,9 @@ def hostel_detail(request, id):
         "facilities": [{"name": f.facility_name, "icon": f.icon or ""} for f in facilities],
         "reviews": reviews_data,
         }
+    except Http404:
+        raise
     except Exception as e:
-        print(f"Error in hostel_detail: {e}")
         messages.error(request, "Error loading hostel details")
         return redirect("home")
     if request.method == "POST" and "review_submit" in request.POST:
@@ -230,7 +231,7 @@ def api_hostel_detail(request, id):
     rooms = Room.objects.filter(hostel=hostel)
     cover = hostel.images.filter(is_cover=True).first()
     rooms_data = [{"id": str(r.id), "room_number": r.room_number, "room_name": r.room_name, "room_type": r.room_type, "capacity": r.capacity, "price_per_night": str(r.price_per_night), "description": r.description, "private_bathroom": r.private_bathroom, "air_conditioning": r.air_conditioning, "wifi": r.wifi, "status": r.status} for r in rooms]
-    return JsonResponse({"id": str(hostel.id), "name": hostel.name, "description": hostel.description, "address": hostel.address, "city": hostel.city, "country": hostel.country, "phone": hostel.phone, "email": hostel.email, "latitude": str(hostel.latitude) if hostel.latitude else None, "longitude": str(hostel.longitude) if hostel.longitude else None, "image_url": cover.image_url if cover else None, "rooms": rooms_data, "facilities": [{"name": f.facility_name} for f in hostel.facilities.all()]})
+    return JsonResponse({"id": str(hostel.id), "name": hostel.name, "description": hostel.description, "address": hostel.address, "city": hostel.city, "country": hostel.country, "phone": hostel.phone, "email": hostel.email, "latitude": str(hostel.latitude) if hostel.latitude else None, "longitude": str(hostel.longitude) if hostel.longitude else None, "image_url": cover.image_url if cover else None, "is_full": hostel.is_full, "available": hostel.available, "total_floors": hostel.total_floors, "rooms": rooms_data, "facilities": [{"name": f.facility_name} for f in hostel.facilities.all()]})
 
 @require_http_methods(["GET"])
 def api_cities(request):
@@ -1344,6 +1345,8 @@ def manager_hostel_info(request):
             hostel.contact = data.get('contact') or hostel.contact
             hostel.phone = data.get('phone') or hostel.phone
             hostel.email = data.get('email') or hostel.email
+            if data.get('available') is not None:
+                hostel.available = bool(data.get('available'))
             if data.get('amenities') is not None:
                 hostel.amenities = data.get('amenities')
             if 'check_in_time' in data and data['check_in_time']:
@@ -1428,17 +1431,46 @@ def hostel_upload(request):
             }
             h = Hostel.objects.create(
                 name=form.cleaned_data['name'],
-                description=form.cleaned_data.get('description', ''),
+                description=form.cleaned_data.get('description', request.POST.get('description', '')),
                 address=form.cleaned_data['address'],
                 city=form.cleaned_data['city'],
-                country=form.cleaned_data.get('country', 'Uganda'),
-                university=form.cleaned_data.get('university', ''),
-                rating=form.cleaned_data.get('rating'),
-                amenities=[a.strip() for a in form.cleaned_data.get('amenities', '').split(',') if a.strip()],
+                country=form.cleaned_data.get('country', request.POST.get('country', 'Uganda')),
+                university=form.cleaned_data.get('university', request.POST.get('university', '')),
+                rating=form.cleaned_data.get('rating', request.POST.get('rating')),
+                price=request.POST.get('price') or form.cleaned_data.get('price_single'),
+                amenities=[a.strip() for a in (request.POST.get('amenities') or form.cleaned_data.get('amenities', '')).split(',') if a.strip()],
                 image_url=image_url,
                 available=True,
                 room_label_range=room_label_range,
+                contact=request.POST.get('contact') or form.cleaned_data.get('contact', ''),
+                phone=request.POST.get('phone') or form.cleaned_data.get('phone', ''),
+                email=request.POST.get('email') or form.cleaned_data.get('email', ''),
+                distance=request.POST.get('distance', '') or form.cleaned_data.get('distance', 'Near campus'),
             )
+            if request.POST.get('check_in_time'):
+                h.check_in_time = request.POST.get('check_in_time')
+            if request.POST.get('check_out_time'):
+                h.check_out_time = request.POST.get('check_out_time')
+            h.total_floors = floor_count
+            h.save()
+            # Create or assign manager if email provided
+            manager_email = request.POST.get('manager_email')
+            if manager_email:
+                manager_user = User.objects.filter(email=manager_email).first()
+                if not manager_user:
+                    import uuid as _uuid
+                    manager_user = User.objects.create(
+                        id=str(_uuid.uuid4()),
+                        email=manager_email,
+                        first_name='Manager',
+                        last_name='User',
+                    )
+                    manager_user.set_password(secrets.token_urlsafe(16))
+                    manager_user.save()
+                Profile.objects.update_or_create(
+                    user=manager_user,
+                    defaults={'full_name': f"Manager User", 'email': manager_email, 'role': 'manager', 'hostel': h}
+                )
             # Parse and create HostelImage records (up to 9 images)
             all_image_urls = []
             if image_url:

@@ -1,4 +1,23 @@
-#!/usr/bin/env python3
+TemplateSyntaxError at /manager/
+Invalid block tag on line 725: 'endblock'. Did you forget to register or load this tag?
+Request Method:	GET
+Request URL:	https://ehostelfinder-1.onrender.com/manager/
+Django Version:	6.0.7
+Exception Type:	TemplateSyntaxError
+Exception Value:	
+Invalid block tag on line 725: 'endblock'. Did you forget to register or load this tag?
+Exception Location:	/opt/render/project/src/.venv/lib/python3.14/site-packages/django/template/base.py, line 644, in invalid_block_tag
+Raised during:	hostels.views.manager_dashboard
+Python Executable:	/opt/render/project/src/.venv/bin/python3.14
+Python Version:	3.14.3
+Python Path:	
+['/opt/render/project/src',
+ '/opt/render/project/src/.venv/bin',
+ '/opt/render/project/python/Python-3.14.3/lib/python314.zip',
+ '/opt/render/project/python/Python-3.14.3/lib/python3.14',
+ '/opt/render/project/python/Python-3.14.3/lib/python3.14/lib-dynload',
+ '/opt/render/project/src/.venv/lib/python3.14/site-packages']
+Server time:	Fri, 31 Jul 2026 09:10:43 +0000#!/usr/bin/env python3
 """Fix views.py - generate the complete working version."""
 import ast, os
 
