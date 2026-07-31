@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Confirmation - EHostelFinder</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0a; color: #fafafa; padding: 20px; margin: 0;">
+    <div style="max-width: 650px; margin: 0 auto; background: #1a1a1a; border-radius: 12px; padding: 40px; border: 1px solid #333;">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #64ffda; margin: 0; font-size: 28px;">Booking Confirmation</h1>
+            <p style="color: #888888; font-size: 14px; margin-top: 8px;">Your reservation is confirmed</p>
+        </div>
+
+        <div style="background: #0f0f0f; border-radius: 10px; padding: 20px; margin-bottom: 25px; border: 1px solid #333;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <span style="color: #888888; font-size: 13px;">Booking Reference</span>
+                <span style="color: #64ffda; font-weight: 600; font-size: 16px;">{{ booking.booking_reference }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #888888; font-size: 13px;">Booking Status</span>
+                <span style="color: #ff9d00; font-weight: 600; font-size: 14px;">{{ booking.booking_status }}</span>
+            </div>
+        </div>
+
+        <h2 style="color: #ffffff; font-size: 18px; margin: 0 0 15px 0;">Hostel Details</h2>
+        <div style="background: #0f0f0f; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Name</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.hostel.name }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Address</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.hostel.address }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">City</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.hostel.city }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Country</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.hostel.country }}</span>
+            </div>
+            {% if booking.hostel.contact %}
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Contact</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.hostel.contact }}</span>
+            </div>
+            {% endif %}
+            {% if booking.hostel.check_in_time %}
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #888888; font-size: 13px;">Check-in Time</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.hostel.check_in_time|time:"H:i" }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <h2 style="color: #ffffff; font-size: 18px; margin: 0 0 15px 0;">Room Details</h2>
+        <div style="background: #0f0f0f; border-radius: 10px; padding: 20px; margin-bottom: 20px; border: 1px solid #333;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Room Number</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.room.room_number }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Room Name</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.room.room_name }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Room Type</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.room.get_room_type_display }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Capacity</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.room.capacity }} person(s)</span>
+            </div>
+            {% if booking.room.size_sq_meters %}
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Size</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.room.size_sq_meters }} m²</span>
+            </div>
+            {% endif %}
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #888888; font-size: 13px;">Private Bathroom</span>
+                <span style="color: #ffffff; font-weight: 500;">
+                    {% if booking.room.private_bathroom %}Yes{% else %}No{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <h2 style="color: #ffffff; font-size: 18px; margin: 0 0 15px 0;">Booking Summary</h2>
+        <div style="background: #0f0f0f; border-radius: 10px; padding: 20px; margin-bottom: 25px; border: 1px solid #333;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Check-in Date</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.check_in|date:"F j, Y" }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Check-out Date</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.check_out|date:"F j, Y" }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Number of Nights</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.nights }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Guests</span>
+                <span style="color: #ffffff; font-weight: 500;">{{ booking.guests }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="color: #888888; font-size: 13px;">Price per Night</span>
+                <span style="color: #ffffff; font-weight: 500;">UGX {{ booking.room.price_per_night|floatformat:0 }}</span>
+            </div>
+            {% if booking.special_requests %}
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">
+                <span style="color: #888888; font-size: 13px; display: block; margin-bottom: 4px;">Special Requests</span>
+                <span style="color: #ffffff; font-weight: 500; font-size: 14px;">{{ booking.special_requests }}</span>
+            </div>
+            {% endif %}
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">
+                <div style="display: flex; justify-content: space-between; font-size: 16px;">
+                    <span style="color: #ffffff; font-weight: 600;">Total Amount</span>
+                    <span style="color: #64ffda; font-weight: 700; font-size: 18px;">UGX {{ booking.total_price|floatformat:0 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 25px;">
+            <a href="{{ site_url }}/my_bookings/" style="background: #64ffda; color: #0a0a0a; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">View My Bookings</a>
+        </div>
+
+        <p style="color: #888888; font-size: 14px; text-align: center; margin-bottom: 0;">
+            A copy of this receipt has been sent to your email.
+            Please bring this confirmation (or your booking reference) when checking in.
+        </p>
+    </div>
+</body>
+</html>

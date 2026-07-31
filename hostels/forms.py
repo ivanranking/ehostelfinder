@@ -130,3 +130,17 @@ class HostelUploadForm(forms.Form):
     rating = forms.DecimalField(required=False, min_value=0, max_value=5)
     amenities = forms.CharField(required=False)
     image_url = forms.URLField(required=False)
+    image_urls = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Enter up to 9 image URLs, one per line'}),
+        help_text="Enter up to 9 image URLs, one per line. The first URL will be used as the cover image."
+    )
+    room_label_type = forms.ChoiceField(
+        choices=[('numeric', 'Numeric (1, 2, 3...)'), ('alphabetic', 'Alphabetic (A, B, C...)')],
+        required=False,
+        initial='numeric',
+        help_text="How room labels are generated"
+    )
+    room_label_start = forms.CharField(max_length=10, required=False, help_text="Starting label (e.g. 1 or A)")
+    room_label_end = forms.CharField(max_length=10, required=False, help_text="Ending label (e.g. 100 or Z)")
+    floor_count = forms.IntegerField(min_value=1, required=False, initial=1, help_text="Number of floors in the building")

@@ -71,6 +71,11 @@
                 <input type="url" name="image_url" class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
             </div>
             <div>
+                <label class="text-sm text-[var(--muted)]">Additional Image URLs (up to 9 total)</label>
+                <textarea name="image_urls" rows="3" placeholder="Enter up to 9 image URLs, one per line. The first URL will be used as the cover image." class="w-full mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 resize-none"></textarea>
+                <p class="text-xs text-[var(--muted)] mt-1">One URL per line. Maximum 9 images total (including the main image URL above).</p>
+            </div>
+            <div>
                 <label class="text-sm text-[var(--muted)]">Room Availability</label>
                 <div class="mt-2 flex flex-col gap-2">
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_single" checked class="w-4 h-4 text-[var(--accent)]"> Single room available</label>
@@ -78,6 +83,31 @@
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_triple" checked class="w-4 h-4 text-[var(--accent)]"> Triple room available</label>
                     <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="room_available_quadruple" checked class="w-4 h-4 text-[var(--accent)]"> Quadruple room available</label>
                 </div>
+            </div>
+            <div>
+                <label class="text-sm text-[var(--muted)]">Room Label Range</label>
+                <div class="mt-2 grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-[var(--muted)] mb-1">Label Type</label>
+                        <select name="room_label_type" class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2">
+                            <option value="numeric">Numeric (1, 2, 3...)</option>
+                            <option value="alphabetic">Alphabetic (A, B, C...)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-[var(--muted)] mb-1">Number of Floors</label>
+                        <input type="number" name="floor_count" min="1" value="1" class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-[var(--muted)] mb-1">Start Label</label>
+                        <input type="text" name="room_label_start" placeholder="e.g. 1 or A" class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+                    </div>
+                    <div>
+                        <label class="block text-xs text-[var(--muted)] mb-1">End Label</label>
+                        <input type="text" name="room_label_end" placeholder="e.g. 100 or Z" class="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2" />
+                    </div>
+                </div>
+                <p class="text-xs text-[var(--muted)] mt-2">Specify how rooms should be labeled. For example, numeric 1 to 100 generates rooms labeled 1, 2, 3...100. Alphabetic A to Z generates rooms A, B, C...Z. Each room type will get one room per label.</p>
             </div>
         </div>
         <div>

@@ -12,6 +12,8 @@ import json, os, urllib.request, urllib.error, uuid, secrets
 from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
 from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, Notification, Payment, RoomStatus, BookingStatus, RoommateRequest, ChatRoom, ChatMessage
 from .local_ai import get_local_ai_response
+from .stripe_service import create_payment_intent, retrieve_payment_intent, handle_webhook_event, create_checkout_session
+from .flutterwave_service import get_flutterwave_service
 
 
 def normalize_amenities(amenities):
@@ -398,6 +400,19 @@ def create_booking(request):
         total_price = room.price_per_night * nights
         booking = Booking.objects.create(hostel_id=room.hostel_id, room=room, customer=request.user, check_in=check_in, check_out=check_out, guests=guests, nights=nights, total_price=total_price, special_requests=data.get("special_requests", ""), booking_status="Pending", payment_status="Pending")
         Notification.objects.create(user=request.user, title="Booking Created", message=f"Booking at {room.hostel.name} (Ref: {booking.booking_reference}) created.")
+        try:
+            import threading
+            def send_email_async():
+                from .email_utils import send_booking_receipt
+                try:
+                    send_booking_receipt(booking, request)
+                except Exception:
+                    pass
+            thread = threading.Thread(target=send_email_async)
+            thread.daemon = True
+            thread.start()
+        except Exception:
+            pass
         return JsonResponse({"id": str(booking.id), "booking_reference": booking.booking_reference, "hostel_id": str(booking.hostel_id), "room_id": str(booking.room_id), "check_in": booking.check_in.isoformat(), "check_out": booking.check_out.isoformat(), "guests": booking.guests, "nights": booking.nights, "total_price": str(booking.total_price), "booking_status": booking.booking_status, "payment_status": booking.payment_status, "special_requests": booking.special_requests}, status=201)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
@@ -430,7 +445,10 @@ def api_roommate_requests(request):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Auth required"}, status=401)
     if request.method == "GET":
+        user_hostel_id = RoommateRequest.objects.filter(user=request.user, is_active=True).values_list('hostel_id', flat=True).first()
         requests = RoommateRequest.objects.filter(is_active=True).select_related('user', 'hostel').prefetch_related('room')
+        if user_hostel_id:
+            requests = requests.filter(hostel_id=user_hostel_id)
         results = []
         for req in requests:
             if req.user.id == request.user.id:
@@ -541,6 +559,7 @@ def send_ai_reply(room, content):
     except Exception:
         return None
 
+@csrf_exempt
 @require_http_methods(["POST"])
 def api_send_message(request, room_id):
     if not request.user.is_authenticated:
@@ -556,11 +575,78 @@ def api_send_message(request, room_id):
         msg = ChatMessage.objects.create(chat_room=room, sender=request.user, content=content)
         room.updated_at = timezone.now()
         room.save()
+        for participant in room.participants.exclude(id=request.user.id):
+            Notification.objects.create(
+                user=participant,
+                title="New message",
+                message=f"{request.user.get_full_name() or request.user.email}: {content[:100]}"
+            )
         if len(content.strip()) > 5:
-            send_ai_reply(room, content)
+            pass  # AI replies disabled for roommate chats
         return JsonResponse({"success": True, "id": str(msg.id), "content": msg.content, "created_at": msg.created_at.isoformat()}, status=201)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def api_chat_messages(request, room_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
+    since = request.GET.get("since")
+    messages = room.messages.select_related('sender').order_by('created_at')
+    if since:
+        try:
+            from datetime import datetime
+            since_dt = datetime.fromisoformat(since)
+            messages = messages.filter(created_at__gte=since_dt)
+        except (ValueError, TypeError):
+            pass
+    return JsonResponse({
+        "messages": [
+            {
+                "id": str(m.id),
+                "content": m.content,
+                "sender_id": m.sender.id if m.sender else None,
+                "sender_name": m.sender.get_full_name() or m.sender.email if m.sender else "AI",
+                "is_ai": m.is_ai,
+                "created_at": m.created_at.isoformat(),
+            }
+            for m in messages
+         ]
+    })
+
+
+@csrf_exempt
+@require_http_methods(["DELETE", "POST"])
+def api_delete_message(request, room_id, message_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    try:
+        room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
+        msg = get_object_or_404(ChatMessage, id=message_id, chat_room=room)
+        if msg.sender != request.user:
+            return JsonResponse({"error": "Not authorized to delete this message"}, status=403)
+        msg.delete()
+        return JsonResponse({"success": True, "message_id": str(message_id)})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_clear_chat(request, room_id):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    try:
+        room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
+        deleted_count, _ = room.messages.filter(sender=request.user).delete()
+        room.updated_at = timezone.now()
+        room.save()
+        return JsonResponse({"success": True, "deleted_count": deleted_count})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
 
 def universities(request):
     university_options = get_university_options()
@@ -644,7 +730,7 @@ def my_bookings(request):
     if not request.user.is_authenticated:
         return redirect("login")
     bookings = Booking.objects.filter(customer=request.user).select_related("hostel", "room").order_by("-booked_at")
-    return render(request, "my_bookings.html", {"bookings": bookings})
+    return render(request, "my_bookings.html", {"bookings": bookings, "stripe_public_key": settings.STRIPE_PUBLIC_KEY})
 
 def my_favorites(request):
     if not request.user.is_authenticated:
@@ -710,13 +796,319 @@ def process_payment(request):
         booking = get_object_or_404(Booking, id=data.get("booking_id"))
         if booking.customer != request.user:
             return JsonResponse({"error": "Not authorized"}, status=403)
-        booking.payment_status = "Paid"
-        booking.booking_status = "Confirmed"
-        booking.save()
-        Payment.objects.create(booking=booking, amount=booking.total_price, payment_method=data.get("payment_method", "Credit Card"), payment_status="Paid", paid_at=timezone.now())
-        return JsonResponse({"success": True, "transaction_reference": f"TXN-{uuid.uuid4().hex[:12].upper()}"})
+
+        payment_method = data.get("payment_method", "Credit Card")
+        payment_details = data.get("payment_details", {})
+
+        if data.get("test_mode"):
+            booking.payment_status = "Paid"
+            booking.booking_status = "Confirmed"
+            booking.save()
+            payment = Payment.objects.create(
+                booking=booking, amount=booking.total_price,
+                payment_method=payment_method, payment_status="Paid",
+                transaction_reference=f"TEST-{uuid.uuid4().hex[:12].upper()}",
+                flutterwave_method=payment_details.get("network_provider", "card"),
+                paid_at=timezone.now()
+            )
+            try:
+                import threading
+                def send_email_async():
+                    from .email_utils import send_booking_receipt
+                    try:
+                        send_booking_receipt(booking, request)
+                    except Exception:
+                        pass
+                thread = threading.Thread(target=send_email_async)
+                thread.daemon = True
+                thread.start()
+            except Exception:
+                pass
+            return JsonResponse({"success": True, "transaction_reference": payment.transaction_reference, "payment_method": payment_method, "paid": True, "test_mode": True})
+
+        if payment_method == "Cash":
+            booking.payment_status = "Paid"
+            booking.booking_status = "Confirmed"
+            booking.save()
+            payment = Payment.objects.create(
+                booking=booking, amount=booking.total_price,
+                payment_method=payment_method, payment_status="Paid",
+                transaction_reference=f"CASH-{uuid.uuid4().hex[:12].upper()}",
+                paid_at=timezone.now()
+            )
+            return JsonResponse({"success": True, "transaction_reference": payment.transaction_reference, "payment_method": payment_method, "paid": True})
+
+        service = get_flutterwave_service()
+        amount = float(booking.total_price)
+        flw_method = None
+        result = None
+
+        if payment_method == "Credit Card":
+            flw_method = "card"
+            result = service.charge_card(booking, amount, payment_details)
+        elif payment_method == "Bank Transfer":
+            flw_method = "banktransfer"
+            result = service.charge_bank_transfer(booking, amount)
+        elif payment_method == "Account":
+            flw_method = "account"
+            result = service.charge_account(booking, amount)
+        elif payment_method == "USSD":
+            flw_method = "ussd"
+            result = service.charge_ussd(booking, amount, payment_details.get("bank_code", ""), payment_details.get("account_number", ""), payment_details.get("phonenumber", ""))
+        elif payment_method == "Enaira":
+            flw_method = "enaira"
+            result = service.charge_enaira(booking, amount, payment_details.get("is_token", False))
+        elif payment_method == "Apple Pay":
+            flw_method = "applepay"
+            result = service.charge_apple_pay(booking, amount)
+        elif payment_method == "Google Pay":
+            flw_method = "googlepay"
+            result = service.charge_google_pay(booking, amount)
+        elif payment_method == "Mobile Money":
+            flw_method = "mobilemoney"
+            network = payment_details.get("network", "uganda")
+            phonenumber = payment_details.get("phonenumber", "")
+            network_provider = payment_details.get("network_provider", "MTN")
+            result = service.charge_mobile_money(booking, amount, network, phonenumber)
+            if not result.get("error") and network.lower() in ("uganda", "ugmobile"):
+                result = service.charge_mobile_money(booking, amount, network, phonenumber)
+
+        if result is None:
+            return JsonResponse({"error": f"Unsupported payment method: {payment_method}"}, status=400)
+
+        if result.get("error"):
+            return JsonResponse({"error": result.get("errMsg", "Payment charge failed")}, status=400)
+
+        tx_ref = result.get("txRef", "")
+        flw_ref = result.get("flwRef", "")
+        validation_required = result.get("validationRequired", False)
+        auth_url = result.get("authUrl")
+        redirect_url = result.get("link")
+        bank_details = None
+
+        if result.get("accountNumber"):
+            bank_details = {
+                "account_number": result.get("accountNumber"),
+                "bank_name": result.get("bankName"),
+                "transfer_note": result.get("transferNote"),
+                "expires_in": result.get("expiresIn"),
+            }
+
+        payment = Payment.objects.create(
+            booking=booking, amount=booking.total_price,
+            payment_method=payment_method, payment_status="Pending",
+            transaction_reference=tx_ref, flw_ref=flw_ref,
+            flutterwave_method=flw_method
+        )
+
+        response_data = {
+            "success": True,
+            "transaction_reference": tx_ref,
+            "flw_ref": flw_ref,
+            "payment_method": payment_method,
+            "validation_required": validation_required,
+            "auth_url": auth_url,
+            "redirect_url": redirect_url,
+            "bank_details": bank_details,
+            "paid": False,
+        }
+
+        if not validation_required and not auth_url and not redirect_url:
+            verification = service.verify(flw_method, tx_ref)
+            if verification.get("error") is False and verification.get("transactionComplete"):
+                booking.payment_status = "Paid"
+                booking.booking_status = "Confirmed"
+                booking.save()
+                payment.payment_status = "Paid"
+                payment.paid_at = timezone.now()
+                payment.save()
+                response_data["paid"] = True
+            else:
+                response_data["message"] = "Payment initiated but verification pending"
+        else:
+            if result.get("validateInstructions"):
+                response_data["validate_instructions"] = result.get("validateInstructions")
+            if result.get("image"):
+                response_data["qr_image"] = result.get("image")
+
+        return JsonResponse(response_data)
+
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def flutterwave_validate_payment(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    try:
+        data = json.loads(request.body)
+        tx_ref = data.get("tx_ref")
+        flw_ref = data.get("flw_ref")
+        otp = data.get("otp")
+        payment_method = data.get("payment_method", "Credit Card")
+
+        payment = get_object_or_404(Payment, transaction_reference=tx_ref)
+        if payment.booking.customer != request.user:
+            return JsonResponse({"error": "Not authorized"}, status=403)
+
+        flw_method = payment.flutterwave_method or "card"
+        service = get_flutterwave_service()
+        result = service.validate(flw_method, flw_ref, otp)
+
+        if result.get("error"):
+            return JsonResponse({"error": result.get("errMsg", "Validation failed")}, status=400)
+
+        verification = service.verify(flw_method, tx_ref)
+        if verification.get("error") is False and verification.get("transactionComplete"):
+            payment.booking.payment_status = "Paid"
+            payment.booking.booking_status = "Confirmed"
+            payment.booking.save()
+            payment.payment_status = "Paid"
+            payment.paid_at = timezone.now()
+            payment.save()
+            return JsonResponse({"success": True, "transaction_complete": True, "transaction_reference": tx_ref})
+        else:
+            return JsonResponse({"success": False, "transaction_complete": False, "message": "Payment not yet complete"})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def flutterwave_webhook(request):
+    try:
+        data = json.loads(request.body)
+        tx_ref = data.get("tx_ref") or data.get("data", {}).get("tx_ref", "")
+        status = data.get("event", "") or data.get("data", {}).get("status", "")
+
+        if not tx_ref:
+            return JsonResponse({"error": "Missing tx_ref"}, status=400)
+
+        try:
+            payment = Payment.objects.get(transaction_reference=tx_ref)
+        except Payment.DoesNotExist:
+            return JsonResponse({"error": "Payment not found"}, status=404)
+
+        if status == "charge.completed" or status == "successful" or status == "success":
+            payment.payment_status = "Paid"
+            payment.paid_at = timezone.now()
+            payment.save()
+            payment.booking.payment_status = "Paid"
+            payment.booking.booking_status = "Confirmed"
+            payment.booking.save()
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook(request):
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+
+    event_data = handle_webhook_event(payload, sig_header)
+    if event_data.get("error"):
+        return JsonResponse({"error": event_data.get("errMsg")}, status=400)
+
+    event_type = event_data["event_type"]
+    data = event_data["data"]
+
+    if event_type == "payment_intent.succeeded":
+        payment_intent_id = data.get("id")
+        try:
+            payment = Payment.objects.get(stripe_payment_intent_id=payment_intent_id)
+            payment.payment_status = "Paid"
+            payment.paid_at = timezone.now()
+            payment.save()
+            payment.booking.payment_status = "Paid"
+            payment.booking.booking_status = "Confirmed"
+            payment.booking.save()
+        except Payment.DoesNotExist:
+            pass
+
+    return JsonResponse({"success": True})
+
+
+@require_http_methods(["POST"])
+def verify_payment(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    try:
+        data = json.loads(request.body)
+        payment_intent_id = data.get("payment_intent_id")
+        payment = get_object_or_404(Payment, stripe_payment_intent_id=payment_intent_id)
+        if payment.booking.customer != request.user:
+            return JsonResponse({"error": "Not authorized"}, status=403)
+
+        intent_data = retrieve_payment_intent(payment_intent_id)
+
+        if intent_data["status"] == "succeeded":
+            payment.payment_status = "Paid"
+            payment.paid_at = timezone.now()
+            payment.save()
+            payment.booking.payment_status = "Paid"
+            payment.booking.booking_status = "Confirmed"
+            payment.booking.save()
+            return JsonResponse({"success": True, "paid": True, "status": intent_data["status"]})
+        else:
+            return JsonResponse({"success": False, "paid": False, "status": intent_data["status"]})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_http_methods(["POST"])
+def create_stripe_checkout_session(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    try:
+        data = json.loads(request.body)
+        booking = get_object_or_404(Booking, id=data.get("booking_id"))
+        if booking.customer != request.user:
+            return JsonResponse({"error": "Not authorized"}, status=403)
+
+        currency = getattr(settings, 'STRIPE_CURRENCY', 'USD')
+        site_url = getattr(settings, 'SITE_URL', 'http://localhost:8000')
+
+        session_data = create_checkout_session(
+            amount=booking.total_price,
+            currency=currency,
+            booking_id=booking.id,
+            customer_email=booking.customer.email,
+            success_url=f"{site_url}/payments/success/?session_id={{CHECKOUT_SESSION_ID}}&booking_id={booking.id}",
+            cancel_url=f"{site_url}/my-bookings/",
+        )
+
+        payment = Payment.objects.create(
+            booking=booking,
+            amount=booking.total_price,
+            payment_method=data.get("payment_method", "Credit Card"),
+            payment_status="Pending",
+            transaction_reference=session_data["session_id"],
+            stripe_payment_intent_id=session_data["session_id"],
+        )
+
+        return JsonResponse({
+            "success": True,
+            "checkout_url": session_data["checkout_url"],
+            "session_id": session_data["session_id"],
+            "payment_method": data.get("payment_method", "Credit Card"),
+        })
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@require_http_methods(["GET"])
+def payment_success(request):
+    return render(request, "payment_success.html", {"session_id": request.GET.get("session_id", ""), "booking_id": request.GET.get("booking_id", "")})
+
 
 @require_http_methods(["POST"])
 def cancel_booking(request, booking_id):
@@ -873,6 +1265,57 @@ def manager_rooms(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
 
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+def manager_hostel_info(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, 'profile', None)
+    if not profile or profile.role not in ('manager', 'admin') or not profile.hostel:
+        return JsonResponse({"error": "Access denied"}, status=403)
+    hostel = profile.hostel
+    if request.method == "GET":
+        return JsonResponse({
+            "id": str(hostel.id),
+            "name": hostel.name,
+            "description": hostel.description,
+            "address": hostel.address,
+            "city": hostel.city,
+            "country": hostel.country,
+            "university": hostel.university or "",
+            "distance": hostel.distance or "",
+            "contact": hostel.contact or "",
+            "phone": hostel.phone or "",
+            "email": hostel.email or "",
+            "amenities": hostel.amenities,
+            "check_in_time": str(hostel.check_in_time),
+            "check_out_time": str(hostel.check_out_time),
+        })
+    elif request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            hostel.name = data.get('name', hostel.name)
+            hostel.description = data.get('description', hostel.description)
+            hostel.address = data.get('address', hostel.address)
+            hostel.city = data.get('city', hostel.city)
+            hostel.country = data.get('country', hostel.country)
+            hostel.university = data.get('university') or hostel.university
+            hostel.distance = data.get('distance') or hostel.distance
+            hostel.contact = data.get('contact') or hostel.contact
+            hostel.phone = data.get('phone') or hostel.phone
+            hostel.email = data.get('email') or hostel.email
+            if data.get('amenities') is not None:
+                hostel.amenities = data.get('amenities')
+            if 'check_in_time' in data and data['check_in_time']:
+                hostel.check_in_time = data['check_in_time']
+            if 'check_out_time' in data and data['check_out_time']:
+                hostel.check_out_time = data['check_out_time']
+            hostel.save()
+            return JsonResponse({"success": True})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+
 def manager_checkout(request, booking_id):
     if not request.user.is_authenticated:
         return JsonResponse({"error": "Auth required"}, status=401)
@@ -887,6 +1330,35 @@ def manager_checkout(request, booking_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
+def _generate_room_labels(label_type, start, end):
+    """Generate a list of room labels based on type and range.
+    label_type: 'numeric' or 'alphabetic'
+    start, end: string representations of the range bounds
+    Returns a list of label strings (e.g. ['1', '2', ..., '100'] or ['A', 'B', ..., 'Z'])
+    """
+    labels = []
+    if not start or not end:
+        return ['1']
+    try:
+        if label_type == 'alphabetic':
+            start_char = start.upper()[0]
+            end_char = end.upper()[0]
+            if start_char > end_char:
+                start_char, end_char = end_char, start_char
+            for code in range(ord(start_char), ord(end_char) + 1):
+                labels.append(chr(code))
+        else:
+            start_num = int(start)
+            end_num = int(end)
+            if start_num > end_num:
+                start_num, end_num = end_num, start_num
+            for n in range(start_num, end_num + 1):
+                labels.append(str(n))
+    except (ValueError, TypeError):
+        return ['1']
+    return labels if labels else ['1']
+
+
 def hostel_upload(request):
     if not request.user.is_authenticated:
         messages.error(request, "Access denied - Please log in")
@@ -899,6 +1371,17 @@ def hostel_upload(request):
         form = HostelUploadForm(request.POST)
         if form.is_valid():
             image_url = form.cleaned_data.get('image_url', '')
+            image_urls_raw = form.cleaned_data.get('image_urls', '')
+            room_label_type = form.cleaned_data.get('room_label_type', 'numeric')
+            room_label_start = form.cleaned_data.get('room_label_start', '')
+            room_label_end = form.cleaned_data.get('room_label_end', '')
+            floor_count = form.cleaned_data.get('floor_count') or 1
+            room_label_range = {
+                'type': room_label_type,
+                'start': room_label_start,
+                'end': room_label_end,
+                'floor_count': floor_count,
+            }
             h = Hostel.objects.create(
                 name=form.cleaned_data['name'],
                 description=form.cleaned_data.get('description', ''),
@@ -909,21 +1392,49 @@ def hostel_upload(request):
                 rating=form.cleaned_data.get('rating'),
                 amenities=[a.strip() for a in form.cleaned_data.get('amenities', '').split(',') if a.strip()],
                 image_url=image_url,
-                available=True
+                available=True,
+                room_label_range=room_label_range,
             )
-            # Also create a HostelImage record so it shows up in hostel_detail
+            # Parse and create HostelImage records (up to 9 images)
+            all_image_urls = []
             if image_url:
-                HostelImage.objects.create(hostel=h, image_url=image_url, is_cover=True)
-            # Create default room types
-            if form.cleaned_data.get('price_single'):
-                Room.objects.create(hostel=h, room_name='Single Room', room_number=f'{h.name[:10].upper()}-S', room_type='Single', capacity=1, price_per_night=form.cleaned_data['price_single'], available_quantity=5, status='Available', is_available=True)
-            if form.cleaned_data.get('price_double'):
-                Room.objects.create(hostel=h, room_name='Double Room', room_number=f'{h.name[:10].upper()}-D', room_type='Double', capacity=2, price_per_night=form.cleaned_data['price_double'], available_quantity=10, status='Available', is_available=True, single_bed_price=form.cleaned_data['price_double'])
-            if form.cleaned_data.get('price_triple'):
-                Room.objects.create(hostel=h, room_name='Triple Room', room_number=f'{h.name[:10].upper()}-T', room_type='Triple', capacity=3, price_per_night=form.cleaned_data['price_triple'], available_quantity=5, status='Available', is_available=True, single_bed_price=form.cleaned_data['price_triple'])
-            if form.cleaned_data.get('price_quadruple'):
-                Room.objects.create(hostel=h, room_name='Quadruple Room', room_number=f'{h.name[:10].upper()}-Q', room_type='Quadruple', capacity=4, price_per_night=form.cleaned_data['price_quadruple'], available_quantity=3, status='Available', is_available=True, single_bed_price=form.cleaned_data['price_quadruple'])
-            messages.success(request, f"Hostel '{h.name}' created successfully with default rooms!")
+                all_image_urls.append(image_url)
+            if image_urls_raw:
+                parsed = [u.strip() for u in image_urls_raw.split('\n') if u.strip()]
+                all_image_urls.extend(parsed)
+            # Limit to 9 images, deduplicate
+            all_image_urls = list(dict.fromkeys(all_image_urls))[:9]
+            for idx, img_url in enumerate(all_image_urls):
+                HostelImage.objects.create(hostel=h, image_url=img_url, is_cover=(idx == 0))
+            # Generate room labels based on the configured range
+            room_labels = _generate_room_labels(room_label_type, room_label_start, room_label_end)
+            # Create default room types with label-based numbering
+            room_type_specs = [
+                ('Single Room', 'Single', 1, form.cleaned_data.get('price_single'), 5, None),
+                ('Double Room', 'Double', 2, form.cleaned_data.get('price_double'), 10, form.cleaned_data.get('price_double')),
+                ('Triple Room', 'Triple', 3, form.cleaned_data.get('price_triple'), 5, form.cleaned_data.get('price_triple')),
+                ('Quadruple Room', 'Quadruple', 4, form.cleaned_data.get('price_quadruple'), 3, form.cleaned_data.get('price_quadruple')),
+            ]
+            for room_name, room_type, capacity, price, qty, single_price in room_type_specs:
+                if price:
+                    for idx, label in enumerate(room_labels):
+                        floor = (idx // max(1, len(room_labels) // floor_count)) + 1 if room_labels else 1
+                        floor = min(floor, floor_count)
+                        room_number = f"{h.name[:10].upper()}-{label}"
+                        Room.objects.create(
+                            hostel=h,
+                            room_name=room_name,
+                            room_number=room_number,
+                            room_type=room_type,
+                            capacity=capacity,
+                            price_per_night=price,
+                            available_quantity=qty,
+                            status='Available',
+                            is_available=True,
+                            floor=floor,
+                            single_bed_price=single_price,
+                        )
+            messages.success(request, f"Hostel '{h.name}' created successfully with {len(room_labels)} rooms per type!")
             return redirect('hostel_detail', id=str(h.id))
     else:
         form = HostelUploadForm()

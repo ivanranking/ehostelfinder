@@ -185,6 +185,14 @@
                                 </svg>
                                 <span class="text-[var(--muted)]">{{ room.size_sq_meters }} m²</span>
                             </div>
+                            {% if room.floor %}
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/>
+                                </svg>
+                                <span class="text-[var(--muted)]">Floor:</span> {{ room.floor }}
+                            </div>
+                            {% endif %}
                             {% if room.private_bathroom or room.air_conditioning or room.wifi %}
                             <div class="col-span-2 sm:col-span-3 flex flex-wrap gap-3 pt-2 border-t border-[var(--border)]">
                                 {% if room.wifi %}
@@ -302,27 +310,37 @@
                     Book Your Stay
                 </h3>
                 
-                {% if user.is_authenticated %}
+                 {% if user.is_authenticated %}
+                    {% if user.profile.role == 'manager' or user.profile.role == 'admin' %}
+                    <div class="mb-4">
+                        <a href="{% url 'manager_dashboard' %}" class="btn-secondary w-full text-center block flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 11-2.828 2.828L11 5.05V3a2 2 0 00-2-2h-1z"/>
+                            </svg>
+                            Manage Hostel
+                        </a>
+                    </div>
+                    {% endif %}
                     <form id="bookingForm" class="space-y-4">
                         <input type="hidden" name="room_id" value="{% if rooms|length > 0 %}{{ rooms.0.id }}{% endif %}">
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-in Date</label>
-                            <input type="date" name="checkIn" required class="input-field">
+                            <input type="date" name="checkIn" required class="input-field" id="checkIn">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-out Date</label>
-                            <input type="date" name="checkOut" required class="input-field">
+                            <input type="date" name="checkOut" required class="input-field" id="checkOut">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Number of Guests</label>
-                            <input type="number" name="guests" value="1" min="1" required class="input-field" onchange="updateTotalPrice()">
+                            <input type="number" name="guests" value="1" min="1" required class="input-field" id="guests">
                         </div>
                         <div id="total-price" class="text-sm text-[var(--muted)] hidden"></div>
                         <button type="submit" class="btn-primary w-full text-center flex items-center justify-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            Request Booking
+                            Book Now
                         </button>
                     </form>
                 {% else %}
@@ -385,24 +403,6 @@
     </div>
 </div>
 
-<!-- Booking Modal -->
-<div id="booking-modal" class="fixed inset-0 z-[60] bg-black/50 hidden items-center justify-center p-4">
-    <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 max-w-md w-full">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-['Space_Grotesk'] font-semibold">Confirm Booking</h3>
-            <button onclick="closeBookingModal()" class="text-[var(--muted)] hover:text-[var(--fg)]">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-<div id="booking-details" class="mb-6 space-y-2 text-sm"></div>
-        <div class="flex gap-3">
-            <button onclick="closeBookingModal()" class="btn-secondary flex-1">Cancel</button>
-            <button onclick="confirmBooking()" class="btn-primary flex-1">Confirm Booking</button>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -455,41 +455,6 @@ function nextImage() {
     counter.textContent = (currentImageIndex + 1) + ' / ' + images.length;
 }
 
-// Booking modal functions
-function openBookingModal(btn) {
-    if (!btn) return;
-    const roomCard = btn.closest('.room-card');
-    const roomName = roomCard.querySelector('h3').textContent;
-    const price = roomCard.querySelector('.text-xl.font-bold').textContent;
-    const roomId = btn.dataset.roomId;
-    
-    document.getElementById('booking-details').innerHTML = `
-        <div class="flex justify-between">
-            <span class="text-[var(--muted)]">Room:</span>
-            <span>${roomName}</span>
-        </div>
-        <div class="flex justify-between">
-            <span class="text-[var(--muted)]">Price:</span>
-            <span class="text-[var(--accent)] font-semibold">${price}</span>
-        </div>
-    `;
-    
-    const form = document.getElementById('bookingForm');
-    if (form) {
-        form.querySelector('input[name="room_id"]').value = roomId;
-    }
-    
-    document.getElementById('booking-modal').classList.remove('hidden');
-    document.getElementById('booking-modal').classList.add('flex');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeBookingModal() {
-    document.getElementById('booking-modal').classList.add('hidden');
-    document.getElementById('booking-modal').classList.remove('flex');
-    document.body.style.overflow = '';
-}
-
 // Open roommate finder with room pre-selected
 function openRoommateFinder(btn) {
     if (!btn) return;
@@ -525,6 +490,10 @@ function confirmBooking() {
         special_requests: ''
     };
     
+    const btn = document.getElementById('bookNowBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--bg)] mx-auto"></div>';
+    
     fetch('/api/bookings/', {
         method: 'POST',
         headers: {
@@ -540,12 +509,13 @@ function confirmBooking() {
         return response.json();
     })
     .then(result => {
-        showToast('Booking request sent! Reference: ' + result.booking_reference, 'success');
-        closeBookingModal();
-        form.reset();
+        showToast('Booking created! Opening payment form...', 'success');
+        window.location.href = '/my-bookings/?pay=' + result.id;
     })
     .catch(error => {
         showToast('Error: ' + (error.error || 'Please try again.'), 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>Book Now';
     });
 }
 
@@ -563,7 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (bookingForm) {
         bookingForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            openBookingModal();
+            confirmBooking();
         });
     }
     

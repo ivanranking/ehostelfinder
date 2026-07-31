@@ -59,6 +59,28 @@ def send_welcome_email(user):
     email.send(fail_silently=True)
 
 
+def send_booking_receipt(booking, request=None):
+    if request:
+        site_url = request.build_absolute_uri('/')
+    else:
+        site_url = 'http://localhost:8000'
+
+    subject = f"Booking Confirmation - {booking.booking_reference}"
+    message = render_to_string('emails/booking_receipt.html', {
+        'booking': booking,
+        'site_url': site_url.rstrip('/'),
+    })
+
+    email = EmailMessage(
+        subject=subject,
+        body=message,
+        from_email='noreply@ehostelfinder.com',
+        to=[booking.customer.email],
+    )
+    email.content_subtype = 'html'
+    email.send(fail_silently=True)
+
+
 def send_password_reset_email(user, request):
     from .models import PasswordResetToken
     

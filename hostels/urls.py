@@ -19,6 +19,7 @@ path('hostel/<str:id>/', views.hostel_detail, name='hostel_detail'),
     path('manager/bookings/<str:booking_id>/update/', views.manager_update_booking, name='manager_update_booking'),
     path('manager/checkins/', views.manager_checkins, name='manager_checkins'),
     path('manager/rooms/', views.manager_rooms, name='manager_rooms'),
+    path('manager/hostel-info/', views.manager_hostel_info, name='manager_hostel_info'),
     path('manager/checkout/<str:booking_id>/', views.manager_checkout, name='manager_checkout'),
     path('admin/hostels/upload/', views.hostel_upload, name='hostel_upload'),
     path('admin/managers/', views.admin_manager_assign, name='admin_manager_assign'),
@@ -68,6 +69,12 @@ path('hostel/<str:id>/', views.hostel_detail, name='hostel_detail'),
     
     # Payment
     path('api/payments/process/', views.process_payment, name='api_process_payment'),
+    path('api/payments/verify/', views.verify_payment, name='api_verify_payment'),
+    path('api/payments/flutterwave/validate/', views.flutterwave_validate_payment, name='flutterwave_validate_payment'),
+    path('api/payments/flutterwave/webhook/', views.flutterwave_webhook, name='flutterwave_webhook'),
+    path('api/payments/stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
+    path('api/payments/checkout/', views.create_stripe_checkout_session, name='stripe_checkout'),
+    path('payments/success/', views.payment_success, name='payment_success'),
     
     # Booking cancellation
     path('api/bookings/<str:booking_id>/cancel/', views.cancel_booking, name='api_cancel_booking'),
@@ -80,6 +87,9 @@ path('hostel/<str:id>/', views.hostel_detail, name='hostel_detail'),
     path('api/chat-rooms/', views.api_chat_rooms, name='api_chat_rooms'),
     path('chat/<str:room_id>/', views.chat_room_detail, name='chat_room_detail'),
     path('api/chat/<str:room_id>/send/', views.api_send_message, name='api_send_message'),
+    path('api/chat/<str:room_id>/messages/', views.api_chat_messages, name='api_chat_messages'),
+    path('api/chat/<str:room_id>/messages/<str:message_id>/delete/', views.api_delete_message, name='api_delete_message'),
+    path('api/chat/<str:room_id>/clear/', views.api_clear_chat, name='api_clear_chat'),
 ]
 
 handler404 = 'hostels.views.custom_404'

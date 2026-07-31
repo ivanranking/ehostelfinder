@@ -96,6 +96,7 @@ class Hostel(models.Model):
     check_in_time = models.TimeField(default='14:00:00')
     check_out_time = models.TimeField(default='11:00:00')
     review_count = models.PositiveIntegerField(default=0)
+    room_label_range = models.JSONField(default=dict, blank=True, help_text="Stores room label type, start, end, and floor count")
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -235,9 +236,14 @@ class Booking(models.Model):
 
 class PaymentMethod(models.TextChoices):
     CASH = 'Cash', 'Cash'
-    MOBILE_MONEY = 'Mobile Money', 'Mobile Money'
     CREDIT_CARD = 'Credit Card', 'Credit Card'
     BANK_TRANSFER = 'Bank Transfer', 'Bank Transfer'
+    MOBILE_MONEY = 'Mobile Money', 'Mobile Money'
+    ACCOUNT = 'Account', 'Account'
+    USSD = 'USSD', 'USSD'
+    ENAIRA = 'Enaira', 'Enaira'
+    APPLE_PAY = 'Apple Pay', 'Apple Pay'
+    GOOGLE_PAY = 'Google Pay', 'Google Pay'
 
 
 class PaymentStatus(models.TextChoices):
@@ -253,6 +259,9 @@ class Payment(models.Model):
     payment_method = models.CharField(max_length=20, choices=PaymentMethod.choices)
     payment_status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
     transaction_reference = models.CharField(max_length=100, unique=True, blank=True, null=True)
+    flw_ref = models.CharField(max_length=100, blank=True, null=True, help_text="Flutterwave reference")
+    flutterwave_method = models.CharField(max_length=50, blank=True, null=True, help_text="Specific Flutterwave payment method")
+    stripe_payment_intent_id = models.CharField(max_length=100, blank=True, null=True, help_text="Stripe Payment Intent ID")
     paid_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -458,4 +467,5 @@ class ChatMessage(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.sender.email}: {self.content[:50]}"
+        sender = self.sender.email if self.sender else "AI"
+        return f"{sender}: {self.content[:50]}"

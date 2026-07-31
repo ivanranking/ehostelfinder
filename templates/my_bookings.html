@@ -43,7 +43,7 @@
                             {% if booking.booking_status == 'Pending' or booking.booking_status == 'Confirmed' %}
                             <div class="mt-3 space-y-2">
                                 {% if booking.payment_status != 'Paid' %}
-                                <button onclick="processPayment('{{ booking.id }}')" class="text-xs px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors w-full">
+                                <button onclick="openPaymentModal('{{ booking.id }}', '{{ booking.total_price }}', '{{ booking.booking_reference }}')" class="text-xs px-3 py-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors w-full">
                                     Pay Now
                                 </button>
                                 {% endif %}
@@ -72,28 +72,679 @@
     </div>
 </div>
 
-<style>
-    .btn-primary {
-        background: var(--accent);
-        color: var(--bg);
-        font-weight: 600;
-        padding: 14px 24px;
-        border-radius: 12px;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 16px;
-        text-decoration: none;
-    }
-    .btn-primary:hover {
-        background: var(--accent-hover);
-        transform: translateY(-2px);
-    }
-</style>
+<!-- Payment Modal -->
+<div id="payment-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="bg-[var(--card)] rounded-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-['Space_Grotesk'] font-bold">Complete Payment</h3>
+            <button onclick="closePaymentModal()" class="text-[var(--muted)] hover:text-[var(--fg)]">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
 
+        <!-- Booking Details Section -->
+        <div id="booking-details-section" class="mb-6 space-y-4">
+            <!-- Name of Person Booking -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                </div>
+                <div>
+                    <label class="block text-xs text-[var(--muted)]">Booked By</label>
+                    <p id="booking-person-name" class="font-medium text-[var(--fg)]"></p>
+                </div>
+            </div>
+
+            <!-- Hostel Details -->
+            <div class="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)]">
+                <h4 class="text-sm font-medium text-[var(--muted)] mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2z"/>
+                    </svg>
+                    Hostel Details
+                </h4>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-[var(--muted)]">Name:</span> <span id="bd-hostel-name" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Contact:</span> <span id="bd-hostel-contact" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Address:</span> <span id="bd-hostel-address" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">City:</span> <span id="bd-hostel-city" class="font-medium"></span></div>
+                </div>
+                <div class="mt-2">
+                    <span class="text-[var(--muted)] text-xs">Amenities:</span>
+                    <div id="bd-amenities" class="flex flex-wrap gap-1 mt-1"></div>
+                </div>
+            </div>
+
+            <!-- Room Details -->
+            <div class="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)]">
+                <h4 class="text-sm font-medium text-[var(--muted)] mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                    Room Details
+                </h4>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-[var(--muted)]">Floor:</span> <span id="bd-room-floor" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Room Number:</span> <span id="bd-room-number" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Room Type:</span> <span id="bd-room-type" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Capacity:</span> <span id="bd-room-capacity" class="font-medium"></span></div>
+                </div>
+            </div>
+
+            <!-- Booking Summary -->
+            <div class="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)]">
+                <h4 class="text-sm font-medium text-[var(--muted)] mb-2 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Booking Summary
+                </h4>
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><span class="text-[var(--muted)]">Check-in:</span> <span id="bd-check-in" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Check-out:</span> <span id="bd-check-out" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Nights:</span> <span id="bd-nights" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Guests:</span> <span id="bd-guests" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Price/Night:</span> <span id="bd-price-night" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Booking Ref:</span> <span id="bd-booking-ref" class="font-medium"></span></div>
+                </div>
+                <div class="mt-2 pt-2 border-t border-[var(--border)] space-y-1">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-[var(--muted)]">Total Amount:</span>
+                        <span id="bd-total-amount" class="font-bold text-[var(--accent)]"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-[var(--muted)]">Amount Paid:</span>
+                        <span id="bd-amount-paid" class="font-medium">UGX 0</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-[var(--muted)]">Balance:</span>
+                        <span id="bd-balance" class="font-bold text-red-400"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="payment-amount" class="mb-4 text-sm text-[var(--muted)]"></div>
+
+        <!-- Step 1: Payment Method Selection -->
+        <div id="payment-method-selection">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Select Payment Method</p>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="selectPaymentMethod('Credit Card')" class="p-3 border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors text-center">
+                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h4l3-3 4 4 7-7v10M3 10l3-3m0 0L3 5a2 2 0 012-2h10a2 2 0 012 2v4M6 10V5a2 2 0 012-2h8a2 2 0 012 2v5"/>
+                    </svg>
+                    <span class="text-xs">Credit Card</span>
+                </button>
+                <button onclick="selectPaymentMethod('Mobile Money')" class="p-3 border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors text-center">
+                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18V6m0 0l-3 3m3-3l3 3"/>
+                    </svg>
+                    <span class="text-xs">Mobile Money</span>
+                </button>
+                <button onclick="selectPaymentMethod('Bank Transfer')" class="p-3 border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors text-center">
+                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                    <span class="text-xs">Bank Transfer</span>
+                </button>
+                <button onclick="selectPaymentMethod('Cash')" class="p-3 border border-[var(--border)] rounded-xl hover:bg-[var(--bg)] transition-colors text-center">
+                    <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a5 5 0 00-5-5H6a2 2 0 00-2 2v6m0 0v10a2 2 0 002 2h10a2 2 0 002-2V9m-4 0h.01M12 15h.01M8 15h.01"/>
+                    </svg>
+                    <span class="text-xs">Cash on Arrival</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Card Payment Form -->
+        <div id="card-payment-form" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Card Details</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-[var(--muted)] mb-1">Card Number</label>
+                    <input type="text" id="card-number" placeholder="1234 5678 9012 3456" class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-[var(--muted)] mb-1">Expiry</label>
+                        <input type="text" id="card-expiry" placeholder="MM/YY" class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-[var(--muted)] mb-1">CVC</label>
+                        <input type="text" id="card-cvc" placeholder="123" class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                    </div>
+                </div>
+            </div>
+            <div id="card-errors" class="text-red-500 text-xs mt-2 hidden"></div>
+            <button id="submit-card-payment" onclick="processCardPayment()" class="w-full btn-primary mt-4 py-2.5">
+                Pay Now
+            </button>
+        </div>
+
+        <!-- Step 2: Mobile Money Form -->
+        <div id="mobile-money-form" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Mobile Money Details</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-[var(--muted)] mb-1">Network</label>
+                    <select id="mm-network" class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                        <option value="MTN">MTN Mobile Money</option>
+                        <option value="AIRTEL">Airtel Money</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-[var(--muted)] mb-1">Phone Number</label>
+                    <input type="tel" id="mm-phone" placeholder="+256 7XX XXX XXX" class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                </div>
+            </div>
+            <button onclick="processMobileMoneyPayment()" class="w-full btn-primary mt-4 py-2.5">
+                Pay Now
+            </button>
+        </div>
+
+        <!-- Step 2: Bank Transfer Info -->
+        <div id="bank-transfer-info" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Bank Transfer</p>
+            <p class="text-sm text-[var(--muted)] mb-4">You will receive virtual bank account details after initiating the payment.</p>
+            <button onclick="processBankTransferPayment()" class="w-full btn-primary py-2.5">
+                Generate Account Details
+            </button>
+        </div>
+
+        <!-- Step 3: Bank Details Display (after charge) -->
+        <div id="bank-details-display" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Send Money To:</p>
+            <div class="bg-[var(--bg)] rounded-lg p-4 space-y-2">
+                <div>
+                    <label class="text-xs text-[var(--muted)]">Bank Name</label>
+                    <p id="bd-bank-name" class="font-medium"></p>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--muted)]">Account Number</label>
+                    <p id="bd-account-number" class="font-medium font-mono text-lg"></p>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--muted)]">Transfer Note</label>
+                    <p id="bd-transfer-note" class="font-medium"></p>
+                </div>
+                <div>
+                    <label class="text-xs text-[var(--muted)]">Expires In</label>
+                    <p id="bd-expires" class="font-medium"></p>
+                </div>
+            </div>
+            <button onclick="verifyAndReload()" class="w-full btn-primary mt-4 py-2.5">
+                I've Made the Transfer - Verify Payment
+            </button>
+        </div>
+
+        <!-- Step 3: OTP Validation -->
+        <div id="otp-form" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Enter OTP</p>
+            <p class="text-xs text-[var(--muted)] mb-3">An OTP has been sent to your registered phone number.</p>
+            <input type="text" id="otp-input" placeholder="Enter OTP" class="w-full px-3 py-2 bg-[var(--bg)] border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+            <div id="otp-errors" class="text-red-500 text-xs mt-2 hidden"></div>
+            <button onclick="validatePayment()" class="w-full btn-primary mt-4 py-2.5">
+                Verify Payment
+            </button>
+        </div>
+
+        <!-- Step 3: Mobile Money Redirect -->
+        <div id="mm-redirect" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Complete Payment</p>
+            <p class="text-sm text-[var(--muted)] mb-4">Click the button below to complete your payment via mobile money.</p>
+            <button id="mm-redirect-btn" onclick="redirectToPayment()" class="w-full btn-primary py-2.5">
+                Complete Payment
+            </button>
+        </div>
+
+        <!-- Step 3: Cash Confirmation -->
+        <div id="cash-confirm" class="hidden">
+            <p class="text-sm font-medium mb-3 text-[var(--fg)]">Cash on Arrival</p>
+            <p class="text-sm text-[var(--muted)] mb-4">You have selected Cash on Arrival. Your booking will be confirmed upon payment at the hostel.</p>
+            <button onclick="processCashPayment()" class="w-full btn-primary py-2.5">
+                Confirm Booking
+            </button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="payment-loading" class="hidden text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)] mx-auto mb-4"></div>
+            <p class="text-sm text-[var(--muted)]">Processing payment...</p>
+        </div>
+    </div>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
 <script>
+const stripePublicKey = '{{ stripe_public_key }}';
+let currentBookingId = null;
+let currentTxRef = null;
+let currentFlwRef = null;
+let currentPaymentMethod = null;
+let currentBookingData = null;
+
+const bookingsData = {};
+{% for booking in bookings %}
+bookingsData['{{ booking.id }}'] = {
+    id: '{{ booking.id }}',
+    booking_reference: '{{ booking.booking_reference }}',
+    total_price: '{{ booking.total_price }}',
+    check_in: '{{ booking.check_in|date:"Y-m-d" }}',
+    check_out: '{{ booking.check_out|date:"Y-m-d" }}',
+    nights: {{ booking.nights }},
+    guests: {{ booking.guests }},
+    booking_status: '{{ booking.booking_status }}',
+    payment_status: '{{ booking.payment_status }}',
+    special_requests: '{{ booking.special_requests|default_if_none:"" }}',
+    hostel: {
+        name: '{{ booking.hostel.name|escapejs }}',
+        address: '{{ booking.hostel.address|escapejs }}',
+        city: '{{ booking.hostel.city|escapejs }}',
+        country: '{{ booking.hostel.country|escapejs }}',
+        contact: '{{ booking.hostel.contact|default_if_none:""|escapejs }}',
+        phone: '{{ booking.hostel.phone|default_if_none:""|escapejs }}',
+        email: '{{ booking.hostel.email|default_if_none:""|escapejs }}',
+        amenities: {{ booking.hostel.amenities|safe }},
+    },
+    room: {
+        room_number: '{{ booking.room.room_number|escapejs }}',
+        room_name: '{{ booking.room.room_name|escapejs }}',
+        room_type: '{{ booking.room.room_type|escapejs }}',
+        capacity: {{ booking.room.capacity }},
+        floor: {{ booking.room.floor|default_if_none:1 }},
+        price_per_night: '{{ booking.room.price_per_night }}',
+        private_bathroom: {{ booking.room.private_bathroom|yesno:"true,false" }},
+        air_conditioning: {{ booking.room.air_conditioning|yesno:"true,false" }},
+        balcony: {{ booking.room.balcony|yesno:"true,false" }},
+        television: {{ booking.room.television|yesno:"true,false" }},
+        wifi: {{ booking.room.wifi|yesno:"true,false" }},
+    },
+    customer: {
+        name: '{{ booking.customer.get_full_name|default:booking.customer.email|escapejs }}',
+        email: '{{ booking.customer.email|escapejs }}',
+    }
+};
+{% endfor %}
+
 function getCSRFToken() {
     return '{{ csrf_token }}';
+}
+
+function openPaymentModal(bookingId, amount, bookingRef) {
+    currentBookingId = bookingId;
+    currentBookingData = bookingsData[bookingId] || null;
+    document.getElementById('payment-amount').textContent = 'Amount: UGX ' + amount;
+
+    if (currentBookingData) {
+        const b = currentBookingData;
+        document.getElementById('booking-person-name').textContent = b.customer.name || b.customer.email;
+        document.getElementById('bd-hostel-name').textContent = b.hostel.name;
+        document.getElementById('bd-hostel-contact').textContent = b.hostel.contact || b.hostel.phone || b.hostel.email || 'N/A';
+        document.getElementById('bd-hostel-address').textContent = b.hostel.address;
+        document.getElementById('bd-hostel-city').textContent = b.hostel.city + ', ' + b.hostel.country;
+
+        const amenitiesEl = document.getElementById('bd-amenities');
+        amenitiesEl.innerHTML = '';
+        if (b.hostel.amenities && b.hostel.amenities.length > 0) {
+            b.hostel.amenities.forEach(function(am) {
+                const span = document.createElement('span');
+                span.className = 'text-xs px-2 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded';
+                span.textContent = am;
+                amenitiesEl.appendChild(span);
+            });
+        } else {
+            amenitiesEl.innerHTML = '<span class="text-xs text-[var(--muted)]">No amenities listed</span>';
+        }
+
+        document.getElementById('bd-room-floor').textContent = b.room.floor || 1;
+        document.getElementById('bd-room-number').textContent = b.room.room_number;
+        document.getElementById('bd-room-type').textContent = b.room.room_type;
+        document.getElementById('bd-room-capacity').textContent = b.room.capacity + ' person(s)';
+        document.getElementById('bd-check-in').textContent = b.check_in;
+        document.getElementById('bd-check-out').textContent = b.check_out;
+        document.getElementById('bd-nights').textContent = b.nights;
+        document.getElementById('bd-guests').textContent = b.guests;
+        document.getElementById('bd-price-night').textContent = 'UGX ' + parseFloat(b.room.price_per_night).toLocaleString();
+        document.getElementById('bd-booking-ref').textContent = b.booking_reference;
+        document.getElementById('bd-total-amount').textContent = 'UGX ' + parseFloat(b.total_price).toLocaleString();
+        document.getElementById('bd-amount-paid').textContent = 'UGX 0';
+        document.getElementById('bd-balance').textContent = 'UGX ' + parseFloat(b.total_price).toLocaleString();
+    }
+
+    document.getElementById('payment-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    resetPaymentForms();
+}
+
+function closePaymentModal() {
+    document.getElementById('payment-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+    resetPaymentForms();
+}
+
+function resetPaymentForms() {
+    document.getElementById('payment-method-selection').classList.remove('hidden');
+    document.getElementById('card-payment-form').classList.add('hidden');
+    document.getElementById('mobile-money-form').classList.add('hidden');
+    document.getElementById('bank-transfer-info').classList.add('hidden');
+    document.getElementById('bank-details-display').classList.add('hidden');
+    document.getElementById('otp-form').classList.add('hidden');
+    document.getElementById('mm-redirect').classList.add('hidden');
+    document.getElementById('cash-confirm').classList.add('hidden');
+    document.getElementById('payment-loading').classList.add('hidden');
+    document.getElementById('card-errors').classList.add('hidden');
+    document.getElementById('otp-errors').classList.add('hidden');
+}
+
+function selectPaymentMethod(method) {
+    currentPaymentMethod = method;
+    document.getElementById('payment-method-selection').classList.add('hidden');
+
+    if (method === 'Credit Card') {
+        document.getElementById('card-payment-form').classList.remove('hidden');
+    } else if (method === 'Mobile Money') {
+        document.getElementById('mobile-money-form').classList.remove('hidden');
+    } else if (method === 'Bank Transfer') {
+        document.getElementById('bank-transfer-info').classList.remove('hidden');
+    } else if (method === 'Cash') {
+        document.getElementById('cash-confirm').classList.remove('hidden');
+    }
+}
+
+    async function processCardPayment() {
+    const cardNumber = document.getElementById('card-number').value.trim();
+    const expiry = document.getElementById('card-expiry').value.trim();
+    const cvc = document.getElementById('card-cvc').value.trim();
+
+    if (!cardNumber || !expiry || !cvc) {
+        showError('card-errors', 'Please fill in all card details');
+        return;
+    }
+
+    const [expMonth, expYear] = expiry.split('/');
+    if (!expMonth || !expYear) {
+        showError('card-errors', 'Please enter a valid expiry date (MM/YY)');
+        return;
+    }
+
+    document.getElementById('payment-loading').classList.remove('hidden');
+    document.getElementById('card-payment-form').classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/payments/process/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                booking_id: currentBookingId,
+                payment_method: 'Credit Card',
+                test_mode: true,
+                payment_details: {
+                    cardno: cardNumber.replace(/\s/g, ''),
+                    cvv: cvc,
+                    expirymonth: expMonth.trim(),
+                    expiryyear: expYear.trim(),
+                    currency: 'USD'
+                }
+            })
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            showError('card-errors', data.error || 'Payment failed');
+            document.getElementById('card-payment-form').classList.remove('hidden');
+            document.getElementById('payment-loading').classList.add('hidden');
+            return;
+        }
+
+        currentTxRef = data.transaction_reference;
+        currentFlwRef = data.flw_ref;
+
+        if (data.paid) {
+            showToast('Booking confirmed successfully!', 'success');
+            setTimeout(() => {
+                closePaymentModal();
+                location.reload();
+            }, 1500);
+            return;
+        }
+    } catch (error) {
+        showError('card-errors', 'An error occurred. Please try again.');
+        document.getElementById('card-payment-form').classList.remove('hidden');
+        document.getElementById('payment-loading').classList.add('hidden');
+    }
+}
+
+    async function processMobileMoneyPayment() {
+    const network = document.getElementById('mm-network').value;
+    const phone = document.getElementById('mm-phone').value.trim();
+
+    if (!phone) {
+        showToast('Please enter your phone number', 'error');
+        return;
+    }
+
+    document.getElementById('payment-loading').classList.remove('hidden');
+    document.getElementById('mobile-money-form').classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/payments/process/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                booking_id: currentBookingId,
+                payment_method: 'Mobile Money',
+                test_mode: true,
+                payment_details: {
+                    network: 'uganda',
+                    network_provider: network,
+                    phonenumber: phone
+                }
+            })
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.error || 'Payment failed', 'error');
+            document.getElementById('mobile-money-form').classList.remove('hidden');
+            document.getElementById('payment-loading').classList.add('hidden');
+            return;
+        }
+
+        currentTxRef = data.transaction_reference;
+        currentFlwRef = data.flw_ref;
+
+        if (data.paid) {
+            showToast('Booking confirmed successfully!', 'success');
+            setTimeout(() => {
+                closePaymentModal();
+                location.reload();
+            }, 1500);
+            return;
+        }
+    } catch (error) {
+        showToast('An error occurred. Please try again.', 'error');
+        document.getElementById('mobile-money-form').classList.remove('hidden');
+        document.getElementById('payment-loading').classList.add('hidden');
+    }
+}
+
+    async function processBankTransferPayment() {
+    document.getElementById('payment-loading').classList.remove('hidden');
+    document.getElementById('bank-transfer-info').classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/payments/process/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                booking_id: currentBookingId,
+                payment_method: 'Bank Transfer',
+                test_mode: true,
+                payment_details: {}
+            })
+        });
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.error || 'Payment failed', 'error');
+            document.getElementById('bank-transfer-info').classList.remove('hidden');
+            document.getElementById('payment-loading').classList.add('hidden');
+            return;
+        }
+
+        currentTxRef = data.transaction_reference;
+        currentFlwRef = data.flw_ref;
+
+        if (data.paid) {
+            showToast('Booking confirmed successfully!', 'success');
+            setTimeout(() => {
+                closePaymentModal();
+                location.reload();
+            }, 1500);
+            return;
+        }
+    } catch (error) {
+        showToast('An error occurred. Please try again.', 'error');
+        document.getElementById('bank-transfer-info').classList.remove('hidden');
+        document.getElementById('payment-loading').classList.add('hidden');
+    }
+}
+
+    async function processCashPayment() {
+    document.getElementById('payment-loading').classList.remove('hidden');
+    document.getElementById('cash-confirm').classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/payments/process/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                booking_id: currentBookingId,
+                payment_method: 'Cash',
+                test_mode: true
+            })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Booking confirmed successfully!', 'success');
+            setTimeout(() => {
+                closePaymentModal();
+                location.reload();
+            }, 1500);
+        } else {
+            showToast(data.error || 'Payment failed', 'error');
+            document.getElementById('cash-confirm').classList.remove('hidden');
+            document.getElementById('payment-loading').classList.add('hidden');
+        }
+    } catch (error) {
+        showToast('An error occurred. Please try again.', 'error');
+        document.getElementById('cash-confirm').classList.remove('hidden');
+        document.getElementById('payment-loading').classList.add('hidden');
+    }
+}
+
+async function validatePayment() {
+    const otp = document.getElementById('otp-input').value.trim();
+    if (!otp) {
+        showError('otp-errors', 'Please enter the OTP');
+        return;
+    }
+
+    document.getElementById('otp-form').classList.add('hidden');
+    document.getElementById('payment-loading').classList.remove('hidden');
+
+    try {
+        const response = await fetch('/api/payments/flutterwave/validate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                tx_ref: currentTxRef,
+                flw_ref: currentFlwRef,
+                otp: otp,
+                payment_method: currentPaymentMethod
+            })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Payment successful!', 'success');
+            setTimeout(() => {
+                closePaymentModal();
+                location.reload();
+            }, 1500);
+        } else {
+            showError('otp-errors', data.error || 'Validation failed');
+            document.getElementById('otp-form').classList.remove('hidden');
+            document.getElementById('payment-loading').classList.add('hidden');
+        }
+    } catch (error) {
+        showError('otp-errors', 'An error occurred. Please try again.');
+        document.getElementById('otp-form').classList.remove('hidden');
+        document.getElementById('payment-loading').classList.add('hidden');
+    }
+}
+
+async function verifyAndReload() {
+    if (!currentTxRef) return;
+
+    try {
+        const response = await fetch('/api/payments/verify/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
+            },
+            body: JSON.stringify({
+                payment_intent_id: currentTxRef
+            })
+        });
+        const data = await response.json();
+
+        if (data.paid) {
+            showToast('Payment successful!', 'success');
+            setTimeout(() => {
+                closePaymentModal();
+                location.reload();
+            }, 1500);
+        } else {
+            showToast('Payment not yet confirmed. Please wait...', 'info');
+        }
+    } catch (error) {
+        showToast('Unable to verify payment. Please try again later.', 'error');
+    }
+}
+
+function showError(elementId, message) {
+    const el = document.getElementById(elementId);
+    el.textContent = message;
+    el.classList.remove('hidden');
+}
+
+function redirectToPayment() {
+    const btn = document.getElementById('mm-redirect-btn');
+    btn.disabled = true;
+    btn.textContent = 'Redirecting...';
 }
 
 function cancelBooking(bookingId) {
@@ -118,27 +769,42 @@ function cancelBooking(bookingId) {
     .catch(err => showToast('An error occurred', 'error'));
 }
 
-function processPayment(bookingId) {
-    if (!confirm('Proceed with payment for this booking?')) return;
-    
-    fetch('/api/payments/process/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify({ booking_id: bookingId, payment_method: 'Credit Card' })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Payment successful! Transaction: ' + data.transaction_reference, 'success');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showToast(data.error || 'Payment failed', 'error');
-        }
-    })
-    .catch(err => showToast('An error occurred', 'error'));
-}
+// Auto-open payment modal if ?pay=booking_id is in URL
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    const payId = params.get('pay');
+    if (payId && bookingsData[payId]) {
+        const b = bookingsData[payId];
+        openPaymentModal(payId, b.total_price, b.booking_reference);
+        window.history.replaceState({}, '', '/my-bookings/');
+    }
+})();
 </script>
+
+<style>
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+</style>
 {% endblock %}

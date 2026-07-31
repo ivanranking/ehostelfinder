@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Successful - EHostelFinder{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12">
+    <div class="text-center max-w-md">
+        <div class="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.616-4.584A9 9 0 118.384 2.416z"/>
+            </svg>
+        </div>
+        <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-4">Payment Successful!</h1>
+        <p class="text-[var(--muted)] mb-6">Your payment has been processed successfully. Your booking is now confirmed.</p>
+        {% if booking_id %}
+        <p class="text-sm text-[var(--muted)] mb-6">Booking ID: <strong>{{ booking_id }}</strong></p>
+        {% endif %}
+        <a href="{% url 'my_bookings' %}" class="btn-primary inline-block">View My Bookings</a>
+    </div>
+</div>
+{% endblock %}

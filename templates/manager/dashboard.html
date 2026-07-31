@@ -64,6 +64,7 @@
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)] active-tab" data-tab="bookings">All Bookings</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="checkins">Checked In Guests</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="rooms">Room Management</button>
+            <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="hostel-info">Hostel Info</button>
         </nav>
     </div>
 
@@ -131,6 +132,7 @@
                 <thead class="bg-[var(--bg-elevated)]">
                     <tr>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room #</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Floor</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Type</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Capacity</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Price</th>
@@ -147,6 +149,74 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Hostel Info Tab -->
+    <div id="hostel-info-tab" class="tab-content hidden">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6">
+            <h3 class="text-lg font-['Space_Grotesk'] font-semibold mb-4">Edit Hostel Information</h3>
+            <form id="hostel-form" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Hostel Name</label>
+                        <input type="text" name="name" id="hostel-name" required class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Contact Person</label>
+                        <input type="text" name="contact" id="hostel-contact" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Phone</label>
+                        <input type="text" name="phone" id="hostel-phone" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Email</label>
+                        <input type="email" name="email" id="hostel-email" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">City</label>
+                        <input type="text" name="city" id="hostel-city" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Country</label>
+                        <input type="text" name="country" id="hostel-country" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">University</label>
+                        <input type="text" name="university" id="hostel-university" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Distance</label>
+                        <input type="text" name="distance" id="hostel-distance" class="input-field">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Address</label>
+                        <input type="text" name="address" id="hostel-address" class="input-field">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-in Time</label>
+                        <input type="time" name="check_in_time" id="hostel-checkin" class="input-field">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-out Time</label>
+                        <input type="time" name="check_out_time" id="hostel-checkout" class="input-field">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Description</label>
+                        <textarea name="description" id="hostel-description" rows="4" class="input-field resize-none"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Amenities (comma-separated)</label>
+                        <input type="text" name="amenities" id="hostel-amenities" class="input-field" placeholder="e.g. WiFi, Swimming Pool, Gym">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="loadHostelInfo()" class="btn-secondary flex-1">Refresh</button>
+                    <button type="submit" class="btn-primary flex-1">Save Hostel Info</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -339,6 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `
                     <tr class="hover:bg-[var(--bg-elevated)]">
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_number}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.floor || '-'}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_name}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_type}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.capacity}</td>
@@ -367,6 +438,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!html) html = '<tr><td colspan="9" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
             document.getElementById('rooms-table').innerHTML = html;
         });
+
+    // Load hostel info
+    loadHostelInfo();
 });
 
 function openRoomModal(roomData = null) {
@@ -491,7 +565,59 @@ function saveRoom(id) {
     });
 }
 
-function showToast(message, type) {
+    function loadHostelInfo() {
+        fetch('/manager/hostel-info/')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('hostel-name').value = data.name || '';
+                document.getElementById('hostel-contact').value = data.contact || '';
+                document.getElementById('hostel-phone').value = data.phone || '';
+                document.getElementById('hostel-email').value = data.email || '';
+                document.getElementById('hostel-city').value = data.city || '';
+                document.getElementById('hostel-country').value = data.country || '';
+                document.getElementById('hostel-university').value = data.university || '';
+                document.getElementById('hostel-distance').value = data.distance || '';
+                document.getElementById('hostel-address').value = data.address || '';
+                document.getElementById('hostel-checkin').value = data.check_in_time || '';
+                document.getElementById('hostel-checkout').value = data.check_out_time || '';
+                document.getElementById('hostel-description').value = data.description || '';
+                document.getElementById('hostel-amenities').value = data.amenities ? data.amenities.join(', ') : '';
+            });
+    }
+
+    document.getElementById('hostel-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        const amenitiesStr = formData.get('amenities') || '';
+        const data = {
+            name: formData.get('name'),
+            description: formData.get('description'),
+            address: formData.get('address'),
+            city: formData.get('city'),
+            country: formData.get('country'),
+            university: formData.get('university') || null,
+            distance: formData.get('distance') || null,
+            contact: formData.get('contact') || null,
+            phone: formData.get('phone') || null,
+            email: formData.get('email') || null,
+            amenities: amenitiesStr ? amenitiesStr.split(',').map(a => a.trim()).filter(a => a) : [],
+            check_in_time: formData.get('check_in_time') || null,
+            check_out_time: formData.get('check_out_time') || null,
+        };
+        fetch('/manager/hostel-info/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+            body: JSON.stringify(data)
+        }).then(r => r.json()).then(res => {
+            if (res.success) {
+                showToast('Hostel information updated!', 'success');
+            } else {
+                showToast(res.error || 'Failed to update hostel info', 'error');
+            }
+        });
+    });
+
+    function showToast(message, type) {
     const toast = document.createElement('div');
     toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-sm font-medium z-50 ${type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`;
     toast.textContent = message;
