@@ -428,8 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('occupied-rooms').textContent = occupied;
             let html = '';
             data.forEach(r => {
-                const isOccupied = r.status === 'Occupied';
-                const removeBtn = isOccupied ? `<button onclick="removeRoom(${r.id}, '${r.room_number}')" class="text-sm text-red-500 hover:text-red-400 ml-2" title="Remove occupied room">Remove</button>` : '';
+                const removeBtn = `<button onclick="removeRoom(${r.id}, '${r.room_number}')" class="text-sm text-red-500 hover:text-red-400 ml-2" title="Delete this room">Delete</button>`;
                 html += `
                     <tr class="hover:bg-[var(--bg-elevated)]">
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_number}</td>
