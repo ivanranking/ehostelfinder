@@ -199,12 +199,22 @@
             <!-- Rooms -->
             {% if rooms %}
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
-                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/>
-                    </svg>
-                    Available Rooms
-                </h2>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <h2 class="text-xl font-['Space_Grotesk'] font-semibold flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/>
+                        </svg>
+                        Available Rooms
+                    </h2>
+                    {% if user.is_authenticated and user.profile.role in 'manager admin' %}
+                    <button onclick="openRoomModal(null)" class="btn-primary flex items-center gap-2 text-sm py-2 px-4">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Add Room
+                    </button>
+                    {% endif %}
+                </div>
                 <div class="space-y-4">
                     {% for room in rooms %}
                     <div class="border border-[var(--border)] rounded-xl p-5 hover:border-[var(--accent)] transition-all room-card" data-room-id="{{ room.id }}">
@@ -266,6 +276,20 @@
                             {% endif %}
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2">
+                            {% if user.is_authenticated and user.profile.role in 'manager admin' %}
+                            <button onclick="editRoomFromDetail({{ room.id }})" class="btn-secondary flex-1 text-sm py-2 px-4 flex items-center justify-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 11-2.828 2.828L11 5.05V3a2 2 0 00-2-2h-1z"/>
+                                </svg>
+                                Edit Room
+                            </button>
+                            <button onclick="deleteRoomFromDetail({{ room.id }}, '{{ room.room_name }}')" class="btn-secondary flex-1 text-sm py-2 px-4 flex items-center justify-center gap-1 text-red-400 hover:text-red-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 6a2 2 0 001.727 2.273L19 16l-2 2v.5a1.5 1.5 0 11-3 0V18l-2-2"/>
+                                </svg>
+                                Delete Room
+                            </button>
+                            {% else %}
                             <button onclick="openBookingModal(this)" class="btn-primary flex-1 text-sm py-2 px-4 flex items-center justify-center gap-1" data-room-type="{{ room.room_type }}" data-room-id="{{ room.id }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -281,6 +305,7 @@
                                     Book Single Occupancy
                                 </button>
                             </div>
+                            {% endif %}
                             {% endif %}
                         </div>
                     </div>
@@ -455,9 +480,218 @@
     </div>
 </div>
 
-{% endblock %}
+    <!-- Room Management Modal (for managers) -->
+    {% if user.is_authenticated and user.profile.role in 'manager admin' %}
+    {{ rooms|json_script:"rooms-data-detail" }}
+    <div id="room-modal-detail" class="fixed inset-0 z-[60] bg-black/50 hidden items-center justify-center p-4">
+        <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-['Space_Grotesk'] font-semibold" id="room-modal-title">Add Room</h3>
+                <button onclick="closeRoomModalDetail()" class="text-[var(--muted)] hover:text-[var(--fg)]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="room-form-detail" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Number</label>
+                        <input type="text" name="room_number" id="room-detail-number" required class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Name</label>
+                        <input type="text" name="room_name" id="room-detail-name" required class="input-field">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Type</label>
+                        <select name="room_type" id="room-detail-type" required class="input-field">
+                            <option value="Single">Single</option>
+                            <option value="Double">Double</option>
+                            <option value="Triple">Triple</option>
+                            <option value="Quadruple">Quadruple</option>
+                            <option value="Dormitory">Dormitory</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Capacity</label>
+                        <input type="number" name="capacity" id="room-detail-capacity" min="1" required class="input-field">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Price Per Semester</label>
+                        <input type="number" name="price_per_night" id="room-detail-price" min="0" step="0.01" required class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Single Bed Price</label>
+                        <input type="number" name="single_bed_price" id="room-detail-single-price" min="0" step="0.01" class="input-field" placeholder="For shared rooms">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Floor</label>
+                        <input type="number" name="floor" id="room-detail-floor" min="0" class="input-field">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Available Quantity</label>
+                        <input type="number" name="available_quantity" id="room-detail-qty" min="1" required class="input-field">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Description</label>
+                    <textarea name="description" id="room-detail-description" rows="3" class="input-field resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Amenities</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2"><input type="checkbox" name="wifi" id="room-detail-wifi" class="w-4 h-4"> WiFi</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" name="air_conditioning" id="room-detail-ac" class="w-4 h-4"> Air Conditioning</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" name="private_bathroom" id="room-detail-bath" class="w-4 h-4"> Private Bathroom</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" name="balcony" id="room-detail-balcony" class="w-4 h-4"> Balcony</label>
+                        <label class="flex items-center gap-2"><input type="checkbox" name="television" id="room-detail-tv" class="w-4 h-4"> Television</label>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-[var(--muted)] mb-2">Room Images (URLs)</label>
+                    <input type="text" name="images" id="room-detail-images" placeholder="comma-separated image URLs" class="input-field">
+                    <p class="text-xs text-[var(--muted)] mt-1">Enter image URLs separated by commas</p>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeRoomModalDetail()" class="btn-secondary flex-1">Cancel</button>
+                    <button type="submit" class="btn-primary flex-1">Save Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% endblock %}
 
 {% block extra_js %}
+<script>
+// Room management JavaScript for hostel detail page (managers only)
+const roomsDetailData = JSON.parse(document.getElementById('rooms-data-detail')?.textContent || '[]');
+const hostelIdDetail = '{{ hostel.id }}';
+
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCookie('csrftoken');
+}
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function openRoomModalDetail(roomData) {
+    const modal = document.getElementById('room-modal-detail');
+    const title = document.getElementById('room-modal-title');
+    const form = document.getElementById('room-form-detail');
+    if (roomData) {
+        title.textContent = 'Edit Room';
+        form.dataset.roomId = roomData.id;
+        document.getElementById('room-detail-number').value = roomData.room_number;
+        document.getElementById('room-detail-name').value = roomData.room_name;
+        document.getElementById('room-detail-type').value = roomData.room_type;
+        document.getElementById('room-detail-capacity').value = roomData.capacity;
+        document.getElementById('room-detail-price').value = roomData.price_per_night;
+        document.getElementById('room-detail-single-price').value = roomData.single_bed_price || '';
+        document.getElementById('room-detail-floor').value = roomData.floor || '';
+        document.getElementById('room-detail-qty').value = roomData.available_quantity;
+        document.getElementById('room-detail-description').value = roomData.description || '';
+        document.getElementById('room-detail-wifi').checked = roomData.wifi || false;
+        document.getElementById('room-detail-ac').checked = roomData.air_conditioning || false;
+        document.getElementById('room-detail-bath').checked = roomData.private_bathroom || false;
+        document.getElementById('room-detail-balcony').checked = roomData.balcony || false;
+        document.getElementById('room-detail-tv').checked = roomData.television || false;
+        document.getElementById('room-detail-images').value = roomData.images ? roomData.images.join(',') : '';
+    } else {
+        title.textContent = 'Add Room';
+        form.dataset.roomId = '';
+        form.reset();
+    }
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeRoomModalDetail() {
+    const modal = document.getElementById('room-modal-detail');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.style.overflow = '';
+}
+
+function editRoomFromDetail(id) {
+    const room = roomsDetailData.find(r => r.id == id);
+    if (room) openRoomModalDetail(room);
+}
+
+function deleteRoomFromDetail(id, roomName) {
+    if (!confirm(`Remove room ${roomName}? This action cannot be undone.`)) return;
+    fetch('/manager/rooms/?room_id=' + id, {
+        method: 'DELETE',
+        headers: { 'X-CSRFToken': getCsrfToken() }
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            showToast(`Room ${roomName} removed successfully!`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Failed to remove room', 'error');
+        }
+    });
+}
+
+document.getElementById('room-form-detail').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    const roomId = this.dataset.roomId;
+    const data = {
+        room_id: roomId || null,
+        room_number: formData.get('room_number'),
+        room_name: formData.get('room_name'),
+        room_type: formData.get('room_type'),
+        capacity: parseInt(formData.get('capacity')),
+        price_per_night: formData.get('price_per_night'),
+        single_bed_price: formData.get('single_bed_price') || null,
+        floor: formData.get('floor') || null,
+        available_quantity: parseInt(formData.get('available_quantity')),
+        description: formData.get('description') || '',
+        wifi: formData.get('wifi') ? true : false,
+        air_conditioning: formData.get('air_conditioning') ? true : false,
+        private_bathroom: formData.get('private_bathroom') ? true : false,
+        balcony: formData.get('balcony') ? true : false,
+        television: formData.get('television') ? true : false,
+        images: formData.get('images') || null,
+        status: 'Available',
+        is_available: true,
+    };
+    fetch('/manager/rooms/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify(data)
+    }).then(r => r.json()).then(res => {
+        if (res.success) {
+            showToast('Room saved successfully!', 'success');
+            closeRoomModalDetail();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(res.error || 'Failed to save room', 'error');
+        }
+    });
+});
+
+</script>
 <script>
 // Lightbox gallery
 const hostelImages = {{ hostel.images|safe }};

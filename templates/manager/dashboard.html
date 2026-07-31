@@ -139,6 +139,7 @@
                     <tr>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room #</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Floor</th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room Name</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Type</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Capacity</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Price</th>
@@ -151,7 +152,7 @@
                 </thead>
                 <tbody id="rooms-table" class="divide-y divide-[var(--border)]">
                     <tr>
-                        <td colspan="10" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
+                        <td colspan="11" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
                     </tr>
                 </tbody>
             </table>
@@ -459,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </tr>
                 `;
             });
-            if (!html) html = '<tr><td colspan="10" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
+            if (!html) html = '<tr><td colspan="11" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
             document.getElementById('rooms-table').innerHTML = html;
         });
 
@@ -676,14 +677,6 @@ function saveRoom(id) {
             }
         });
     });
-
-    function showToast(message, type) {
-    const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg text-sm font-medium z-50 ${type === 'success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
 
     function setHostelFullToggle(isFull) {
         const checkbox = document.getElementById('hostel-is-full');
