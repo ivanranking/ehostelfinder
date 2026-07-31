@@ -730,7 +730,7 @@ def my_bookings(request):
     if not request.user.is_authenticated:
         return redirect("login")
     bookings = Booking.objects.filter(customer=request.user).select_related("hostel", "room").order_by("-booked_at")
-    return render(request, "my_bookings.html", {"bookings": bookings, "stripe_public_key": settings.STRIPE_PUBLIC_KEY})
+    return render(request, "my_bookings.html", {"bookings": bookings})
 
 def my_favorites(request):
     if not request.user.is_authenticated:

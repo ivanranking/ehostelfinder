@@ -126,14 +126,14 @@ SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'hostel-images')
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
 
-# Stripe Payment Configuration
-STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', 'pk_test_51To1QFLwkgwJQc5NXVod695TubCRFvihrZary3UWYVAiELDUfANtW585c9TAS7WDQaFBv69s5VWpydBfQAODXTcX00WVuN0pgz')
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', 'sk_test_51To1QFLwkgwJQc5NFuHywl8Zfc1NtJJilGa9LamZQrlaa0A121gVEf4YE3pZL5TYP0RUMSarvKXEl43XJEl5RBqi00f3DxtRK4')
-STRIPE_RESTRICTED_KEY = os.getenv('STRIPE_RESTRICTED_KEY', 'rk_test_51To1QFLwkgwJQc5NO2RQkxIzVMrnvQeSJxt34Cigg9jshf2luctYvzaSS1eaxEd9qYoiK1KjDevWbUUT5A5sx5w600aOeNFXGu')
+# Payment Configuration (will be added later)
+STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
+STRIPE_RESTRICTED_KEY = os.getenv('STRIPE_RESTRICTED_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_CURRENCY = os.getenv('STRIPE_CURRENCY', 'USD')
 
-# Flutterwave Payment Configuration
+# Flutterwave Payment Configuration (will be added later)
 FLW_PUBLIC_KEY = os.getenv('FLW_PUBLIC_KEY', '')
 FLW_SECRET_KEY = os.getenv('FLW_SECRET_KEY', '')
 FLW_PRODUCTION = os.getenv('FLW_PRODUCTION', 'False') == 'True'
