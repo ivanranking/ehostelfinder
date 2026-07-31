@@ -88,6 +88,8 @@ class Hostel(models.Model):
     amenities = models.JSONField(default=list, blank=True)
     contact = models.CharField(max_length=255, blank=True, null=True)
     available = models.BooleanField(default=True)
+    is_full = models.BooleanField(default=False, help_text="Set to True when all rooms are occupied")
+    total_floors = models.PositiveIntegerField(default=1, help_text="Total number of floors in the building")
     image_url = models.URLField(blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
@@ -109,6 +111,18 @@ class Hostel(models.Model):
         if not reviews:
             return 0
         return sum(r.rating for r in reviews) / len(reviews)
+
+    def available_rooms_count(self):
+        return self.rooms.filter(is_available=True, status='Available').count()
+
+    def update_full_status(self):
+        total_rooms = self.rooms.count()
+        if total_rooms == 0:
+            self.is_full = False
+        else:
+            available_rooms = self.rooms.filter(is_available=True, status='Available').count()
+            self.is_full = available_rooms == 0
+        self.save(update_fields=['is_full'])
 
 
 class HostelImage(models.Model):

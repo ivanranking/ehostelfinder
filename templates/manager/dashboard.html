@@ -119,12 +119,18 @@
 
     <!-- Rooms Tab -->
     <div id="rooms-tab" class="tab-content hidden">
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 mb-4">
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 mb-4 flex flex-col sm:flex-row gap-3">
             <button onclick="openRoomModal()" class="btn-primary flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
                 Add New Room
+            </button>
+            <button onclick="setHostelFull(true)" class="btn-secondary flex items-center gap-2" id="set-full-btn">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 6a2 2 0 001.727 2.273L19 16l-2 2v.5a1.5 1.5 0 11-3 0V18l-2-2"/>
+                </svg>
+                Set Hostel Full
             </button>
         </div>
         <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
@@ -140,12 +146,12 @@
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Status</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Available Qty</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Available</th>
-                        <th class="px-6 py-4 text-right text-xs font-medium text-[var(--muted)] uppercase">Action</th>
+                        <th class="px-6 py-4 text-right text-xs font-medium text-[var(--muted)] uppercase">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="rooms-table" class="divide-y divide-[var(--border)]">
                     <tr>
-                        <td colspan="9" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
+                        <td colspan="10" class="px-6 py-8 text-center text-[var(--muted)]">Loading rooms...</td>
                     </tr>
                 </tbody>
             </table>
@@ -191,6 +197,10 @@
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Distance</label>
                         <input type="text" name="distance" id="hostel-distance" class="input-field">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--muted)] mb-2">Total Floors</label>
+                        <input type="number" name="total_floors" id="hostel-floors" min="1" class="input-field">
+                    </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Address</label>
                         <input type="text" name="address" id="hostel-address" class="input-field">
@@ -210,6 +220,18 @@
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Amenities (comma-separated)</label>
                         <input type="text" name="amenities" id="hostel-amenities" class="input-field" placeholder="e.g. WiFi, Swimming Pool, Gym">
+                    </div>
+                    <div class="md:col-span-2">
+                        <div class="flex items-center justify-between p-4 bg-[var(--bg-elevated)] rounded-xl border border-[var(--border)]">
+                            <div>
+                                <label class="block text-sm font-medium text-[var(--muted)] mb-1">Set Hostel as Full</label>
+                                <p class="text-xs text-[var(--muted)]">When enabled, no new bookings will be accepted until rooms become available.</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="is_full" id="hostel-is-full">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="flex gap-3 pt-4">
@@ -406,6 +428,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('occupied-rooms').textContent = occupied;
             let html = '';
             data.forEach(r => {
+                const isOccupied = r.status === 'Occupied';
+                const removeBtn = isOccupied ? `<button onclick="removeRoom(${r.id}, '${r.room_number}')" class="text-sm text-red-500 hover:text-red-400 ml-2" title="Remove occupied room">Remove</button>` : '';
                 html += `
                     <tr class="hover:bg-[var(--bg-elevated)]">
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_number}</td>
@@ -431,11 +455,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td class="px-6 py-4 text-right">
                             <button onclick="editRoom(${r.id})" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] mr-2">Edit</button>
                             <button onclick="saveRoom(${r.id})" class="text-sm text-emerald-500 hover:text-emerald-400">Save</button>
+                            ${removeBtn}
                         </td>
                     </tr>
                 `;
             });
-            if (!html) html = '<tr><td colspan="9" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
+            if (!html) html = '<tr><td colspan="10" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
             document.getElementById('rooms-table').innerHTML = html;
         });
 
@@ -565,6 +590,36 @@ function saveRoom(id) {
     });
 }
 
+    function removeRoom(id, roomNumber) {
+        if (!confirm(`Remove room ${roomNumber}? This action cannot be undone.`)) return;
+        fetch('/manager/rooms/?room_id=' + id, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                showToast(`Room ${roomNumber} removed successfully!`, 'success');
+                location.reload();
+            } else {
+                showToast(data.error || 'Failed to remove room', 'error');
+            }
+        });
+    }
+
+    function setHostelFull(shouldSetFull) {
+        fetch('/manager/hostel-info/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '' },
+            body: JSON.stringify({ is_full: shouldSetFull })
+        }).then(r => r.json()).then(data => {
+            if (data.success) {
+                showToast(`Hostel ${shouldSetFull ? 'set as full' : 'marked as available'}!`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast(data.error || 'Failed to update hostel status', 'error');
+            }
+        });
+    }
+
     function loadHostelInfo() {
         fetch('/manager/hostel-info/')
             .then(r => r.json())
@@ -582,6 +637,9 @@ function saveRoom(id) {
                 document.getElementById('hostel-checkout').value = data.check_out_time || '';
                 document.getElementById('hostel-description').value = data.description || '';
                 document.getElementById('hostel-amenities').value = data.amenities ? data.amenities.join(', ') : '';
+                document.getElementById('hostel-floors').value = data.total_floors || '';
+                document.getElementById('hostel-available').value = data.available ? 'true' : 'false';
+                setHostelFullToggle(data.is_full);
             });
     }
 
@@ -601,6 +659,9 @@ function saveRoom(id) {
             phone: formData.get('phone') || null,
             email: formData.get('email') || null,
             amenities: amenitiesStr ? amenitiesStr.split(',').map(a => a.trim()).filter(a => a) : [],
+            total_floors: parseInt(formData.get('total_floors')) || 1,
+            available: formData.get('available') !== 'false',
+            is_full: document.getElementById('hostel-is-full').checked,
             check_in_time: formData.get('check_in_time') || null,
             check_out_time: formData.get('check_out_time') || null,
         };
@@ -624,5 +685,41 @@ function saveRoom(id) {
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
 }
+
+    function setHostelFullToggle(isFull) {
+        const checkbox = document.getElementById('hostel-is-full');
+        if (checkbox) checkbox.checked = isFull;
+    }
 </script>
+<style>
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #4b5563;
+    transition: .3s;
+    border-radius: 9999px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+input:checked + .slider { background-color: #3b82f6; }
+input:checked + .slider:before { transform: translateX(22px); }
+</style>
+{% endblock %}
 {% endblock %}

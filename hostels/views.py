@@ -111,6 +111,7 @@ def hostel_detail(request, id):
     try:
         hostel = get_object_or_404(Hostel, id=id)
         rooms = Room.objects.filter(hostel=hostel, status="Available")
+        all_rooms = Room.objects.filter(hostel=hostel).order_by('floor', 'room_number')
         images = hostel.images.all()
         cover = hostel.images.filter(is_cover=True).first()
         facilities = hostel.facilities.all()
@@ -125,6 +126,27 @@ def hostel_detail(request, id):
             "balcony": r.balcony, "television": r.television, "wifi": r.wifi,
             "images": [ri.image_url for ri in r.images.all()],
             })
+        floors_data = []
+        floor_numbers = sorted(set(r.floor for r in all_rooms if r.floor is not None)) or [1]
+        for floor_num in floor_numbers:
+            floor_rooms = all_rooms.filter(floor=floor_num)
+            floors_data.append({
+                "floor_number": floor_num,
+                "rooms": [
+                    {
+                        "id": str(r.id),
+                        "room_number": r.room_number,
+                        "room_name": r.room_name,
+                        "room_type": r.room_type,
+                        "capacity": r.capacity,
+                        "available_quantity": r.available_quantity,
+                        "price_per_night": str(r.price_per_night),
+                        "status": r.status,
+                        "is_available": r.is_available,
+                    }
+                    for r in floor_rooms
+                ],
+            })
         reviews_data = []
         for rv in reviews:
             reviews_data.append({
@@ -132,6 +154,7 @@ def hostel_detail(request, id):
             "rating": rv.rating, "comment": rv.comment,
             "created_at": rv.created_at.strftime("%Y-%m-%d"),
             })
+        room_numbers = [r.room_number for r in all_rooms]
         context = {
         "hostel": {
         "id": str(hostel.id), "name": hostel.name, "description": hostel.description,
@@ -139,15 +162,19 @@ def hostel_detail(request, id):
         "university": hostel.university, "distance": hostel.distance or "Near campus",
         "price": float(hostel.price) if hostel.price else 0,
         "rating": float(hostel.rating) if hostel.rating else round(float(hostel.average_rating), 1),
-        "available": hostel.available, "contact": hostel.contact or "",
+        "available": hostel.available, "is_full": hostel.is_full, "contact": hostel.contact or "",
 "amenities": normalize_amenities(hostel.amenities), "phone": hostel.phone, "email": hostel.email,
         "latitude": str(hostel.latitude) if hostel.latitude else None,
         "longitude": str(hostel.longitude) if hostel.longitude else None,
-"cover_image": cover.image_url if cover else hostel.image_url or None,
+        "cover_image": cover.image_url if cover else hostel.image_url or None,
         "image_url": hostel.image_url or None,
         "images": [{"url": img.image_url, "is_cover": img.is_cover} for img in images],
+        "total_floors": hostel.total_floors,
+        "room_label_range": hostel.room_label_range or {},
         },
         "rooms": rooms_data,
+        "floors_data": floors_data,
+        "room_numbers": room_numbers,
         "facilities": [{"name": f.facility_name, "icon": f.icon or ""} for f in facilities],
         "reviews": reviews_data,
         }
@@ -1264,6 +1291,16 @@ def manager_rooms(request):
             return JsonResponse({"success": True, "id": str(room.id)})
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
+    elif request.method == "DELETE":
+        try:
+            room_id = request.GET.get('room_id') or json.loads(request.body).get('room_id')
+            room = get_object_or_404(Room, id=room_id, hostel=profile.hostel)
+            room_number = room.room_number
+            room.delete()
+            profile.hostel.update_full_status()
+            return JsonResponse({"success": True, "room_number": room_number})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
 @csrf_exempt
 @require_http_methods(["GET", "POST"])
@@ -1287,9 +1324,12 @@ def manager_hostel_info(request):
             "contact": hostel.contact or "",
             "phone": hostel.phone or "",
             "email": hostel.email or "",
-            "amenities": hostel.amenities,
-            "check_in_time": str(hostel.check_in_time),
-            "check_out_time": str(hostel.check_out_time),
+             "amenities": hostel.amenities,
+             "check_in_time": str(hostel.check_in_time),
+             "check_out_time": str(hostel.check_out_time),
+             "is_full": hostel.is_full,
+             "total_floors": hostel.total_floors,
+             "available_rooms_count": hostel.available_rooms_count(),
         })
     elif request.method == "POST":
         try:
@@ -1310,6 +1350,10 @@ def manager_hostel_info(request):
                 hostel.check_in_time = data['check_in_time']
             if 'check_out_time' in data and data['check_out_time']:
                 hostel.check_out_time = data['check_out_time']
+            if 'total_floors' in data and data['total_floors'] is not None:
+                hostel.total_floors = int(data['total_floors'])
+            if 'is_full' in data:
+                hostel.is_full = bool(data['is_full'])
             hostel.save()
             return JsonResponse({"success": True})
         except Exception as e:

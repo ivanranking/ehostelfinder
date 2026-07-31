@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS public.hostels (
     amenities JSONB DEFAULT '[]'::jsonb,
     contact TEXT,
     available BOOLEAN DEFAULT TRUE,
+    is_full BOOLEAN DEFAULT FALSE,
+    total_floors INT DEFAULT 1,
     image_url TEXT,
     phone TEXT,
     email TEXT,

@@ -64,7 +64,7 @@
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <span class="badge badge-success mb-2 inline-block">{% if rooms|length > 0 %}Available{% else %}No Rooms{% endif %}</span>
+                    <span class="badge badge-success mb-2 inline-block">{% if hostel.is_full %}Full{% elif rooms|length > 0 %}Available{% else %}No Rooms{% endif %}</span>
                     <h1 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold">{{ hostel.name }}</h1>
                     <p class="text-[var(--muted)] mt-2 flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,6 +144,58 @@
                 <p class="text-[var(--muted)] leading-relaxed">{{ hostel.description }}</p>
             </div>
             
+            <!-- Building Overview -->
+            <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
+                <h2 class="text-xl font-['Space_Grotesk'] font-semibold mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 18V9h6v9"/>
+                    </svg>
+                    Building Overview
+                </h2>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-[var(--bg-elevated)] rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold font-['Space_Grotesk'] text-[var(--accent)]">{{ hostel.total_floors|default:1 }}</div>
+                        <div class="text-xs text-[var(--muted)]">Total Floors</div>
+                    </div>
+                    <div class="bg-[var(--bg-elevated)] rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold font-['Space_Grotesk'] text-emerald-500">{{ room_numbers|length }}</div>
+                        <div class="text-xs text-[var(--muted)]">Room Numbers</div>
+                    </div>
+                    <div class="bg-[var(--bg-elevated)] rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold font-['Space_Grotesk'] text-amber-500">{{ floors_data|length|default:0 }}</div>
+                        <div class="text-xs text-[var(--muted)]">Floors with Rooms</div>
+                    </div>
+                    <div class="bg-[var(--bg-elevated)] rounded-lg p-3 text-center">
+                        <div class="text-2xl font-bold font-['Space_Grotesk'] {% if hostel.is_full %}text-red-500{% else %}text-emerald-500{% endif %}">{{ hostel.is_full|yesno:"Full,Available" }}</div>
+                        <div class="text-xs text-[var(--muted)]">Status</div>
+                    </div>
+                </div>
+                {% if floors_data %}
+                <div class="space-y-4 mt-6">
+                    {% for floor in floors_data %}
+                    <div class="border border-[var(--border)] rounded-xl p-4">
+                        <h3 class="text-lg font-['Space_Grotesk'] font-semibold text-[var(--accent)] mb-3 flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-sm">{{ floor.floor_number }}</span>
+                            Floor {{ floor.floor_number }}
+                        </h3>
+                        <div class="flex flex-wrap gap-2">
+                            {% for room in floor.rooms %}
+                            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--border)] {% if room.is_available and room.status == 'Available' %}bg-emerald-500/10 border-emerald-500/20{% elif room.status == 'Occupied' %}bg-amber-500/10 border-amber-500/20{% else %}bg-gray-500/10 border-gray-500/20{% endif %}">
+                                <span class="font-mono text-sm font-medium text-[var(--fg)]">{{ room.room_number }}</span>
+                                <span class="text-xs text-[var(--muted)]">{{ room.room_name }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded {% if room.is_available and room.status == 'Available' %}bg-emerald-500/20 text-emerald-400{% elif room.status == 'Occupied' %}bg-amber-500/20 text-amber-400{% else %}bg-gray-500/20 text-gray-400{% endif %}">{{ room.status }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-[var(--muted)] text-sm">No room/floor data available for this hostel.</p>
+                {% endif %}
+            </div>
+
             <!-- Rooms -->
             {% if rooms %}
             <div class="bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] mb-6">
