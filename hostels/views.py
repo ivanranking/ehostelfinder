@@ -12,6 +12,7 @@ import json, os, urllib.request, urllib.error, uuid
 from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
 from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, Notification, Payment, RoomStatus, BookingStatus, RoomImage, HostelImage
 from .local_ai import get_local_ai_response
+from .email_utils import send_booking_receipt
 
 KAMPALA_AREA_UNIVERSITIES = ["Makerere University", "Makerere University Business School", "Kyambogo University", "Kampala International University", "Uganda Christian University", "Ndejje University", "Bugema University", "Cavendish University Uganda", "St. Lawrence University Uganda", "Mutesa I Royal University"]
 
@@ -72,7 +73,7 @@ def home(request):
             "facilities": [{"name": f.facility_name, "icon": f.icon or ""} for f in h.facilities.all()],
             "available": h.available, "rating": float(h.rating) if h.rating else round(float(h.average_rating), 1),
             "distance": h.distance or "Near campus",
-            "price": str(h.price) if h.price else (str(available_room.price_per_night) if available_room else "0"),
+            "price": str(h.price) if h.price else (str(available_room.price_per_semester) if available_room else "0"),
             "amenities": h.amenities or [],
         })
     favorite_ids = []
@@ -115,7 +116,7 @@ def hostel_detail(request, id):
                     "status": r.status,
                     "is_available": r.is_available,
                     "capacity": r.capacity,
-                    "price_per_night": str(r.price_per_night),
+                    "price_per_semester": str(r.price_per_semester),
                 })
             floors_data.append({
                 "floor_number": floor_num,
@@ -126,7 +127,7 @@ def hostel_detail(request, id):
         for r in available_rooms:
             rooms_data.append({
                 "id": str(r.id), "room_number": r.room_number, "room_name": r.room_name, "room_type": r.room_type,
-                "capacity": r.capacity, "available_quantity": r.available_quantity, "price_per_night": str(r.price_per_night),
+                "capacity": r.capacity, "available_quantity": r.available_quantity, "price_per_semester": str(r.price_per_semester),
                 "single_bed_price": str(r.single_bed_price) if r.single_bed_price else None,
                 "floor": r.floor or 1, "description": r.description,
                 "size_sq_meters": str(r.size_sq_meters) if r.size_sq_meters else None,
@@ -220,7 +221,7 @@ def api_hostel_detail(request, id):
     hostel = get_object_or_404(Hostel, id=id)
     rooms = Room.objects.filter(hostel=hostel)
     cover = hostel.images.filter(is_cover=True).first()
-    rooms_data = [{"id": str(r.id), "room_number": r.room_number, "room_name": r.room_name, "room_type": r.room_type, "capacity": r.capacity, "price_per_night": str(r.price_per_night), "description": r.description, "private_bathroom": r.private_bathroom, "air_conditioning": r.air_conditioning, "wifi": r.wifi, "status": r.status} for r in rooms]
+    rooms_data = [{"id": str(r.id), "room_number": r.room_number, "room_name": r.room_name, "room_type": r.room_type, "capacity": r.capacity, "price_per_semester": str(r.price_per_semester), "description": r.description, "private_bathroom": r.private_bathroom, "air_conditioning": r.air_conditioning, "wifi": r.wifi, "status": r.status} for r in rooms]
     return JsonResponse({"id": str(hostel.id), "name": hostel.name, "description": hostel.description, "address": hostel.address, "city": hostel.city, "country": hostel.country, "phone": hostel.phone, "email": hostel.email, "latitude": str(hostel.latitude) if hostel.latitude else None, "longitude": str(hostel.longitude) if hostel.longitude else None, "image_url": cover.image_url if cover else None, "rooms": rooms_data, "facilities": [{"name": f.facility_name} for f in hostel.facilities.all()]})
 
 
@@ -305,13 +306,17 @@ def create_booking(request):
         from datetime import datetime
         check_in = datetime.strptime(data.get("check_in"), "%Y-%m-%d").date()
         check_out = datetime.strptime(data.get("check_out"), "%Y-%m-%d").date()
-        guests = int(data.get("guests", 1))
-        nights = (check_out - check_in).days
-        if nights <= 0: return JsonResponse({"error": "Invalid date range"}, status=400)
-        total_price = room.price_per_night * nights
-        booking = Booking.objects.create(hostel_id=room.hostel_id, room=room, customer_id=request.user.id, check_in=check_in, check_out=check_out, guests=guests, nights=nights, total_price=total_price, special_requests=data.get("special_requests", ""), booking_status="Pending", payment_status="Pending")
+        students = int(data.get("students", 1))
+        semesters = (check_out - check_in).days
+        if semesters <= 0: return JsonResponse({"error": "Invalid date range"}, status=400)
+        total_price = room.price_per_semester * semesters
+        booking = Booking.objects.create(hostel_id=room.hostel_id, room=room, customer_id=request.user.id, check_in=check_in, check_out=check_out, students=students, semesters=semesters, total_price=total_price, special_requests=data.get("special_requests", ""), booking_status="Pending", payment_status="Pending")
         Notification.objects.create(user=request.user, title="Booking Created", message=f"Booking at {room.hostel.name} (Ref: {booking.booking_reference}) created.")
-        return JsonResponse({"id": str(booking.id), "booking_reference": booking.booking_reference, "hostel_id": str(booking.hostel_id), "room_id": str(booking.room_id), "check_in": booking.check_in.isoformat(), "check_out": booking.check_out.isoformat(), "guests": booking.guests, "nights": booking.nights, "total_price": str(booking.total_price), "booking_status": booking.booking_status, "payment_status": booking.payment_status, "special_requests": booking.special_requests}, status=201)
+        try:
+            send_booking_receipt(booking, request)
+        except Exception:
+            pass
+        return JsonResponse({"id": str(booking.id), "booking_reference": booking.booking_reference, "hostel_id": str(booking.hostel_id), "room_id": str(booking.room_id), "check_in": booking.check_in.isoformat(), "check_out": booking.check_out.isoformat(), "students": booking.students, "semesters": booking.semesters, "total_price": str(booking.total_price), "booking_status": booking.booking_status, "payment_status": booking.payment_status, "special_requests": booking.special_requests}, status=201)
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
 
 
@@ -320,7 +325,7 @@ def get_booking_by_id(request, id):
     try:
         booking = get_object_or_404(Booking, id=id)
         if request.user.id == booking.customer_id:
-            return JsonResponse({"id": str(booking.id), "booking_reference": booking.booking_reference, "hostel_id": str(booking.hostel_id), "room_id": str(booking.room_id), "check_in": booking.check_in.isoformat(), "check_out": booking.check_out.isoformat(), "guests": booking.guests, "nights": booking.nights, "total_price": str(booking.total_price), "booking_status": booking.booking_status, "payment_status": booking.payment_status, "special_requests": booking.special_requests})
+            return JsonResponse({"id": str(booking.id), "booking_reference": booking.booking_reference, "hostel_id": str(booking.hostel_id), "room_id": str(booking.room_id), "check_in": booking.check_in.isoformat(), "check_out": booking.check_out.isoformat(), "students": booking.students, "semesters": booking.semesters, "total_price": str(booking.total_price), "booking_status": booking.booking_status, "payment_status": booking.payment_status, "special_requests": booking.special_requests})
         return JsonResponse({"error": "Not authorized"}, status=403)
     except Exception as e: return JsonResponse({"error": str(e)}, status=500)
 
@@ -459,7 +464,7 @@ def manager_rooms(request):
                 "id": str(r.id), "room_number": r.room_number, "room_name": r.room_name,
                 "room_type": r.room_type, "capacity": r.capacity,
                 "available_quantity": r.available_quantity,
-                "price_per_night": str(r.price_per_night),
+                "price_per_semester": str(r.price_per_semester),
                 "single_bed_price": str(r.single_bed_price) if r.single_bed_price else None,
                 "floor": r.floor, "description": r.description or "",
                 "private_bathroom": r.private_bathroom, "air_conditioning": r.air_conditioning,
@@ -495,7 +500,7 @@ def manager_rooms(request):
             if data.get("room_type") is not None: room.room_type = data["room_type"]
             if data.get("capacity") is not None: room.capacity = int(data["capacity"])
             if data.get("available_quantity") is not None: room.available_quantity = int(data["available_quantity"])
-            if data.get("price_per_night") is not None: room.price_per_night = data["price_per_night"]
+            if data.get("price_per_semester") is not None: room.price_per_semester = data["price_per_semester"]
             if data.get("single_bed_price") is not None: room.single_bed_price = data["single_bed_price"] if data["single_bed_price"] else None
             if data.get("floor") is not None: room.floor = int(data["floor"]) if data["floor"] else None
             if data.get("description") is not None: room.description = data["description"]
@@ -520,7 +525,7 @@ def manager_rooms(request):
                 room_type=data.get("room_type", "Single"),
                 capacity=int(data.get("capacity", 1)),
                 available_quantity=int(data.get("available_quantity", 1)),
-                price_per_night=data.get("price_per_night", 0),
+                price_per_semester=data.get("price_per_semester", 0),
                 single_bed_price=data.get("single_bed_price") if data.get("single_bed_price") else None,
                 floor=int(data["floor"]) if data.get("floor") else None,
                 description=data.get("description", ""),
@@ -552,7 +557,7 @@ def manager_bookings(request):
     hostel = profile.hostel
     if not hostel: return JsonResponse({"error": "No hostel assigned"}, status=400)
     bookings = Booking.objects.filter(hostel=hostel).select_related("customer", "room").order_by("-booked_at")
-    return JsonResponse([{"id": str(b.id), "booking_reference": b.booking_reference, "customer_name": b.customer.get_full_name() or b.customer.email, "customer_email": b.customer.email, "room_number": b.room.room_number, "room_name": b.room.room_name, "check_in": b.check_in.isoformat(), "check_out": b.check_out.isoformat(), "guests": b.guests, "nights": b.nights, "total_price": str(b.total_price), "booking_status": b.booking_status, "payment_status": b.payment_status, "special_requests": b.special_requests or ""} for b in bookings], safe=False)
+    return JsonResponse([{"id": str(b.id), "booking_reference": b.booking_reference, "customer_name": b.customer.get_full_name() or b.customer.email, "customer_email": b.customer.email, "room_number": b.room.room_number, "room_name": b.room.room_name, "check_in": b.check_in.isoformat(), "check_out": b.check_out.isoformat(), "students": b.students, "semesters": b.semesters, "total_price": str(b.total_price), "booking_status": b.booking_status, "payment_status": b.payment_status, "special_requests": b.special_requests or ""} for b in bookings], safe=False)
 
 
 @require_http_methods(["POST"])
@@ -596,7 +601,7 @@ def manager_checkins(request):
     hostel = profile.hostel
     if not hostel: return JsonResponse({"error": "No hostel assigned"}, status=400)
     bookings = Booking.objects.filter(hostel=hostel, booking_status="Checked In").select_related("customer", "room")
-    return JsonResponse([{"id": str(b.id), "booking_reference": b.booking_reference, "customer_name": b.customer.get_full_name() or b.customer.email, "customer_email": b.customer.email, "room_number": b.room.room_number, "room_name": b.room.room_name, "check_in": b.check_in.isoformat(), "check_out": b.check_out.isoformat(), "guests": b.guests, "nights": b.nights, "total_price": str(b.total_price)} for b in bookings], safe=False)
+    return JsonResponse([{"id": str(b.id), "booking_reference": b.booking_reference, "customer_name": b.customer.get_full_name() or b.customer.email, "customer_email": b.customer.email, "room_number": b.room.room_number, "room_name": b.room.room_name, "check_in": b.check_in.isoformat(), "check_out": b.check_out.isoformat(), "students": b.students, "semesters": b.semesters, "total_price": str(b.total_price)} for b in bookings], safe=False)
 
 
 @require_http_methods(["POST"])
@@ -704,7 +709,7 @@ def hostel_upload(request):
             for index, (room_type, price, is_avail) in enumerate(room_types, start=1):
                 if price is None or price == 0: continue
                 capacity = 1 if room_type == "Single" else 2 if room_type == "Double" else 3 if room_type == "Triple" else 4
-                Room.objects.create(hostel=hostel, room_number=str(index), room_name=f"{room_type} Room", room_type=room_type, capacity=capacity, available_quantity=1, price_per_night=price, is_available=is_avail == "on")
+                Room.objects.create(hostel=hostel, room_number=str(index), room_name=f"{room_type} Room", room_type=room_type, capacity=capacity, available_quantity=1, price_per_semester=price, is_available=is_avail == "on")
             messages.success(request, "Hostel created successfully.")
             return redirect("hostel_upload")
     else:

@@ -62,7 +62,7 @@ class HostelAdmin(admin.ModelAdmin):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ['hostel', 'room_number', 'room_name', 'room_type', 'price_per_night', 'status']
+    list_display = ['hostel', 'room_number', 'room_name', 'room_type', 'price_per_semester', 'status']
     list_filter = ['room_type', 'status', 'hostel']
     search_fields = ['room_number', 'room_name', 'hostel__name']
 

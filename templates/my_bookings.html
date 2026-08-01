@@ -25,7 +25,7 @@
                         <div>
                             <h3 class="text-xl font-semibold mb-1">{{ booking.hostel.name }}</h3>
                             <p class="text-[var(--muted)] text-sm">{{ booking.room.room_name }} ({{ booking.room.room_type }})</p>
-                            <p class="text-[var(--muted)] text-sm">{{ booking.check_in }} to {{ booking.check_out }} &middot; {{ booking.nights }} night(s)</p>
+                            <p class="text-[var(--muted)] text-sm">{{ booking.check_in }} to {{ booking.check_out }} &middot; {{ booking.semesters }} semester(s)</p>
                             <p class="text-sm mt-2">Reference: <strong>{{ booking.booking_reference }}</strong></p>
                         </div>
                         <div class="text-right">
@@ -146,9 +146,9 @@
                 <div class="grid grid-cols-2 gap-2 text-sm">
                     <div><span class="text-[var(--muted)]">Check-in:</span> <span id="bd-check-in" class="font-medium"></span></div>
                     <div><span class="text-[var(--muted)]">Check-out:</span> <span id="bd-check-out" class="font-medium"></span></div>
-                    <div><span class="text-[var(--muted)]">Nights:</span> <span id="bd-nights" class="font-medium"></span></div>
-                    <div><span class="text-[var(--muted)]">Guests:</span> <span id="bd-guests" class="font-medium"></span></div>
-                    <div><span class="text-[var(--muted)]">Price/Night:</span> <span id="bd-price-night" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Semesters:</span> <span id="bd-semesters" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Students:</span> <span id="bd-students" class="font-medium"></span></div>
+                    <div><span class="text-[var(--muted)]">Price/Semester:</span> <span id="bd-price-semester" class="font-medium"></span></div>
                     <div><span class="text-[var(--muted)]">Booking Ref:</span> <span id="bd-booking-ref" class="font-medium"></span></div>
                 </div>
                 <div class="mt-2 pt-2 border-t border-[var(--border)] space-y-1">
@@ -334,8 +334,8 @@ bookingsData['{{ booking.id }}'] = {
     total_price: '{{ booking.total_price }}',
     check_in: '{{ booking.check_in|date:"Y-m-d" }}',
     check_out: '{{ booking.check_out|date:"Y-m-d" }}',
-    nights: {{ booking.nights }},
-    guests: {{ booking.guests }},
+    semesters: {{ booking.semesters }},
+    students: {{ booking.students }},
     booking_status: '{{ booking.booking_status }}',
     payment_status: '{{ booking.payment_status }}',
     special_requests: '{{ booking.special_requests|default_if_none:"" }}',
@@ -355,7 +355,7 @@ bookingsData['{{ booking.id }}'] = {
         room_type: '{{ booking.room.room_type|escapejs }}',
         capacity: {{ booking.room.capacity }},
         floor: {{ booking.room.floor|default_if_none:1 }},
-        price_per_night: '{{ booking.room.price_per_night }}',
+        price_per_semester: '{{ booking.room.price_per_semester }}',
         private_bathroom: {{ booking.room.private_bathroom|yesno:"true,false" }},
         air_conditioning: {{ booking.room.air_conditioning|yesno:"true,false" }},
         balcony: {{ booking.room.balcony|yesno:"true,false" }},
@@ -405,9 +405,9 @@ function openPaymentModal(bookingId, amount, bookingRef) {
         document.getElementById('bd-room-capacity').textContent = b.room.capacity + ' person(s)';
         document.getElementById('bd-check-in').textContent = b.check_in;
         document.getElementById('bd-check-out').textContent = b.check_out;
-        document.getElementById('bd-nights').textContent = b.nights;
-        document.getElementById('bd-guests').textContent = b.guests;
-        document.getElementById('bd-price-night').textContent = 'UGX ' + parseFloat(b.room.price_per_night).toLocaleString();
+        document.getElementById('bd-semesters').textContent = b.semesters;
+        document.getElementById('bd-students').textContent = b.students;
+        document.getElementById('bd-price-semester').textContent = 'UGX ' + parseFloat(b.room.price_per_semester).toLocaleString();
         document.getElementById('bd-booking-ref').textContent = b.booking_reference;
         document.getElementById('bd-total-amount').textContent = 'UGX ' + parseFloat(b.total_price).toLocaleString();
         document.getElementById('bd-amount-paid').textContent = 'UGX 0';

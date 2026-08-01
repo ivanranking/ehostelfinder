@@ -68,7 +68,7 @@ resp = c3.post('/manager/rooms/', json.dumps({
     'room_type': 'Double',
     'capacity': 2,
     'available_quantity': 1,
-    'price_per_night': '300',
+    'price_per_semester': '300',
     'floor': 3,
     'description': 'Deluxe room',
     'wifi': True,

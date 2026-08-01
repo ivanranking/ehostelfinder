@@ -58,7 +58,7 @@ HOSTEL_RESPONSES = {
         "- Individual lockers for valuables",
         "- Secure key card access",
         "- Emergency contact numbers available",
-        "- Guest ID verification required",
+        "- Student ID verification required",
         "EHostelFinder verifies all listed properties!"
     ],
     "price": [

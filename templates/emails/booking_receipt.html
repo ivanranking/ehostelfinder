@@ -97,16 +97,16 @@
                 <span style="color: #ffffff; font-weight: 500;">{{ booking.check_out|date:"F j, Y" }}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="color: #888888; font-size: 13px;">Number of Nights</span>
-                <span style="color: #ffffff; font-weight: 500;">{{ booking.nights }}</span>
+            <span style="color: #888888; font-size: 13px;">Number of Semesters</span>
+            <span style="color: #ffffff; font-weight: 500;">{{ booking.semesters }}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="color: #888888; font-size: 13px;">Guests</span>
-                <span style="color: #ffffff; font-weight: 500;">{{ booking.guests }}</span>
+            <span style="color: #888888; font-size: 13px;">Students</span>
+            <span style="color: #ffffff; font-weight: 500;">{{ booking.students }}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span style="color: #888888; font-size: 13px;">Price per Night</span>
-                <span style="color: #ffffff; font-weight: 500;">UGX {{ booking.room.price_per_night|floatformat:0 }}</span>
+                <span style="color: #888888; font-size: 13px;">Price per Semester</span>
+                 <span style="color: #ffffff; font-weight: 500;">UGX {{ booking.room.price_per_semester|floatformat:0 }}</span>
             </div>
             {% if booking.special_requests %}
             <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333;">

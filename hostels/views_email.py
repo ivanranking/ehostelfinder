@@ -4,7 +4,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.utils import timezone
 from .models import User, EmailConfirmation, Profile
-from .email_utils import send_email_confirmation
+from .email_utils import send_email_confirmation, send_welcome_email
 from .forms import UserRegistrationForm
 
 
@@ -57,6 +57,11 @@ def confirm_email(request, token):
                 'role': 'customer'
             }
         )
+        
+        try:
+            send_welcome_email(user)
+        except Exception:
+            pass
         
         return render(request, 'email_confirmation_status.html', {
             'status': 'success',

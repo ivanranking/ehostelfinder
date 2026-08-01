@@ -5,7 +5,7 @@ from .models import Booking, Hostel, Message, User, Profile
 class BookingForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ['room', 'check_in', 'check_out', 'guests', 'special_requests']
+        fields = ['room', 'check_in', 'check_out', 'students', 'special_requests']
 
 
 class MessageForm(forms.ModelForm):

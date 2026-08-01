@@ -86,7 +86,7 @@
                 <div class="flex items-center gap-4">
                     <div class="text-right">
                         <div class="text-3xl font-bold font-['Space_Grotesk'] text-[var(--accent)]">
-                            {% if rooms|length > 0 %}{{ rooms.0.price_per_night }} UGX/semester{% else %}N/A{% endif %}
+                            {% if rooms|length > 0 %}{{ rooms.0.price_per_semester }} UGX/semester{% else %}N/A{% endif %}
                         </div>
                         <div class="text-sm text-[var(--muted)]">starting price</div>
                     </div>
@@ -224,7 +224,7 @@
                                 <p class="text-sm text-[var(--muted)]">{{ room.room_type }} Room</p>
                             </div>
                             <div class="text-right">
-                                <div class="text-xl font-bold text-[var(--accent)]">{{ room.price_per_night }} UGX/semester</div>
+                                <div class="text-xl font-bold text-[var(--accent)]">{{ room.price_per_semester }} UGX/semester</div>
                                 <div class="text-xs text-[var(--muted)]">per semester</div>
                             </div>
                         </div>
@@ -409,8 +409,8 @@
                             <input type="date" name="checkOut" required class="input-field" id="checkOut">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-[var(--muted)] mb-2">Number of Guests</label>
-                            <input type="number" name="guests" value="1" min="1" required class="input-field" id="guests">
+                            <label class="block text-sm font-medium text-[var(--muted)] mb-2">Number of Students</label>
+                            <input type="number" name="students" value="1" min="1" required class="input-field" id="students">
                         </div>
                         <div id="total-price" class="text-sm text-[var(--muted)] hidden"></div>
                         <button type="submit" class="btn-primary w-full text-center flex items-center justify-center gap-2">
@@ -523,7 +523,7 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Price Per Semester</label>
-                        <input type="number" name="price_per_night" id="room-detail-price" min="0" step="0.01" required class="input-field">
+                        <input type="number" name="price_per_semester" id="room-detail-price" min="0" step="0.01" required class="input-field">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[var(--muted)] mb-2">Single Bed Price</label>
@@ -604,7 +604,7 @@ function openRoomModalDetail(roomData) {
         document.getElementById('room-detail-name').value = roomData.room_name;
         document.getElementById('room-detail-type').value = roomData.room_type;
         document.getElementById('room-detail-capacity').value = roomData.capacity;
-        document.getElementById('room-detail-price').value = roomData.price_per_night;
+        document.getElementById('room-detail-price').value = roomData.price_per_semester;
         document.getElementById('room-detail-single-price').value = roomData.single_bed_price || '';
         document.getElementById('room-detail-floor').value = roomData.floor || '';
         document.getElementById('room-detail-qty').value = roomData.available_quantity;
@@ -662,7 +662,7 @@ document.getElementById('room-form-detail').addEventListener('submit', function(
         room_name: formData.get('room_name'),
         room_type: formData.get('room_type'),
         capacity: parseInt(formData.get('capacity')),
-        price_per_night: formData.get('price_per_night'),
+        price_per_semester: formData.get('price_per_semester'),
         single_bed_price: formData.get('single_bed_price') || null,
         floor: formData.get('floor') || null,
         available_quantity: parseInt(formData.get('available_quantity')),
@@ -752,13 +752,13 @@ function openRoommateFinder(btn) {
 
 // Update total price estimate
 function updateTotalPrice() {
-    const guests = document.querySelector('input[name="guests"]').value;
-    const nightsDisplay = document.getElementById('total-price');
-    if (guests && guests > 1) {
-        nightsDisplay.classList.remove('hidden');
-        nightsDisplay.textContent = `${guests} guests selected`;
+    const students = document.querySelector('input[name="students"]').value;
+    const totalPrice = document.getElementById('total-price');
+    if (students && students > 1) {
+        totalPrice.classList.remove('hidden');
+        totalPrice.textContent = `${students} students selected`;
     } else {
-        nightsDisplay.classList.add('hidden');
+        totalPrice.classList.add('hidden');
     }
 }
 
@@ -772,7 +772,7 @@ function confirmBooking() {
         room_id: formData.get('room_id'),
         check_in: formData.get('checkIn'),
         check_out: formData.get('checkOut'),
-        guests: parseInt(formData.get('guests')),
+        students: parseInt(formData.get('students')),
         special_requests: ''
     };
     

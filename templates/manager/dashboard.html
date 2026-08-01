@@ -62,7 +62,7 @@
     <div class="border-b border-[var(--border)] mb-6">
         <nav class="flex gap-6">
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)] active-tab" data-tab="bookings">All Bookings</button>
-            <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="checkins">Checked In Guests</button>
+            <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="checkins">Checked In Students</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="rooms">Room Management</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="hostel-info">Hostel Info</button>
         </nav>
@@ -74,11 +74,11 @@
             <table class="w-full">
                 <thead class="bg-[var(--bg-elevated)]">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Guest</th>
+                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Student</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Check In</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Check Out</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Nights</th>
+                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Semesters</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Total</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Status</th>
                         <th class="px-6 py-4 text-right text-xs font-medium text-[var(--muted)] uppercase">Action</th>
@@ -99,11 +99,11 @@
             <table class="w-full">
                 <thead class="bg-[var(--bg-elevated)]">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Guest</th>
+                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Student</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Check In</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Check Out</th>
-                        <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Nights</th>
+                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Semesters</th>
                         <th class="px-6 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Total</th>
                         <th class="px-6 py-4 text-right text-xs font-medium text-[var(--muted)] uppercase">Action</th>
                     </tr>
@@ -287,7 +287,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-[var(--muted)] mb-2">Price Per Semester</label>
-                    <input type="number" name="price_per_night" id="room-price" min="0" step="0.01" required class="input-field">
+                    <input type="number" name="price_per_semester" id="room-price" min="0" step="0.01" required class="input-field">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-[var(--muted)] mb-2">Single Bed Price</label>
@@ -373,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td class="px-6 py-4 text-[var(--fg)]">${b.room_number} - ${b.room_name}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${b.check_in}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${b.check_out}</td>
-                        <td class="px-6 py-4 text-[var(--fg)]">${b.nights}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${b.semesters}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">$${b.total_price}</td>
                         <td class="px-6 py-4">
                             <span class="text-sm font-medium ${statusColors[b.booking_status] || 'text-[var(--fg)]'}">${b.booking_status}</span>
@@ -406,15 +406,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td class="px-6 py-4 text-[var(--fg)]">${c.room_number} - ${c.room_name}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${c.check_in}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${c.check_out}</td>
-                        <td class="px-6 py-4 text-[var(--fg)]">${c.guests}</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${c.students}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">$${c.total_price}</td>
                         <td class="px-6 py-4 text-right">
-                            <button onclick="checkoutGuest(${c.id})" class="text-sm text-amber-500 hover:text-amber-400">Check Out</button>
+                            <button onclick="checkoutStudent(${c.id})" class="text-sm text-amber-500 hover:text-amber-400">Check Out</button>
                         </td>
                     </tr>
                 `;
             });
-            if (!html) html = '<tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">No checked-in guests</td></tr>';
+            if (!html) html = '<tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">No checked-in students</td></tr>';
             document.getElementById('checkins-table').innerHTML = html;
         });
 
@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_name}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.room_type}</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.capacity}</td>
-                        <td class="px-6 py-4 text-[var(--fg)]">${r.price_per_night} UGX/semester</td>
+                        <td class="px-6 py-4 text-[var(--fg)]">${r.price_per_semester} UGX/semester</td>
                         <td class="px-6 py-4 text-[var(--fg)]">${r.single_bed_price || '-'}</td>
                         <td class="px-6 py-4">
                             <select onchange="updateRoomStatus(${r.id}, this.value)" class="bg-[var(--bg)] border border-[var(--border)] rounded px-2 py-1 text-sm">
@@ -476,7 +476,7 @@ function openRoomModal(roomData = null) {
         document.getElementById('room-name').value = roomData.room_name;
         document.getElementById('room-type').value = roomData.room_type;
         document.getElementById('room-capacity').value = roomData.capacity;
-        document.getElementById('room-price').value = roomData.price_per_night;
+        document.getElementById('room-price').value = roomData.price_per_semester;
         document.getElementById('room-single-price').value = roomData.single_bed_price || '';
         document.getElementById('room-floor').value = roomData.floor || '';
         document.getElementById('room-qty').value = roomData.available_quantity;
@@ -521,7 +521,7 @@ document.getElementById('room-form').addEventListener('submit', function(e) {
         room_name: formData.get('room_name'),
         room_type: formData.get('room_type'),
         capacity: parseInt(formData.get('capacity')),
-        price_per_night: formData.get('price_per_night'),
+        price_per_semester: formData.get('price_per_semester'),
         single_bed_price: formData.get('single_bed_price') || null,
         floor: formData.get('floor') || null,
         available_quantity: parseInt(formData.get('available_quantity')),
@@ -564,8 +564,8 @@ function updateBookingStatus(id, status) {
     });
 }
 
-function checkoutGuest(id) {
-    if (!confirm('Confirm check out for this guest?')) return;
+function checkoutStudent(id) {
+    if (!confirm('Confirm check out for this student?')) return;
     fetch('/manager/checkout/' + id + '/', { method: 'POST' })
         .then(r => r.json())
         .then(data => {

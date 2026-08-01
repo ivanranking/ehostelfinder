@@ -158,8 +158,8 @@ class MyBookingsViewTests(BaseTestCase):
             customer=self.user,
             check_in='2026-07-10',
             check_out='2026-07-12',
-            guests=1,
-            nights=2,
+            students=1,
+            semesters=2,
             total_price=120000,
             booking_reference='BK123456',
             booking_status='Pending',
@@ -319,7 +319,7 @@ class HostelUploadTests(BaseTestCase):
             'room_type': 'Single',
             'capacity': '1',
             'available_quantity': '2',
-            'price_per_night': '300000',
+            'price_per_semester': '300000',
             'manager_email': 'manager@example.com',
         })
 
@@ -379,14 +379,14 @@ class APIEndpointTests(BaseTestCase):
             room_type='Single',
             capacity=1,
             available_quantity=5,
-            price_per_night=350000,
+            price_per_semester=350000,
         )
         response = self.client.post(reverse('api_create_booking'),
             json.dumps({
                 'room_id': str(room.id),
                 'check_in': '2026-05-01',
                 'check_out': '2026-05-03',
-                'guests': 1,
+                'students': 1,
                 'special_requests': ''
             }),
             content_type='application/json'
@@ -403,14 +403,14 @@ class APIEndpointTests(BaseTestCase):
             room_type='Single',
             capacity=1,
             available_quantity=5,
-            price_per_night=350000,
+            price_per_semester=350000,
         )
         response = self.client.post(reverse('api_create_booking'),
             json.dumps({
                 'room_id': str(room.id),
                 'check_in': '2026-05-01',
                 'check_out': '2026-05-03',
-                'guests': 1,
+                'students': 1,
                 'special_requests': ''
             }),
             content_type='application/json'
