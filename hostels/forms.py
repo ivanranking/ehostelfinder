@@ -89,9 +89,11 @@ class ResetPasswordForm(forms.Form):
 
 
 class ProfileUpdateForm(forms.ModelForm):
+    profile_image = forms.ImageField(required=False, label='Profile Picture')
+
     class Meta:
         model = Profile
-        fields = ['full_name', 'email', 'phone', 'profile_photo']
+        fields = ['full_name', 'email', 'phone', 'profile_photo', 'profile_image']
     
     def save(self, commit=True):
         profile = super().save(commit=False)
@@ -102,9 +104,11 @@ class ProfileUpdateForm(forms.ModelForm):
 
 
 class ManagerProfileForm(forms.ModelForm):
+    profile_image = forms.ImageField(required=False, label='Profile Picture')
+
     class Meta:
         model = Profile
-        fields = ['full_name', 'email', 'phone', 'profile_photo']
+        fields = ['full_name', 'email', 'phone', 'profile_photo', 'profile_image']
     
     def save(self, commit=True, user=None, hostel=None):
         profile = super().save(commit=False)

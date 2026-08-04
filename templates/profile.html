@@ -22,15 +22,26 @@
             {% endif %}
 
             {% if profile %}
-                <div class="mb-8">
-                    <p class="text-[var(--muted)]"><strong>Role:</strong> {{ profile.get_role_display }}</p>
-                    {% if profile.hostel %}
-                        <p class="text-[var(--muted)]"><strong>Assigned Hostel:</strong> {{ profile.hostel.name }}</p>
-                    {% endif %}
+                <div class="mb-8 flex items-center gap-4">
+                    <div class="w-20 h-20 rounded-full overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex items-center justify-center">
+                        {% if profile.profile_image %}
+                            <img src="{{ profile.profile_image.url }}" alt="{{ user.get_full_name|default:user.email }}" class="w-full h-full object-cover" />
+                        {% elif profile.profile_photo %}
+                            <img src="{{ profile.profile_photo }}" alt="{{ user.get_full_name|default:user.email }}" class="w-full h-full object-cover" />
+                        {% else %}
+                            <span class="text-xl font-semibold">{{ user.first_name|first|default:'U' }}</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-[var(--muted)]"><strong>Role:</strong> {{ profile.get_role_display }}</p>
+                        {% if profile.hostel %}
+                            <p class="text-[var(--muted)]"><strong>Assigned Hostel:</strong> {{ profile.hostel.name }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             {% endif %}
 
-            <form method="POST" class="space-y-5" novalidate>
+            <form method="POST" enctype="multipart/form-data" class="space-y-5" novalidate>
                 {% csrf_token %}
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -64,6 +75,11 @@
                            class="input-field w-full"
                            value="{{ form.profile_photo.value|default:'' }}"
                            placeholder="https://example.com/photo.jpg">
+                </div>
+                <div>
+                    <label for="id_profile_image" class="block text-sm font-medium mb-2">Upload Profile Picture</label>
+                    <input type="file" name="profile_image" id="id_profile_image" accept="image/*"
+                           class="input-field w-full">
                 </div>
                 <div class="flex gap-4">
                     <button type="submit" class="btn-primary">Save Changes</button>

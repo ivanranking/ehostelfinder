@@ -8,24 +8,179 @@
 <style>
     .chat-container {
         height: calc(100vh - 180px);
-        min-height: 500px;
+        min-height: 560px;
+    }
+    .chat-shell {
+        box-shadow: 0 20px 50px rgba(7, 94, 84, 0.12);
+    }
+    .chat-header {
+        background: linear-gradient(90deg, #075e54 0%, #128c7e 100%);
+        color: #f9fafb;
+    }
+    .chat-messages {
+        background-color: #efeae2;
+        background-image:
+            radial-gradient(circle at 20% 20%, rgba(37, 211, 102, 0.08) 0 1.5px, transparent 1.5px),
+            radial-gradient(circle at 80% 80%, rgba(7, 94, 84, 0.05) 0 1.5px, transparent 1.5px);
+        background-size: 28px 28px;
+    }
+    .message-row {
+        display: flex;
+        margin-bottom: 10px;
+    }
+    .message-row-self {
+        justify-content: flex-end;
+    }
+    .message-row-other {
+        justify-content: flex-start;
     }
     .message-bubble {
-        max-width: 70%;
+        max-width: min(78%, 560px);
         word-wrap: break-word;
+        position: relative;
+        box-shadow: 0 1px 1px rgba(15, 23, 42, 0.08);
+        animation: message-pop 220ms ease-out;
     }
+    .message-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 700;
+        box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+    }
+    .message-avatar-self {
+        margin-left: 8px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+    .message-avatar-other {
+        margin-right: 8px;
+    }
+    .typing-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        color: #64748b;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    }
+    .typing-pill span {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #25d366;
+        animation: typing-dot 1.2s infinite ease-in-out;
+    }
+    .typing-pill span:nth-child(2) { animation-delay: 0.16s; }
+    .typing-pill span:nth-child(3) { animation-delay: 0.32s; }
     .message-bubble.sent {
-        background: var(--accent);
-        color: var(--bg);
+        background: linear-gradient(135deg, #dcf8c6 0%, #c7f1b4 100%);
+        color: #0f172a;
         border-radius: 18px 18px 4px 18px;
     }
     .message-bubble.received {
-        background: var(--card);
-        color: var(--fg);
+        background: #ffffff;
+        color: #111827;
         border-radius: 18px 18px 18px 4px;
+    }
+    .message-bubble.sent::after {
+        content: "";
+        position: absolute;
+        right: -6px;
+        bottom: 0;
+        width: 12px;
+        height: 12px;
+        background: inherit;
+        clip-path: polygon(100% 0%, 0% 100%, 100% 100%);
+    }
+    .message-bubble.received::after {
+        content: "";
+        position: absolute;
+        left: -6px;
+        bottom: 0;
+        width: 12px;
+        height: 12px;
+        background: inherit;
+        clip-path: polygon(0% 0%, 100% 100%, 0% 100%);
+    }
+    .message-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        margin-top: 6px;
+        font-size: 0.72rem;
+    }
+    .message-footer.sent {
+        color: rgba(15, 23, 42, 0.72);
+    }
+    .message-footer.received {
+        color: #6b7280;
     }
     .typing-indicator span {
         animation: pulse-dot 1.4s infinite ease-in-out;
+    }
+    .reply-preview-card {
+        border-left: 3px solid #25d366;
+        background: rgba(37, 211, 102, 0.1);
+        border-radius: 10px;
+        padding: 8px 10px;
+        margin-bottom: 7px;
+    }
+    .reply-preview-card strong {
+        display: block;
+        font-size: 0.78rem;
+        margin-bottom: 2px;
+    }
+    .reply-preview-card span {
+        font-size: 0.78rem;
+        color: #6b7280;
+    }
+    .reply-preview-inline {
+        border-left: 3px solid #25d366;
+        padding-left: 10px;
+        opacity: 0.95;
+    }
+    .composer-shell {
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+    }
+    .composer-input {
+        background: #f5f7fb;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 999px;
+        padding: 12px 16px;
+        color: #111827;
+        outline: none;
+        transition: all 0.2s ease;
+    }
+    .composer-input:focus {
+        border-color: #25d366;
+        box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.16);
+    }
+    .composer-attach {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: #fff;
+        border-radius: 999px;
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        transition: all 0.2s ease;
+    }
+    .composer-attach:hover {
+        color: #25d366;
+        border-color: rgba(37, 211, 102, 0.3);
     }
     .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
     .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
@@ -33,27 +188,34 @@
         0%, 80%, 100% { opacity: 0.3; }
         40% { opacity: 1; }
     }
+    @keyframes typing-dot {
+        0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+        40% { transform: translateY(-3px); opacity: 1; }
+    }
+    @keyframes message-pop {
+        from { opacity: 0; transform: translateY(8px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="min-h-[calc(100vh-80px)] px-4 py-12">
     <div class="max-w-4xl mx-auto">
-        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] overflow-hidden chat-container flex flex-col">
+        <div class="bg-[var(--card)] rounded-[32px] border border-[var(--border)] overflow-hidden chat-container flex flex-col chat-shell">
             <!-- Chat Header -->
-            <div class="bg-gradient-to-r from-[var(--accent)]/10 to-emerald-500/10 px-6 py-4 border-b border-[var(--border)]">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
-                            </svg>
+            <div class="chat-header px-5 py-4 border-b border-white/10">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <span class="avatar-initials text-sm font-semibold" data-avatar-name="{% if room.hostel %}{{ room.hostel.name }}{% else %}Roommate Chat{% endif %}"></span>
                         </div>
                         <div>
-                            <h2 class="text-xl font-['Space_Grotesk'] font-bold">
+                            <h2 class="text-lg font-['Space_Grotesk'] font-bold">
                                 {% if room.hostel %}{{ room.hostel.name }}{% else %}Roommate Chat{% endif %}
                             </h2>
-                            <div class="flex items-center gap-2 text-sm text-[var(--muted)]">
+                            <div class="flex items-center gap-2 text-sm text-white/80">
+                                <span class="inline-block h-2 w-2 rounded-full bg-emerald-300"></span>
                                 {% for participant in room.participants.all %}
                                     {% if participant.id != user.id %}
                                         {% if participant.first_name or participant.last_name %}
@@ -67,12 +229,12 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="clearChat()" class="p-2 text-[var(--muted)] hover:text-red-400 transition-colors" title="Clear Chat">
+                        <button onclick="clearChat()" class="p-2 text-white/80 hover:text-white transition-colors" title="Clear Chat">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.102A2 2 0 0116.138 21H7.862a2 2 0 01-1.973-1.898L5 7m5 5v5m-3 0h6m-6 0l1-4m7 4l1-4M9 7V4a3 3 0 013-3h.01A3 3 0 0115 4v3m-6 0h6"/>
                             </svg>
                         </button>
-                        <a href="{% url 'roommate_finder' %}" class="btn-secondary text-sm py-2 px-4 flex items-center gap-1">
+                        <a href="{% url 'roommate_finder' %}" class="rounded-full border border-white/20 bg-white/10 px-3 py-2 text-sm text-white/90 flex items-center gap-1 hover:bg-white/20 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                             </svg>
@@ -82,34 +244,70 @@
                 </div>
             </div>
 
+            <div class="px-4 pt-3">
+                <div id="typing-indicator" class="typing-pill hidden">
+                    <span></span><span></span><span></span>
+                    <span class="ml-1 text-xs font-medium">typing</span>
+                </div>
+            </div>
+
             <!-- Messages Area -->
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-[var(--bg)]">
+            <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-4 space-y-2 chat-messages">
                 {% for message in messages %}
-                <div class="flex {% if message.sender and message.sender.id == user.id %}justify-end{% else %}justify-start{% endif %}"{% if forloop.last %} data-timestamp="{{ message.created_at.isoformat }}"{% endif %}>
+                <div class="message-row {% if message.sender and message.sender.id == user.id %}message-row-self{% else %}message-row-other{% endif %}"{% if forloop.last %} data-timestamp="{{ message.created_at.isoformat }}"{% endif %}>
+                    {% if message.sender and message.sender.id != user.id %}
+                    <div class="message-avatar message-avatar-other">
+                        <span class="avatar-initials" data-avatar-name="{{ message.sender.get_full_name|default:message.sender.email|default:'User' }}"></span>
+                    </div>
+                    {% else %}
+                    <div class="message-avatar message-avatar-self">
+                        <span class="avatar-initials" data-avatar-name="{{ user.get_full_name|default:user.email|default:'You' }}"></span>
+                    </div>
+                    {% endif %}
                     <div class="message-bubble {% if message.sender and message.sender.id == user.id %}sent{% else %}received{% endif %} px-4 py-3" data-msg-id="{{ message.id }}">
-                        <p class="text-sm">{{ message.content }}</p>
-                        <div class="flex items-center justify-end gap-2 mt-1">
-                            <p class="text-xs {% if message.sender and message.sender.id == user.id %}text-[var(--bg)]/70{% else %}text-[var(--muted)]{% endif %}">
-                                {{ message.created_at|time:"H:i" }}
-                                {% if message.is_ai %}
-                                    <span class="ml-1 text-[var(--accent)]">(AI)</span>
-                                {% endif %}
-                            </p>
-                            {% if message.sender and message.sender.id == user.id %}
-                            <button onclick="deleteMessage('{{ message.id }}')" class="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-colors" title="Delete message">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        {% if message.reply_to %}
+                        <div class="reply-preview-card text-xs">
+                            <strong>Replying to {{ message.reply_to.sender.get_full_name|default:message.reply_to.sender.email|default:"a message" }}</strong>
+                            <span>{{ message.reply_to.content|default:"Shared image" }}</span>
+                        </div>
+                        {% endif %}
+                        {% if message.image %}
+                        <img src="{{ message.image.url }}" alt="Shared image" class="rounded-xl max-w-xs mb-2" />
+                        {% endif %}
+                        {% if message.content %}
+                        <p class="text-sm leading-relaxed">{{ message.content }}</p>
+                        {% endif %}
+                        <div class="message-footer {% if message.sender and message.sender.id == user.id %}sent{% else %}received{% endif %}">
+                            <div class="flex items-center gap-1">
+                                <span>{{ message.created_at|time:"H:i" }}</span>
+                                {% if message.sender and message.sender.id == user.id %}
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                 </svg>
-                            </button>
+                                {% endif %}
+                            </div>
+                            {% if message.sender and message.sender.id == user.id %}
+                            <div class="flex items-center gap-1">
+                                <button onclick="replyToMessage('{{ message.id }}', '{{ message.content|escapejs }}', '{{ message.sender.get_full_name|default:message.sender.email|default:"You"|escapejs }}')" class="hover:text-[var(--accent)] transition-colors" title="Reply">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a4 4 0 014 4v1l3-3-3-3v1a2 2 0 00-2-2H5"/>
+                                    </svg>
+                                </button>
+                                <button onclick="deleteMessage('{{ message.id }}')" class="hover:text-red-400 transition-colors" title="Delete message">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
                 {% empty %}
                 <div class="flex items-center justify-center h-full">
-                    <div class="text-center">
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="text-center max-w-sm">
+                        <div class="w-16 h-16 rounded-2xl bg-white/70 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                            <svg class="w-8 h-8 text-[#25d366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
                             </svg>
                         </div>
@@ -120,12 +318,27 @@
             </div>
 
             <!-- Message Input -->
-            <div class="p-4 border-t border-[var(--border)] bg-[var(--card)]">
-                <form id="message-form" class="flex gap-3">
+            <div class="composer-shell p-3 border-t border-[var(--border)]">
+                <div id="reply-preview" class="hidden rounded-xl border border-[#25d366]/25 bg-white px-3 py-2 mb-3 text-sm shadow-sm">
+                    <div class="flex items-center justify-between gap-2">
+                        <div>
+                            <p class="text-[var(--muted)] text-[11px] uppercase tracking-[0.2em]">Replying to</p>
+                            <p id="reply-target-label" class="font-semibold text-[var(--fg)]"></p>
+                            <p id="reply-target-content" class="text-[var(--muted)] text-xs mt-1"></p>
+                        </div>
+                        <button type="button" onclick="clearReplySelection()" class="text-[var(--muted)] hover:text-red-400">✕</button>
+                    </div>
+                </div>
+                <form id="message-form" class="flex items-center gap-2" enctype="multipart/form-data">
                     {% csrf_token %}
+                    <input type="hidden" name="reply_to_id" id="reply-to-id" value="">
+                    <label class="composer-attach cursor-pointer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <input type="file" id="image-input" accept="image/*" class="hidden">
+                    </label>
                     <input type="text" name="content" id="message-input" placeholder="Type your message..." 
-                           class="flex-1 input-field" autocomplete="off" required maxlength="1000">
-                    <button type="submit" class="btn-primary px-6 flex items-center justify-center gap-2">
+                           class="composer-input flex-1" autocomplete="off" maxlength="1000">
+                    <button type="submit" class="btn-primary px-4 h-11 rounded-full flex items-center justify-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-2-9-18-9 18 9-2zm0 0v-8"/>
                         </svg>
@@ -197,8 +410,40 @@ function scrollToBottom() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
+function initializeAvatars(root = document) {
+    root.querySelectorAll('.avatar-initials').forEach((el) => {
+        const name = el.getAttribute('data-avatar-name') || 'U';
+        const initials = name
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((part) => part.charAt(0))
+            .join('')
+            .toUpperCase() || 'U';
+        el.textContent = initials;
+    });
+}
+
+function showTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (!indicator) return;
+    indicator.classList.remove('hidden');
+    clearTimeout(window.typingTimeout);
+    window.typingTimeout = setTimeout(() => {
+        indicator.classList.add('hidden');
+    }, 1400);
+}
+
 // Initial scroll
-document.addEventListener('DOMContentLoaded', scrollToBottom);
+document.addEventListener('DOMContentLoaded', () => {
+    scrollToBottom();
+    initializeAvatars();
+    const input = document.getElementById('message-input');
+    if (input) {
+        input.addEventListener('focus', showTypingIndicator);
+        input.addEventListener('input', showTypingIndicator);
+    }
+});
 
 // Polling for new messages
 let lastMessageTime = null;
@@ -216,28 +461,45 @@ function addMessageToDOM(msg) {
     const messagesEl = document.getElementById('chat-messages');
     const isOwn = msg.sender_id == currentUserId;
     const msgDiv = document.createElement('div');
-    msgDiv.className = 'flex ' + (isOwn ? 'justify-end' : 'justify-start');
+    msgDiv.className = 'message-row ' + (isOwn ? 'message-row-self' : 'message-row-other');
     msgDiv.setAttribute('data-msg-id', msg.id);
     const bubbleClass = isOwn ? 'sent' : 'received';
-    const timeColor = isOwn ? 'text-[var(--bg)]/70' : 'text-[var(--muted)]';
+    const timeStamp = new Date(msg.created_at).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'});
     let aiBadge = '';
     if (msg.is_ai) {
         aiBadge = ' <span class="ml-1 text-[var(--accent)]">(AI)</span>';
     }
+    const replyMarkup = msg.reply_to_id ? `<div class="reply-preview-card text-xs"><strong>Replying to ${escapeHtml(msg.sender_name || 'a message')}</strong><span>${escapeHtml(msg.reply_to_content || 'Shared image')}</span></div>` : '';
+    const imageMarkup = msg.image_url ? `<img src="${msg.image_url}" alt="Shared image" class="rounded-xl max-w-xs mb-2" />` : '';
+    const contentMarkup = msg.content ? `<p class="text-sm leading-relaxed">${escapeHtml(msg.content)}</p>` : '';
+    const actionMarkup = isOwn ? `<div class="flex items-center gap-1">
+        <button onclick="replyToMessage('${msg.id}', ${JSON.stringify(msg.content || 'message')}, ${JSON.stringify(msg.sender_name || 'You')})" class="hover:text-[var(--accent)] transition-colors" title="Reply">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a4 4 0 014 4v1l3-3-3-3v1a2 2 0 00-2-2H5"/>
+            </svg>
+        </button>
+        <button onclick="deleteMessage('${msg.id}')" class="hover:text-red-400 transition-colors" title="Delete message">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>` : '';
     msgDiv.innerHTML = `
         <div class="message-bubble ${bubbleClass} px-4 py-3" data-msg-id="${msg.id}">
-            <p class="text-sm">${escapeHtml(msg.content)}</p>
-            <div class="flex items-center justify-end gap-2 mt-1">
-                <p class="text-xs mt-1 ${timeColor}">${new Date(msg.created_at).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}${aiBadge}</p>
-                ${isOwn ? `<button onclick="deleteMessage('${msg.id}')" class="hover:text-red-400 transition-colors" title="Delete message">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>` : ''}
+            ${replyMarkup}
+            ${imageMarkup}
+            ${contentMarkup}
+            <div class="message-footer ${bubbleClass}">
+                <div class="flex items-center gap-1">
+                    <span>${timeStamp}${aiBadge}</span>
+                    ${isOwn ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : ''}
+                </div>
+                ${actionMarkup}
             </div>
         </div>
     `;
     messagesEl.appendChild(msgDiv);
+    initializeAvatars(msgDiv);
     scrollToBottom();
 }
 
@@ -273,37 +535,77 @@ if (lastMsgContainer) {
 // Start polling every 5 seconds
 const pollInterval = setInterval(pollNewMessages, 5000);
 
+function replyToMessage(messageId, contentPreview, senderName = 'this message') {
+    const replyInput = document.getElementById('reply-to-id');
+    const replyPreview = document.getElementById('reply-preview');
+    const label = document.getElementById('reply-target-label');
+    const contentField = document.getElementById('reply-target-content');
+    replyInput.value = messageId;
+    label.textContent = senderName || 'this message';
+    const previewText = contentPreview ? String(contentPreview).substring(0, 80) : 'Shared image';
+    contentField.textContent = previewText;
+    replyPreview.classList.remove('hidden');
+    document.getElementById('message-input').focus();
+}
+
+function clearReplySelection() {
+    document.getElementById('reply-to-id').value = '';
+    document.getElementById('reply-preview').classList.add('hidden');
+    document.getElementById('reply-target-label').textContent = '';
+    document.getElementById('reply-target-content').textContent = '';
+}
+
 document.getElementById('message-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const input = document.getElementById('message-input');
+    const fileInput = document.getElementById('image-input');
+    const replyInput = document.getElementById('reply-to-id');
     const content = input.value.trim();
-    if (!content) return;
+    const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+    if (!content && !hasFile) return;
     
     // Optimistic UI update
     const messagesEl = document.getElementById('chat-messages');
     const msgDiv = document.createElement('div');
-    msgDiv.className = 'flex justify-end';
+    msgDiv.className = 'message-row message-row-self';
+    const previewMarkup = hasFile ? '<img src="" alt="Preview" class="rounded-xl max-w-xs mb-2" />' : '';
+    const replyPreviewMarkup = replyInput && replyInput.value ? `<div class="reply-preview-card text-xs"><strong>Replying to ${escapeHtml(document.getElementById('reply-target-label').textContent || 'a message')}</strong><span>${escapeHtml(document.getElementById('reply-target-content').textContent || 'Shared image')}</span></div>` : '';
     msgDiv.innerHTML = `
         <div class="message-bubble sent px-4 py-3">
-            <p class="text-sm">${escapeHtml(content)}</p>
-            <p class="text-xs mt-1 text-[var(--bg)]/70">${new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}</p>
+            ${replyPreviewMarkup}
+            ${previewMarkup}
+            ${content ? `<p class="text-sm leading-relaxed">${escapeHtml(content)}</p>` : ''}
+            <div class="message-footer sent">
+                <div class="flex items-center gap-1">
+                    <span>${new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+            </div>
         </div>
     `;
     messagesEl.appendChild(msgDiv);
+    initializeAvatars(msgDiv);
     scrollToBottom();
     input.value = '';
+    showTypingIndicator();
     
     try {
+        const formData = new FormData();
+        formData.append('content', content);
+        if (replyInput && replyInput.value) formData.append('reply_to_id', replyInput.value);
+        if (hasFile) formData.append('image', fileInput.files[0]);
         const response = await fetch('/api/chat/{{ room.id }}/send/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
-            body: JSON.stringify({ content: content })
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            body: formData
         });
         const data = await response.json();
         if (!data.success) {
             showToast(data.error || 'Could not send message', 'error');
         } else {
             lastMessageTime = data.created_at;
+            clearReplySelection();
+            if (fileInput) fileInput.value = '';
         }
     } catch (error) {
         showToast('Network error. Please try again.', 'error');

@@ -1,7 +1,8 @@
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from .models import Hostel, Booking, Message, RoommateRequest, ChatRoom, ChatMessage, Room, Profile
+from django.core import mail
+from .models import Hostel, Booking, Message, RoommateRequest, ChatRoom, ChatMessage, Room, Profile, HostelImage
 import json
 import uuid
 
@@ -170,6 +171,49 @@ class MyBookingsViewTests(BaseTestCase):
         self.assertContains(response, 'My Bookings')
 
 
+class PaymentReceiptTests(BaseTestCase):
+    """Tests for payment-related booking confirmation receipts"""
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_processing_payment_sends_booking_confirmation_invoice(self):
+        room = Room.objects.create(
+            hostel=self.hostel,
+            room_number='101',
+            room_name='Single Room',
+            room_type='Single',
+            capacity=1,
+            price_per_semester=250000,
+            status='Available',
+            is_available=True,
+        )
+        booking = Booking.objects.create(
+            hostel=self.hostel,
+            room=room,
+            customer=self.user,
+            check_in='2026-07-10',
+            check_out='2026-07-12',
+            students=1,
+            semesters=2,
+            total_price=500000,
+            booking_reference='BK-TEST-001',
+            booking_status='Pending',
+            payment_status='Pending'
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('api_process_payment'), json.dumps({
+            'booking_id': str(booking.id),
+            'payment_method': 'Mobile Money',
+            'transaction_reference': 'TXN-TEST-001'
+        }), content_type='application/json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('Booking Confirmation', mail.outbox[0].subject)
+        self.assertIn(booking.booking_reference, mail.outbox[0].body)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+
+
 class UserRegistrationTests(BaseTestCase):
     """Tests for user registration"""
     
@@ -330,6 +374,56 @@ class HostelUploadTests(BaseTestCase):
         manager_profile = Profile.objects.get(user=manager_user)
         self.assertEqual(manager_profile.role, 'manager')
         self.assertEqual(manager_profile.hostel, hostel)
+
+    def test_admin_upload_saves_gallery_images(self):
+        admin_user = User.objects.create(
+            id=str(uuid.uuid4()),
+            email='gallery-admin@example.com',
+            first_name='Gallery',
+            last_name='Admin'
+        )
+        admin_user.set_password('StrongPass123')
+        admin_user.save()
+        Profile.objects.create(
+            user=admin_user,
+            full_name='Gallery Admin',
+            email='gallery-admin@example.com',
+            role='admin'
+        )
+
+        self.client.force_login(admin_user)
+        response = self.client.post(reverse('hostel_upload'), {
+            'name': 'Gallery Hostel',
+            'description': 'A hostel with gallery images',
+            'address': '789 Gallery Road',
+            'city': 'Kampala',
+            'country': 'Uganda',
+            'university': 'Makerere University',
+            'price_single': '180000',
+            'price_double': '250000',
+            'image_url': 'https://example.com/cover.jpg',
+            'image_urls': 'https://example.com/a.jpg\nhttps://example.com/b.jpg\nhttps://example.com/c.jpg',
+            'room_available_single': 'on',
+            'room_available_double': 'on',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        hostel = Hostel.objects.get(name='Gallery Hostel')
+        images = list(hostel.images.order_by('created_at').values_list('image_url', flat=True))
+        self.assertIn('https://example.com/cover.jpg', images)
+        self.assertIn('https://example.com/a.jpg', images)
+        self.assertIn('https://example.com/b.jpg', images)
+        self.assertIn('https://example.com/c.jpg', images)
+        self.assertEqual(hostel.images.filter(is_cover=True).count(), 1)
+
+
+class AIFallbackTests(BaseTestCase):
+    def test_ai_fallback_handles_general_questions(self):
+        from .local_ai import get_local_ai_response
+
+        response = get_local_ai_response('Can you help me with a general question about the site?')
+        self.assertIn('general', response.lower())
+        self.assertIn('help', response.lower())
 
 
 class APIEndpointTests(BaseTestCase):
@@ -591,3 +685,20 @@ class RoommateFinderTests(TestCase):
         data = json.loads(response.content)
         self.assertTrue(data['success'])
         self.assertTrue(ChatMessage.objects.filter(chat_room=chat_room).exists())
+
+    def test_send_message_with_reply(self):
+        self.client.force_login(self.user)
+        chat_room = ChatRoom.objects.create(hostel=self.hostel)
+        chat_room.participants.add(self.user)
+        parent_message = ChatMessage.objects.create(chat_room=chat_room, sender=self.user, content='Original message')
+
+        response = self.client.post(
+            reverse('api_send_message', args=[chat_room.id]),
+            {'content': 'Replying now', 'reply_to_id': str(parent_message.id)}
+        )
+
+        self.assertEqual(response.status_code, 201)
+        data = json.loads(response.content)
+        self.assertTrue(data['success'])
+        reply_message = ChatMessage.objects.get(chat_room=chat_room, content='Replying now')
+        self.assertEqual(reply_message.reply_to_id, parent_message.id)

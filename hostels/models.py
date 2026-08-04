@@ -66,6 +66,7 @@ class Profile(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=20, blank=True, null=True)
     profile_photo = models.URLField(blank=True, null=True)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
     hostel = models.ForeignKey('Hostel', on_delete=models.SET_NULL, blank=True, null=True, related_name='managers')
     created_at = models.DateTimeField(default=timezone.now)
@@ -468,7 +469,9 @@ class ChatRoom(models.Model):
 class ChatMessage(models.Model):
     chat_room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages', blank=True, null=True)
-    content = models.TextField()
+    content = models.TextField(blank=True, default='')
+    image = models.ImageField(upload_to='chat_images/', blank=True, null=True)
+    reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='replies')
     is_ai = models.BooleanField(default=False, help_text="True if message sent by AI assistant")
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now)

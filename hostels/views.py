@@ -849,16 +849,17 @@ def profile(request):
     user = request.user
     profile_obj = getattr(user, "profile", None)
     if request.method == "POST":
-        form = ProfileUpdateForm(request.POST, instance=profile_obj)
+        form = ProfileUpdateForm(request.POST, request.FILES, instance=profile_obj)
         if form.is_valid():
             form.save()
             user.first_name = request.POST.get("first_name", user.first_name)
             user.last_name = request.POST.get("last_name", user.last_name)
             user.save(update_fields=["first_name", "last_name"])
-            messages.success(request, "Profile updated successfully"); return redirect("profile")
+            messages.success(request, "Profile updated successfully")
+            return redirect("profile")
     else:
         form = ProfileUpdateForm(instance=profile_obj)
-    return render(request, "profile.html", {"form": form, "profile": profile_obj})
+    return render(request, "profile.html", {"form": form, "profile": profile_obj, "user": user})
 
 
 @login_required
@@ -962,6 +963,10 @@ def process_payment(request):
         booking.payment_status = "Paid"
         booking.booking_status = "Confirmed"
         booking.save(update_fields=["payment_status", "booking_status"])
+        try:
+            send_booking_receipt(booking, request)
+        except Exception:
+            pass
         return JsonResponse({"success": True, "payment_id": str(payment.id)})
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
 
@@ -1027,7 +1032,8 @@ def my_chat_rooms(request):
 @login_required
 def chat_room_detail(request, room_id):
     chat_room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
-    return render(request, "chatbox.html", {"chat_room": chat_room})
+    messages = chat_room.messages.select_related("sender", "reply_to").all().order_by("created_at")
+    return render(request, "chatbox.html", {"room": chat_room, "messages": messages, "chat_room": chat_room})
 
 
 @require_http_methods(["GET", "POST"])
@@ -1081,11 +1087,31 @@ def api_chat_rooms(request):
 @require_http_methods(["POST"])
 def api_send_message(request, room_id):
     try:
-        data = json.loads(request.body)
         chat_room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
-        msg = ChatMessage.objects.create(chat_room=chat_room, sender=request.user, content=data.get("content", ""), is_ai=False)
-        chat_room.save()
-        return JsonResponse({"id": str(msg.id), "sender_id": str(msg.sender_id), "sender_name": request.user.get_full_name() or request.user.email, "content": msg.content, "created_at": msg.created_at.isoformat()}, status=201)
+        reply_to = None
+        if request.POST:
+            content = request.POST.get('content', '').strip()
+            reply_to_id = request.POST.get('reply_to_id')
+            image = request.FILES.get('image') if request.FILES else None
+            if reply_to_id:
+                reply_to = get_object_or_404(ChatMessage, id=reply_to_id, chat_room=chat_room)
+            if image:
+                msg = ChatMessage.objects.create(chat_room=chat_room, sender=request.user, image=image, reply_to=reply_to, is_ai=False)
+            else:
+                if not content:
+                    return JsonResponse({"error": "Message content is required"}, status=400)
+                msg = ChatMessage.objects.create(chat_room=chat_room, sender=request.user, content=content, reply_to=reply_to, is_ai=False)
+        else:
+            data = json.loads(request.body or '{}')
+            content = data.get('content', '').strip()
+            reply_to_id = data.get('reply_to_id')
+            if reply_to_id:
+                reply_to = get_object_or_404(ChatMessage, id=reply_to_id, chat_room=chat_room)
+            if not content:
+                return JsonResponse({"error": "Message content is required"}, status=400)
+            msg = ChatMessage.objects.create(chat_room=chat_room, sender=request.user, content=content, reply_to=reply_to, is_ai=False)
+        chat_room.save(update_fields=['updated_at'])
+        return JsonResponse({"success": True, "id": str(msg.id), "sender_id": str(msg.sender_id), "sender_name": request.user.get_full_name() or request.user.email, "content": msg.content, "image_url": msg.image.url if msg.image else None, "reply_to_id": str(msg.reply_to_id) if msg.reply_to_id else None, "created_at": msg.created_at.isoformat()}, status=201)
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
 
 
@@ -1094,9 +1120,10 @@ def api_send_message(request, room_id):
 def api_chat_messages(request, room_id):
     try:
         chat_room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
-        messages_qs = chat_room.messages.all().order_by("created_at")
+        messages_qs = chat_room.messages.select_related("sender", "reply_to").all().order_by("created_at")
         messages_qs.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
-        return JsonResponse([{"id": str(m.id), "sender_id": str(m.sender_id) if m.sender else "AI", "sender_name": m.sender.get_full_name() or m.sender.email if m.sender else "AI Assistant", "content": m.content, "is_ai": m.is_ai, "is_read": m.is_read, "created_at": m.created_at.isoformat()} for m in messages_qs], safe=False)
+        payload = [{"id": str(m.id), "sender_id": str(m.sender_id) if m.sender else "AI", "sender_name": m.sender.get_full_name() or m.sender.email if m.sender else "AI Assistant", "content": m.content, "image_url": m.image.url if m.image else None, "is_ai": m.is_ai, "is_read": m.is_read, "reply_to_id": str(m.reply_to_id) if m.reply_to_id else None, "reply_to_content": m.reply_to.content if m.reply_to else None, "created_at": m.created_at.isoformat()} for m in messages_qs]
+        return JsonResponse({"messages": payload}, safe=False)
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
 
 
@@ -1115,8 +1142,9 @@ def api_delete_message(request, room_id, message_id):
 def api_clear_chat(request, room_id):
     try:
         chat_room = get_object_or_404(ChatRoom, id=room_id, participants=request.user)
+        deleted_count = chat_room.messages.count()
         chat_room.messages.all().delete()
-        return JsonResponse({"success": True})
+        return JsonResponse({"success": True, "deleted_count": deleted_count})
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
 
 
