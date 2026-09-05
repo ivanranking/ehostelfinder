@@ -66,23 +66,12 @@ CREATE TABLE IF NOT EXISTS public.hostels (
     address TEXT NOT NULL,
     city TEXT NOT NULL,
     country TEXT NOT NULL,
-    university TEXT,
-    distance TEXT DEFAULT 'Near campus',
-    price NUMERIC(10, 2),
-    rating NUMERIC(3, 2) DEFAULT '0',
-    amenities JSONB DEFAULT '[]'::jsonb,
-    contact TEXT,
-    available BOOLEAN DEFAULT TRUE,
-    is_full BOOLEAN DEFAULT FALSE,
-    total_floors INT DEFAULT 1,
-    image_url TEXT,
     phone TEXT,
     email TEXT,
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
     check_in_time TIME NOT NULL DEFAULT '14:00:00',
     check_out_time TIME NOT NULL DEFAULT '11:00:00',
-    review_count INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -119,9 +108,7 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     room_type room_type NOT NULL,
     capacity INT NOT NULL CHECK (capacity > 0),
     available_quantity INT NOT NULL DEFAULT 1 CHECK (available_quantity > 0),
-    price_per_semester NUMERIC(10, 2) NOT NULL CHECK (price_per_semester >= 0),
-    single_bed_price NUMERIC(10, 2),
-    floor INT,
+    price_per_night NUMERIC(10, 2) NOT NULL CHECK (price_per_night >= 0),
     description TEXT,
     size_sq_meters NUMERIC(5, 2),
     private_bathroom BOOLEAN NOT NULL DEFAULT FALSE,
@@ -130,7 +117,6 @@ CREATE TABLE IF NOT EXISTS public.rooms (
     television BOOLEAN NOT NULL DEFAULT FALSE,
     wifi BOOLEAN NOT NULL DEFAULT FALSE,
     status room_status NOT NULL DEFAULT 'Available',
-    is_available BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -155,8 +141,8 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     customer_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     check_in DATE NOT NULL,
     check_out DATE NOT NULL,
-    students INT NOT NULL CHECK (students > 0),
-    semesters INT NOT NULL CHECK (semesters > 0),
+    guests INT NOT NULL CHECK (guests > 0),
+    nights INT NOT NULL CHECK (nights > 0),
     total_price NUMERIC(10, 2) NOT NULL CHECK (total_price >= 0),
     booking_status booking_status NOT NULL DEFAULT 'Pending',
     booking_reference TEXT UNIQUE NOT NULL,
@@ -216,19 +202,7 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 
 -- ------------------------------------------------------------
--- 13. EMAIL CONFIRMATIONS TABLE
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.email_confirmations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    token TEXT NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    expires_at TIMESTAMPTZ NOT NULL,
-    confirmed_at TIMESTAMPTZ
-);
-
--- ------------------------------------------------------------
--- 14. INDEXES
+-- 13. INDEXES
 -- ------------------------------------------------------------
 CREATE INDEX idx_profiles_hostel_id ON public.profiles(hostel_id);
 CREATE INDEX idx_profiles_email ON public.profiles(email);
@@ -238,11 +212,6 @@ CREATE INDEX idx_hostel_images_hostel_id ON public.hostel_images(hostel_id);
 CREATE INDEX idx_hostel_images_cover ON public.hostel_images(hostel_id, is_cover) WHERE is_cover = TRUE;
 
 CREATE INDEX idx_hostel_facilities_hostel_id ON public.hostel_facilities(hostel_id);
-
-CREATE INDEX idx_hostels_university ON public.hostels(university);
-CREATE INDEX idx_hostels_city ON public.hostels(city);
-CREATE INDEX idx_hostels_country ON public.hostels(country);
-CREATE INDEX idx_hostels_available ON public.hostels(available);
 
 CREATE INDEX idx_rooms_hostel_id ON public.rooms(hostel_id);
 CREATE INDEX idx_rooms_room_type ON public.rooms(room_type);
@@ -271,9 +240,6 @@ CREATE INDEX idx_favorites_hostel_id ON public.favorites(hostel_id);
 CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
 CREATE INDEX idx_notifications_is_read ON public.notifications(user_id, is_read);
 
-CREATE INDEX idx_email_confirmations_token ON public.email_confirmations(token);
-CREATE INDEX idx_email_confirmations_expires_at ON public.email_confirmations(expires_at);
-
 -- ------------------------------------------------------------
 -- 14. FOREIGN KEY: PROFILES -> HOSTELS
 -- ------------------------------------------------------------
@@ -292,29 +258,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'profiles') THEN
-        CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles
-            FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-    END IF;
-END $$;
+CREATE TRIGGER handle_profiles_updated_at BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'hostels') THEN
-        CREATE TRIGGER handle_hostels_updated_at BEFORE UPDATE ON public.hostels
-            FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-    END IF;
-END $$;
+CREATE TRIGGER handle_hostels_updated_at BEFORE UPDATE ON public.hostels
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'rooms') THEN
-        CREATE TRIGGER handle_rooms_updated_at BEFORE UPDATE ON public.rooms
-            FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
-    END IF;
-END $$;
+CREATE TRIGGER handle_rooms_updated_at BEFORE UPDATE ON public.rooms
+    FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- ------------------------------------------------------------
 -- 16. BOOKING OVERLAP PREVENTION FUNCTION + TRIGGER
@@ -336,15 +287,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'bookings') THEN
-        DROP TRIGGER IF EXISTS prevent_overlapping_bookings_trigger ON public.bookings;
-        CREATE TRIGGER prevent_overlapping_bookings_trigger
-            BEFORE INSERT OR UPDATE ON public.bookings
-            FOR EACH ROW EXECUTE FUNCTION public.prevent_overlapping_bookings();
-    END IF;
-END $$;
+CREATE TRIGGER prevent_overlapping_bookings_trigger
+    BEFORE INSERT OR UPDATE ON public.bookings
+    FOR EACH ROW EXECUTE FUNCTION public.prevent_overlapping_bookings();
 
 -- ------------------------------------------------------------
 -- 17. HELPER: GENERATE BOOKING REFERENCE
@@ -355,7 +300,7 @@ DECLARE
     ref TEXT;
 BEGIN
     LOOP
-        ref := 'BK-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' ||
+        ref := 'BK-' || TO_CHAR(NOW(),'YYYYMMDD') || '-' ||
                UPPER(SUBSTRING(REPLACE(gen_random_uuid()::TEXT, '-', ''), 1, 8));
         IF NOT EXISTS (SELECT 1 FROM public.bookings WHERE booking_reference = ref) THEN
             RETURN ref;
@@ -385,156 +330,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reviews') THEN
-        DROP TRIGGER IF EXISTS update_hostel_review_stats ON public.reviews;
-        CREATE TRIGGER update_hostel_review_stats
-            AFTER INSERT OR DELETE ON public.reviews
-            FOR EACH ROW EXECUTE FUNCTION public.update_hostel_review_stats();
-    END IF;
-END $$;
-
-CREATE OR REPLACE FUNCTION public.check_review_booking()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM public.bookings b
-        WHERE b.hostel_id = NEW.hostel_id
-          AND b.customer_id = NEW.customer_id
-          AND b.booking_status IN ('Confirmed', 'Checked Out')
-    ) THEN
-        RAISE EXCEPTION 'You can only review hostels you have completed a booking for';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'reviews') THEN
-        DROP TRIGGER IF EXISTS check_review_booking_trigger ON public.reviews;
-        CREATE TRIGGER check_review_booking_trigger
-            BEFORE INSERT ON public.reviews
-            FOR EACH ROW EXECUTE FUNCTION public.check_review_booking();
-    END IF;
-END $$;
+CREATE TRIGGER update_hostel_review_stats
+    AFTER INSERT OR DELETE ON public.reviews
+    FOR EACH ROW EXECUTE FUNCTION public.update_hostel_review_stats();
 
 -- ------------------------------------------------------------
--- 19. MANAGER ASSIGNMENT FUNCTIONS
+-- 19. ENABLE ROW LEVEL SECURITY
 -- ------------------------------------------------------------
-
--- Function to assign a manager to a hostel (for admin use)
-CREATE OR REPLACE FUNCTION public.assign_manager_to_hostel(manager_uuid UUID, hostel_uuid UUID)
-RETURNS TABLE(success BOOLEAN, message TEXT, manager_id UUID, hostel_id UUID) AS $$
-BEGIN
-    -- Verify manager exists and has manager role
-    IF NOT EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE id = manager_uuid AND role = 'manager'
-    ) THEN
-        RETURN QUERY SELECT FALSE, 'Manager not found or not a manager role', NULL::UUID, NULL::UUID;
-        RETURN;
-    END IF;
-    
-    -- Verify hostel exists
-    IF NOT EXISTS (
-        SELECT 1 FROM public.hostels WHERE id = hostel_uuid
-    ) THEN
-        RETURN QUERY SELECT FALSE, 'Hostel not found', NULL::UUID, NULL::UUID;
-        RETURN;
-    END IF;
-    
-    UPDATE public.profiles 
-    SET hostel_id = hostel_uuid 
-    WHERE id = manager_uuid;
-    
-    RETURN QUERY SELECT TRUE, 'Manager assigned successfully', manager_uuid, hostel_uuid;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to remove manager from hostel
-CREATE OR REPLACE FUNCTION public.remove_manager_from_hostel(manager_uuid UUID)
-RETURNS TABLE(success BOOLEAN, message TEXT) AS $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE id = manager_uuid AND role = 'manager'
-    ) THEN
-        RETURN QUERY SELECT FALSE, 'Manager not found or not a manager role';
-        RETURN;
-    END IF;
-    
-    UPDATE public.profiles 
-    SET hostel_id = NULL 
-    WHERE id = manager_uuid;
-    
-    RETURN QUERY SELECT TRUE, 'Manager removed from hostel';
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to get all managers
-CREATE OR REPLACE FUNCTION public.get_all_managers()
-RETURNS TABLE(
-    id UUID,
-    full_name TEXT,
-    email TEXT,
-    phone TEXT,
-    hostel_id UUID,
-    hostel_name TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        p.id,
-        p.full_name,
-        p.email,
-        p.phone,
-        p.hostel_id,
-        h.name
-    FROM public.profiles p
-    LEFT JOIN public.hostels h ON h.id = p.hostel_id
-    WHERE p.role = 'manager';
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to get unassigned managers
-CREATE OR REPLACE FUNCTION public.get_unassigned_managers()
-RETURNS TABLE(
-    id UUID,
-    full_name TEXT,
-    email TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        p.id,
-        p.full_name,
-        p.email
-    FROM public.profiles p
-    WHERE p.role = 'manager' AND p.hostel_id IS NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Function to get managers for a specific hostel
-CREATE OR REPLACE FUNCTION public.get_hostel_managers(hostel_uuid UUID)
-RETURNS TABLE(
-    id UUID,
-    full_name TEXT,
-    email TEXT,
-    phone TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        p.id,
-        p.full_name,
-        p.email,
-        p.phone
-    FROM public.profiles p
-    WHERE p.role = 'manager' AND p.hostel_id = hostel_uuid;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hostels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.hostel_images ENABLE ROW LEVEL SECURITY;
@@ -864,6 +666,12 @@ CREATE POLICY "Customers can create reviews for their bookings"
     TO authenticated
     WITH CHECK (
         customer_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM public.bookings b
+            WHERE b.hostel_id = NEW.hostel_id
+              AND b.customer_id = auth.uid()
+              AND b.booking_status IN ('Confirmed', 'Checked Out')
+        )
     );
 
 CREATE POLICY "Customers can update their own reviews"
@@ -1113,123 +921,13 @@ JOIN auth.users u ON u.id = b.customer_id
 JOIN public.profiles p ON p.id = b.customer_id;
 
 -- ------------------------------------------------------------
--- 34. ROOMMATE FINDER TABLES
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.roommate_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    hostel_id UUID NOT NULL REFERENCES public.hostels(id) ON DELETE CASCADE,
-    room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL,
-    preferred_gender TEXT NOT NULL DEFAULT 'any',
-    budget_min NUMERIC(10, 2),
-    budget_max NUMERIC(10, 2),
-    about_me TEXT,
-    lifestyle_preferences JSONB DEFAULT '[]'::jsonb,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.chat_rooms (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    hostel_id UUID NOT NULL REFERENCES public.hostels(id) ON DELETE CASCADE,
-    room_id UUID REFERENCES public.rooms(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.chat_room_participants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chatroom_id UUID NOT NULL REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    UNIQUE (chatroom_id, user_id)
-);
-
-CREATE TABLE IF NOT EXISTS public.chat_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    chat_room_id UUID NOT NULL REFERENCES public.chat_rooms(id) ON DELETE CASCADE,
-    sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_roommate_requests_hostel_id ON public.roommate_requests(hostel_id);
-CREATE INDEX idx_roommate_requests_user_id ON public.roommate_requests(user_id);
-CREATE INDEX idx_roommate_requests_is_active ON public.roommate_requests(hostel_id, is_active);
-
-CREATE INDEX idx_chat_rooms_hostel_id ON public.chat_rooms(hostel_id);
-CREATE INDEX idx_chat_messages_chat_room_id ON public.chat_messages(chat_room_id);
-CREATE INDEX idx_chat_messages_sender_id ON public.chat_messages(sender_id);
-
-ALTER TABLE public.chat_rooms ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_room_participants ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Anyone can view chat rooms"
-    ON public.chat_rooms FOR SELECT
-    TO authenticated
-    USING (true);
-
-CREATE POLICY "Customers can create chat rooms"
-    ON public.chat_rooms FOR INSERT
-    TO authenticated
-    WITH CHECK (true);
-
-CREATE POLICY "Participants can manage their chat room"
-    ON public.chat_rooms FOR UPDATE
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.chat_room_participants
-            WHERE chatroom_id = public.chat_rooms.id
-              AND user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Participants can view messages"
-    ON public.chat_messages FOR SELECT
-    TO authenticated
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.chat_room_participants
-            WHERE chatroom_id = public.chat_messages.chat_room_id
-              AND user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Participants can send messages"
-    ON public.chat_messages FOR INSERT
-    TO authenticated
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.chat_room_participants
-            WHERE chatroom_id = public.chat_messages.chat_room_id
-              AND user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Participants can update their own messages"
-    ON public.chat_messages FOR UPDATE
-    TO authenticated
-    USING (sender_id = auth.uid());
-
-CREATE POLICY "Participants can manage their participation"
-    ON public.chat_room_participants FOR ALL
-    TO authenticated
-    USING (user_id = auth.uid());
-
--- ------------------------------------------------------------
--- 35. REALTIME PUBLICATION CONFIGURATION
+-- 34. REALTIME PUBLICATION CONFIGURATION
 -- ------------------------------------------------------------
 ALTER PUBLICATION supabase_realtime ADD TABLE public.bookings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.payments;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.roommate_requests;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_rooms;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 
 -- ------------------------------------------------------------
 -- 35. COMPLETION VERIFICATION
@@ -1237,7 +935,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 DO $$
 BEGIN
     RAISE NOTICE 'Schema migration completed successfully.';
-    RAISE NOTICE 'Tables created: profiles, hostels, hostel_images, hostel_facilities, rooms, room_images, bookings, payments, reviews, favorites, notifications, email_confirmations';
+    RAISE NOTICE 'Tables created: profiles, hostels, hostel_images, hostel_facilities, rooms, room_images, bookings, payments, reviews, favorites, notifications';
     RAISE NOTICE 'Custom types created: room_type, room_status, booking_status, payment_method, payment_status, user_role';
     RAISE NOTICE 'RLS policies enabled on all tables.';
     RAISE NOTICE 'Indexes created for performance optimization.';

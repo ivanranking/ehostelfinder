@@ -75,6 +75,12 @@ class Profile(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.role})"
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.role == 'admin' and not self.user.is_staff:
+            self.user.is_staff = True
+            self.user.save(update_fields=['is_staff'])
+
 
 class Hostel(models.Model):
     name = models.CharField(max_length=255)

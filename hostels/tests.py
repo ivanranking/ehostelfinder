@@ -324,6 +324,46 @@ class UserLoginTests(BaseTestCase):
 
 
 class HostelUploadTests(BaseTestCase):
+    def test_admin_upload_generates_rooms_from_label_range(self):
+        admin_user = User.objects.create(
+            id=str(uuid.uuid4()),
+            email='label-admin@example.com',
+            first_name='Label',
+            last_name='Admin'
+        )
+        admin_user.set_password('StrongPass123')
+        admin_user.save()
+        Profile.objects.create(
+            user=admin_user,
+            full_name='Label Admin',
+            email='label-admin@example.com',
+            role='admin'
+        )
+
+        self.client.force_login(admin_user)
+        response = self.client.post(reverse('hostel_upload'), {
+            'name': 'Label Hostel',
+            'description': 'A hostel with room labels',
+            'address': '101 Label Street',
+            'city': 'Kampala',
+            'country': 'Uganda',
+            'university': 'Makerere University',
+            'price_single': '180000',
+            'price_double': '250000',
+            'image_url': 'https://example.com/cover.jpg',
+            'room_available_single': 'on',
+            'room_available_double': 'on',
+            'room_label_type': 'numeric',
+            'room_label_start': '1',
+            'room_label_end': '2',
+            'floor_count': '2',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        hostel = Hostel.objects.get(name='Label Hostel')
+        self.assertEqual(hostel.room_label_range['type'], 'numeric')
+        self.assertEqual(Room.objects.filter(hostel=hostel).count(), 4)
+
     def test_admin_can_create_hostel_and_assign_manager(self):
         admin_user = User.objects.create(
             id=str(uuid.uuid4()),
@@ -415,6 +455,74 @@ class HostelUploadTests(BaseTestCase):
         self.assertIn('https://example.com/b.jpg', images)
         self.assertIn('https://example.com/c.jpg', images)
         self.assertEqual(hostel.images.filter(is_cover=True).count(), 1)
+
+
+class AdminManagerAssignmentPageTests(BaseTestCase):
+    def test_admin_manager_assign_page_renders_assignment_payload(self):
+        admin_user = User.objects.create(
+            id=str(uuid.uuid4()),
+            email='assign-admin@example.com',
+            first_name='Assign',
+            last_name='Admin'
+        )
+        admin_user.set_password('StrongPass123')
+        admin_user.save()
+        Profile.objects.create(
+            user=admin_user,
+            full_name='Assign Admin',
+            email='assign-admin@example.com',
+            role='admin'
+        )
+        manager_user = User.objects.create(
+            id=str(uuid.uuid4()),
+            email='manager-one@example.com',
+            first_name='Manager',
+            last_name='One'
+        )
+        manager_user.set_password('StrongPass123')
+        manager_user.save()
+        Profile.objects.create(
+            user=manager_user,
+            full_name='Manager One',
+            email='manager-one@example.com',
+            role='manager'
+        )
+
+        self.client.force_login(admin_user)
+        response = self.client.get(reverse('admin_manager_assign'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Assign Managers to Hostels')
+        self.assertContains(response, 'const hostelsData =')
+        self.assertContains(response, 'const managersData =')
+
+
+class FullHostelBookingTests(BaseTestCase):
+    def test_full_hostel_blocks_booking(self):
+        self.hostel.is_full = True
+        self.hostel.save(update_fields=['is_full'])
+        room = Room.objects.create(
+            hostel=self.hostel,
+            room_number='101',
+            room_name='Single Room',
+            room_type='Single',
+            capacity=1,
+            price_per_semester=250000,
+            status='Occupied',
+            is_available=False,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('api_create_booking'), json.dumps({
+            'room_id': str(room.id),
+            'check_in': '2026-07-10',
+            'check_out': '2026-07-12',
+            'students': 1,
+            'special_requests': 'Quiet room',
+        }), content_type='application/json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('full', json.loads(response.content)['error'].lower())
 
 
 class AIFallbackTests(BaseTestCase):

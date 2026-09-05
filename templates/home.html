@@ -157,7 +157,14 @@
                 {% endif %}
                 <a href="{% url 'hostel_detail' hostel.id %}">
                     <div class="p-6">
-                        <h3 class="font-['Space_Grotesk'] font-bold text-lg mb-2">{{ hostel.name }}</h3>
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <h3 class="font-['Space_Grotesk'] font-bold text-lg">{{ hostel.name }}</h3>
+                            {% if hostel.is_full %}
+                            <span class="px-2 py-1 rounded-full bg-red-500/10 text-red-400 text-[10px] font-medium uppercase tracking-wide">Full</span>
+                            {% else %}
+                            <span class="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-medium uppercase tracking-wide">Available</span>
+                            {% endif %}
+                        </div>
                         <p class="text-[var(--muted)] text-sm mb-3">{{ hostel.city }}, {{ hostel.country }}</p>
                         <div class="flex items-center justify-between">
                             <span class="text-[var(--accent)] font-semibold">{{ hostel.price|default:'0' }} UGX/semester</span>

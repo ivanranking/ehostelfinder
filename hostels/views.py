@@ -34,6 +34,83 @@ def get_university_options():
     return [{"name": n} for n in university_names]
 
 
+def generate_room_labels(start_label, end_label, label_type):
+    if not start_label and not end_label:
+        return []
+    if label_type == "alphabetic":
+        start_char = (start_label or "A").strip().upper()
+        end_char = (end_label or "Z").strip().upper()
+        if len(start_char) != 1 or len(end_char) != 1 or not start_char.isalpha() or not end_char.isalpha():
+            return []
+        start_index = ord(start_char) - ord('A')
+        end_index = ord(end_char) - ord('A')
+        if end_index < start_index:
+            start_index, end_index = end_index, start_index
+        return [chr(ord('A') + idx) for idx in range(start_index, end_index + 1)]
+
+    try:
+        start_num = int(str(start_label).strip()) if str(start_label).strip() else 1
+        end_num = int(str(end_label).strip()) if str(end_label).strip() else start_num
+    except ValueError:
+        return []
+    if end_num < start_num:
+        start_num, end_num = end_num, start_num
+    return list(range(start_num, end_num + 1))
+
+
+def create_hostel_room_inventory(hostel, room_type_prices, request_post):
+    room_label_type = request_post.get("room_label_type") or "numeric"
+    room_label_start = (request_post.get("room_label_start") or "").strip()
+    room_label_end = (request_post.get("room_label_end") or "").strip()
+    floor_count = max(1, int(request_post.get("floor_count") or 1))
+
+    generated_labels = generate_room_labels(room_label_start, room_label_end, room_label_type)
+    hostel.room_label_range = {
+        "type": room_label_type,
+        "start": room_label_start,
+        "end": room_label_end,
+        "floors": floor_count,
+    }
+    hostel.total_floors = floor_count
+    hostel.save(update_fields=["room_label_range", "total_floors"])
+
+    for room_type, price, is_avail in room_type_prices:
+        if price is None or price == 0:
+            continue
+        capacity = 1 if room_type == "Single" else 2 if room_type == "Double" else 3 if room_type == "Triple" else 4
+        if generated_labels:
+            for index, label in enumerate(generated_labels):
+                floor_number = (index % floor_count) + 1
+                room_number = str(label)
+                Room.objects.create(
+                    hostel=hostel,
+                    room_number=room_number,
+                    room_name=f"{room_type} Room {room_number}",
+                    room_type=room_type,
+                    capacity=capacity,
+                    available_quantity=1,
+                    price_per_semester=price,
+                    floor=floor_number,
+                    status="Available" if is_avail == "on" else "Maintenance",
+                    is_available=is_avail == "on",
+                )
+            continue
+
+        Room.objects.create(
+            hostel=hostel,
+            room_number=str(room_type[0].upper()) if room_type else "1",
+            room_name=f"{room_type} Room",
+            room_type=room_type,
+            capacity=capacity,
+            available_quantity=1,
+            price_per_semester=price,
+            status="Available" if is_avail == "on" else "Maintenance",
+            is_available=is_avail == "on",
+        )
+
+    hostel.update_full_status()
+
+
 def home(request):
     university = request.GET.get("university", "All Universities")
     city = request.GET.get("city", "")
@@ -71,10 +148,10 @@ def home(request):
             "id": str(h.id), "name": h.name, "description": h.description, "city": h.city, "country": h.country,
             "university": h.university, "image_url": h.image_url or (cover.image_url if cover else None),
             "facilities": [{"name": f.facility_name, "icon": f.icon or ""} for f in h.facilities.all()],
-            "available": h.available, "rating": float(h.rating) if h.rating else round(float(h.average_rating), 1),
+            "available": h.available and not h.is_full, "rating": float(h.rating) if h.rating else round(float(h.average_rating), 1),
             "distance": h.distance or "Near campus",
             "price": str(h.price) if h.price else (str(available_room.price_per_semester) if available_room else "0"),
-            "amenities": h.amenities or [],
+            "amenities": h.amenities or [], "is_full": h.is_full,
         })
     favorite_ids = []
     if request.user.is_authenticated:
@@ -212,7 +289,7 @@ def api_hostels(request):
     results = []
     for h in hostels:
         cover = h.images.filter(is_cover=True).first()
-        results.append({"id": str(h.id), "name": h.name, "city": h.city, "country": h.country, "university": h.university, "address": h.address, "description": h.description, "average_rating": round(float(h.average_rating), 2), "rating": float(h.rating) if h.rating else round(float(h.average_rating), 2), "review_count": h.reviews.count(), "image_url": h.image_url or (cover.image_url if cover else None), "facilities": [f.facility_name for f in h.facilities.all()], "amenities": h.amenities or [], "distance": h.distance or "", "price": float(h.price) if h.price else 0, "contact": h.contact or "", "available": h.available})
+        results.append({"id": str(h.id), "name": h.name, "city": h.city, "country": h.country, "university": h.university, "address": h.address, "description": h.description, "average_rating": round(float(h.average_rating), 2), "rating": float(h.rating) if h.rating else round(float(h.average_rating), 2), "review_count": h.reviews.count(), "image_url": h.image_url or (cover.image_url if cover else None), "facilities": [f.facility_name for f in h.facilities.all()], "amenities": h.amenities or [], "distance": h.distance or "", "price": float(h.price) if h.price else 0, "contact": h.contact or "", "available": h.available and not h.is_full, "is_full": h.is_full, "status": "Full" if h.is_full else "Available"})
     return JsonResponse(results, safe=False)
 
 
@@ -242,9 +319,12 @@ def login(request):
     form = UserLoginForm(request.POST)
     if form.is_valid():
         from django.contrib.auth import authenticate, login as auth_login
-        user = authenticate(request, username=form.cleaned_data["email"], password=form.cleaned_data["password"])
+        email = form.cleaned_data["email"].strip().lower()
+        user = authenticate(request, username=email, password=form.cleaned_data["password"])
         if user:
             auth_login(request, user)
+            if user.is_staff or (hasattr(user, 'profile') and user.profile.role == 'admin'):
+                return redirect("admin:index")
             return redirect("home")
         messages.error(request, "Invalid email or password")
     else:
@@ -303,6 +383,11 @@ def create_booking(request):
     try:
         data = json.loads(request.body)
         room = get_object_or_404(Room, id=data.get("room_id"))
+        hostel = room.hostel
+        if hostel.is_full:
+            return JsonResponse({"error": "This hostel is currently marked as full and is not accepting new bookings."}, status=400)
+        if room.status != "Available" or not room.is_available:
+            return JsonResponse({"error": "This room is not available for booking."}, status=400)
         from datetime import datetime
         check_in = datetime.strptime(data.get("check_in"), "%Y-%m-%d").date()
         check_out = datetime.strptime(data.get("check_out"), "%Y-%m-%d").date()
@@ -394,8 +479,8 @@ def contact(request):
 
 def google_auth(request):
     import urllib.parse; from django.conf import settings
-    redirect_uri = request.build_absolute_uri("/api/auth/google/callback/")
-    params = {"client_id": settings.GOOGLE_CLIENT_ID, "redirect_uri": redirect_uri, "response_type": "code", "scope": "email profile", "access_type": "online"}
+    redirect_uri = settings.GOOGLE_CALLBACK_URL or request.build_absolute_uri("/api/auth/google/callback/")
+    params = {"client_id": settings.GOOGLE_CLIENT_ID, "redirect_uri": redirect_uri, "response_type": "code", "scope": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile", "access_type": "online"}
     return redirect(f"https://accounts.google.com/o/oauth2/auth?{urllib.parse.urlencode(params)}")
 
 
@@ -404,7 +489,7 @@ def google_auth_callback(request):
     from django.contrib.auth import login as auth_login
     code = request.GET.get("code")
     if not code: messages.error(request, "Google auth failed"); return redirect("login")
-    redirect_uri = request.build_absolute_uri("/api/auth/google/callback/")
+    redirect_uri = settings.GOOGLE_CALLBACK_URL or request.build_absolute_uri("/api/auth/google/callback/")
     token_data = urllib.parse.urlencode({"code": code, "client_id": settings.GOOGLE_CLIENT_ID, "client_secret": settings.GOOGLE_CLIENT_SECRET, "redirect_uri": redirect_uri, "grant_type": "authorization_code"}).encode()
     try:
         req = urllib.request.Request("https://oauth2.googleapis.com/token", data=token_data, method="POST")
@@ -428,7 +513,58 @@ def google_auth_callback(request):
         return redirect("login")
 
 
-# ========== MANAGER VIEWS ==========
+def github_auth(request):
+    import urllib.parse; from django.conf import settings
+    redirect_uri = settings.GITHUB_CALLBACK_URL or request.build_absolute_uri("/api/auth/github/callback/")
+    params = {"client_id": settings.GITHUB_CLIENT_ID, "redirect_uri": redirect_uri, "scope": "user:email"}
+    return redirect(f"https://github.com/login/oauth/authorize?{urllib.parse.urlencode(params)}")
+
+
+def github_auth_callback(request):
+    import urllib.parse, urllib.request, json; from django.conf import settings
+    from django.contrib.auth import login as auth_login
+    code = request.GET.get("code")
+    if not code: messages.error(request, "GitHub auth failed"); return redirect("login")
+    redirect_uri = settings.GITHUB_CALLBACK_URL or request.build_absolute_uri("/api/auth/github/callback/")
+    token_data = urllib.parse.urlencode({
+        "client_id": settings.GITHUB_CLIENT_ID,
+        "client_secret": settings.GITHUB_CLIENT_SECRET,
+        "code": code,
+        "redirect_uri": redirect_uri,
+    }).encode()
+    try:
+        req = urllib.request.Request("https://github.com/login/oauth/access_token", data=token_data, method="POST")
+        req.add_header("Content-Type", "application/x-www-form-urlencoded")
+        req.add_header("Accept", "application/json")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            token_result = json.loads(resp.read().decode())
+        access_token = token_result.get("access_token")
+        if not access_token:
+            messages.error(request, "GitHub authentication failed")
+            return redirect("login")
+        user_req = urllib.request.Request("https://api.github.com/user", headers={"Authorization": f"token {access_token}"})
+        with urllib.request.urlopen(user_req, timeout=10) as resp:
+            user_info = json.loads(resp.read().decode())
+        email = user_info.get("email") or user_info.get("primary_email")
+        if not email:
+            email_req = urllib.request.Request("https://api.github.com/user/emails", headers={"Authorization": f"token {access_token}"})
+            with urllib.request.urlopen(email_req, timeout=10) as resp:
+                emails = json.loads(resp.read().decode())
+            for e in emails:
+                if e.get("primary") and e.get("verified"):
+                    email = e.get("email")
+                    break
+        first_name = user_info.get("name", "").split(" ")[0] if user_info.get("name") else email.split("@")[0]
+        last_name = user_info.get("name", "").split(" ")[-1] if user_info.get("name") and len(user_info.get("name", "").split(" ")) > 1 else ""
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            user = User.objects.create(id=str(uuid.uuid4()), email=email, first_name=first_name, last_name=last_name, provider="github")
+        auth_login(request, user)
+        return redirect("home")
+    except Exception as e:
+        messages.error(request, "GitHub authentication failed")
+        return redirect("login")# ========== MANAGER VIEWS ==========
 
 @require_http_methods(["GET"])
 def manager_dashboard(request):
@@ -658,7 +794,9 @@ def manager_hostel_info(request):
         if data.get("amenities") is not None: hostel.amenities = data["amenities"]
         if data.get("total_floors") is not None: hostel.total_floors = int(data["total_floors"])
         if data.get("available") is not None: hostel.available = data["available"] in [True, "true"]
-        if data.get("is_full") is not None: hostel.is_full = data["is_full"] in [True, "true"]
+        if data.get("is_full") is not None:
+            hostel.is_full = data["is_full"] in [True, "true"]
+            hostel.available = not hostel.is_full
         if data.get("check_in_time") is not None:
             from datetime import datetime as dt
             hostel.check_in_time = dt.strptime(data["check_in_time"], "%H:%M").time()
@@ -678,7 +816,33 @@ def admin_manager_assign(request):
     if not profile or profile.role != "admin":
         messages.error(request, "Access denied.")
         return redirect("home")
-    return render(request, "admin/manager_assign.html")
+
+    hostels = Hostel.objects.prefetch_related("managers").order_by("name")
+    hostel_payload = [{
+        "id": str(hostel.id),
+        "name": hostel.name,
+        "city": hostel.city,
+        "country": hostel.country,
+        "managers": [{
+            "id": str(manager.id),
+            "full_name": manager.full_name,
+            "email": manager.email,
+        } for manager in hostel.managers.select_related("user").all()],
+    } for hostel in hostels]
+
+    managers = Profile.objects.filter(role="manager").select_related("hostel", "user").order_by("full_name")
+    manager_payload = [{
+        "id": str(manager.id),
+        "full_name": manager.full_name,
+        "email": manager.email,
+        "hostel_id": str(manager.hostel_id) if manager.hostel_id else None,
+        "hostel_name": manager.hostel.name if manager.hostel else None,
+    } for manager in managers if manager.hostel_id is None]
+
+    return render(request, "admin/manager_assign.html", {
+        "hostels_json": json.dumps(hostel_payload),
+        "managers_json": json.dumps(manager_payload),
+    })
 
 
 @login_required
@@ -699,6 +863,7 @@ def hostel_upload(request):
                 price=form.cleaned_data["price_single"] or 0, rating=form.cleaned_data["rating"] or 0,
                 amenities=[item.strip() for item in form.cleaned_data["amenities"].split(",") if item.strip()],
                 image_url=form.cleaned_data["image_url"] or "",
+                total_floors=max(1, int(request.POST.get("floor_count") or 1)),
             )
             room_types = [
                 ("Single", form.cleaned_data["price_single"], request.POST.get("room_available_single")),
@@ -706,10 +871,14 @@ def hostel_upload(request):
                 ("Triple", form.cleaned_data["price_triple"], request.POST.get("room_available_triple")),
                 ("Quadruple", form.cleaned_data["price_quadruple"], request.POST.get("room_available_quadruple")),
             ]
-            for index, (room_type, price, is_avail) in enumerate(room_types, start=1):
-                if price is None or price == 0: continue
-                capacity = 1 if room_type == "Single" else 2 if room_type == "Double" else 3 if room_type == "Triple" else 4
-                Room.objects.create(hostel=hostel, room_number=str(index), room_name=f"{room_type} Room", room_type=room_type, capacity=capacity, available_quantity=1, price_per_semester=price, is_available=is_avail == "on")
+            if request.POST.get("room_label_start") or request.POST.get("room_label_end"):
+                create_hostel_room_inventory(hostel, room_types, request.POST)
+            else:
+                for index, (room_type, price, is_avail) in enumerate(room_types, start=1):
+                    if price is None or price == 0: continue
+                    capacity = 1 if room_type == "Single" else 2 if room_type == "Double" else 3 if room_type == "Triple" else 4
+                    Room.objects.create(hostel=hostel, room_number=str(index), room_name=f"{room_type} Room", room_type=room_type, capacity=capacity, available_quantity=1, price_per_semester=price, is_available=is_avail == "on", status="Available" if is_avail == "on" else "Maintenance")
+            hostel.update_full_status()
             messages.success(request, "Hostel created successfully.")
             return redirect("hostel_upload")
     else:

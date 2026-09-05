@@ -290,7 +290,7 @@
                                 Delete Room
                             </button>
                             {% else %}
-                            <button onclick="openBookingModal(this)" class="btn-primary flex-1 text-sm py-2 px-4 flex items-center justify-center gap-1" data-room-type="{{ room.room_type }}" data-room-id="{{ room.id }}">
+                            <button onclick="handleBookRoom(this)" class="btn-primary flex-1 text-sm py-2 px-4 flex items-center justify-center gap-1" data-room-type="{{ room.room_type }}" data-room-id="{{ room.id }}" data-room-name="{{ room.room_name }}" data-price="{{ room.price_per_semester }}" data-capacity="{{ room.capacity }}">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
@@ -410,7 +410,11 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-[var(--muted)] mb-2">Number of Students</label>
-                            <input type="number" name="students" value="1" min="1" required class="input-field" id="students">
+                            <input type="number" name="students" value="1" min="1" required class="input-field" id="students" onchange="updateTotalPrice()">
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="bookTogether" name="book_together" class="w-4 h-4 text-[var(--accent)] bg-[var(--bg)] border-[var(--border)] rounded focus:ring-[var(--accent)]">
+                            <label for="bookTogether" class="text-sm text-[var(--muted)] cursor-pointer">Book Together (Split semester cost with roommates)</label>
                         </div>
                         <div id="total-price" class="text-sm text-[var(--muted)] hidden"></div>
                         <button type="submit" class="btn-primary w-full text-center flex items-center justify-center gap-2">
@@ -418,6 +422,12 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
                             Book Now
+                        </button>
+                        <button type="button" onclick="openBookTogetherModal()" class="btn-secondary w-full text-center flex items-center justify-center gap-2 mt-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.5v14.25l3-3m0 0l-3-3m3 3H9.75"></path>
+                            </svg>
+                            Book Together
                         </button>
                     </form>
                 {% else %}
@@ -431,6 +441,69 @@
                         </a>
                     </div>
                 {% endif %}
+            </div>
+            
+            <!-- Sign In to Book Popup Modal (for unauthenticated users) -->
+            <div id="signin-popup" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+                <div class="bg-[var(--card)] rounded-2xl p-8 max-w-md w-full mx-4 border border-[var(--border)]">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7v4h4m0 0v4m-4-4Lm9 9l-5 5"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-2">Sign In Required</h3>
+                        <p class="text-[var(--muted)] text-sm">Please sign in to book rooms and access all features.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <a href="/login/" class="btn-secondary flex-1 text-center py-2">Login</a>
+                        <a href="/signup/" class="btn-primary flex-1 text-center py-2">Sign Up</a>
+                    </div>
+                    <button onclick="closeSigninPopup()" class="w-full text-sm text-[var(--muted)] hover:text-[var(--fg)] mt-4 py-2">
+                        Continue as Guest (read-only)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Book Together Modal -->
+            <div id="book-together-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+                <div class="bg-[var(--card)] rounded-2xl p-8 max-w-2xl w-full mx-4 border border-[var(--border)] max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-['Space_Grotesk'] font-semibold">Book Together</h3>
+                        <button onclick="closeBookTogetherModal()" class="text-[var(--muted)] hover:text-[var(--fg)]">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-[var(--muted)] text-sm mb-4">Find roommates to share this room and split the semester cost. Enter the students who will be sharing:</p>
+                    <div id="student-list" class="space-y-3 mb-4">
+                        <div class="flex gap-2">
+                            <input type="text" placeholder="Student name" class="input-field flex-1 student-name">
+                            <input type="email" placeholder="Email" class="input-field flex-1 student-email">
+                        </div>
+                    </div>
+                    <button onclick="addStudentField()" class="btn-secondary text-sm py-2 px-4 flex items-center gap-1 mb-4">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Add Student
+                    </button>
+                    <div class="bg-[var(--bg-elevated)] rounded-xl p-4 mb-6">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-[var(--muted)]">Per Student Cost:</span>
+                            <span id="per-student-cost" class="font-medium text-[var(--accent)]">UGX 0</span>
+                        </div>
+                        <div class="flex justify-between text-lg font-bold">
+                            <span>Total Cost:</span>
+                            <span id="total-cost-together" class="text-[var(--accent)]">UGX 0</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="confirmBookTogether()" class="btn-primary flex-1 py-2">Create Group Booking</button>
+                        <button onclick="closeBookTogetherModal()" class="btn-secondary flex-1 py-2">Cancel</button>
+                    </div>
+                </div>
             </div>
             
             <!-- Roommate Finder Card -->
@@ -761,6 +834,150 @@ function updateTotalPrice() {
         totalPrice.classList.add('hidden');
     }
 }
+
+// Sign-in popup for unauthenticated users
+function openSigninPopup() {
+    const popup = document.getElementById('signin-popup');
+    if (popup) {
+        popup.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeSigninPopup() {
+    const popup = document.getElementById('signin-popup');
+    if (popup) {
+        popup.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+// Check auth and open booking modal for a specific room
+function handleBookRoom(btn) {
+    {% if not user.is_authenticated %}
+    openSigninPopup();
+    return;
+    {% endif %}
+    openBookingModal(btn);
+}
+
+// Open booking modal for a specific room (requires login)
+function openBookingModal(btn) {
+    if (!btn) return;
+    const roomId = btn.dataset.roomId;
+    const roomName = btn.dataset.roomName;
+    const price = btn.dataset.price;
+    const capacity = btn.dataset.capacity;
+    
+    // Update the booking form with the selected room
+    const roomInput = document.querySelector('input[name="room_id"]');
+    if (roomInput) roomInput.value = roomId;
+    
+    // Update price display
+    const priceEl = document.querySelector('.text-3xl.font-bold');
+    if (priceEl) {
+        priceEl.textContent = `UGX ${price}/semester`;
+    }
+    
+    // Scroll to booking form
+    const bookingForm = document.getElementById('bookingForm');
+    if (bookingForm) {
+        bookingForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    showToast('Room selected! Fill in your booking details below.', 'info');
+}
+
+// Book Together modal functions
+let togetherRoomId = null;
+let togetherPrice = 0;
+
+function openBookTogetherModal() {
+    {% if not user.is_authenticated %}
+    openSigninPopup();
+    return;
+    {% endif %}
+    const modal = document.getElementById('book-together-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('student-list').innerHTML = `
+            <div class="flex gap-2">
+                <input type="text" placeholder="Student name" class="input-field flex-1 student-name">
+                <input type="email" placeholder="Email" class="input-field flex-1 student-email">
+            </div>
+        `;
+        updateTogetherCost();
+    }
+}
+
+function closeBookTogetherModal() {
+    const modal = document.getElementById('book-together-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+function addStudentField() {
+    const container = document.getElementById('student-list');
+    const div = document.createElement('div');
+    div.className = 'flex gap-2';
+    div.innerHTML = `
+        <input type="text" placeholder="Student name" class="input-field flex-1 student-name">
+        <input type="email" placeholder="Email" class="input-field flex-1 student-email">
+    `;
+    container.appendChild(div);
+}
+
+function updateTogetherCost() {
+    const students = document.querySelectorAll('.student-name').length;
+    const pricePerSemester = parseFloat(document.querySelector('input[name="room_id"]') ? 
+        document.querySelector('.text-3xl.font-bold')?.textContent.match(/[\d,]+/)?.[0]?.replace(/,/g, '') || 0 : 0);
+    const totalCost = students * pricePerSemester;
+    const perStudent = pricePerSemester;
+    
+    const perStudentEl = document.getElementById('per-student-cost');
+    const totalCostEl = document.getElementById('total-cost-together');
+    if (perStudentEl) perStudentEl.textContent = `UGX ${perStudent.toLocaleString()}`;
+    if (totalCostEl) totalCostEl.textContent = `UGX ${totalCost.toLocaleString()}`;
+}
+
+function confirmBookTogether() {
+    const studentNames = document.querySelectorAll('.student-name');
+    const studentEmails = document.querySelectorAll('.student-email');
+    const students = [];
+    for (let i = 0; i < studentNames.length; i++) {
+        if (studentNames[i].value.trim()) {
+            students.push({
+                name: studentNames[i].value.trim(),
+                email: studentEmails[i]?.value.trim() || ''
+            });
+        }
+    }
+    
+    if (students.length === 0) {
+        showToast('Please add at least one student', 'error');
+        return;
+    }
+    
+    // Store group booking data and proceed
+    localStorage.setItem('group_booking_students', JSON.stringify(students));
+    showToast(`Group booking for ${students.length} students saved! Proceed with booking.`, 'success');
+    closeBookTogetherModal();
+}
+
+// Close popups when clicking outside
+document.addEventListener('click', function(e) {
+    const popup = document.getElementById('signin-popup');
+    const togetherModal = document.getElementById('book-together-modal');
+    if (popup && !popup.classList.contains('hidden') && e.target === popup) {
+        closeSigninPopup();
+    }
+    if (togetherModal && !togetherModal.classList.contains('hidden') && e.target === togetherModal) {
+        closeBookTogetherModal();
+    }
+});
 
 // Confirm booking function
 function confirmBooking() {

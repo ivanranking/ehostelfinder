@@ -339,6 +339,7 @@
 {% if user.profile.role == 'admin' %}
                          <a href="/admin/hostels/upload/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Upload Hostel</a>
                          <a href="/admin/managers/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Assign Managers</a>
+                         <a href="/admin/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Admin Panel</a>
                          {% elif user.profile.role == 'manager' %}
                          <a href="/manager/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">My Dashboard</a>
                          {% endif %}
@@ -385,6 +386,7 @@
 {% if user.profile.role == 'admin' %}
                              <a href="/admin/hostels/upload/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">Upload Hostel</a>
                              <a href="/admin/managers/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">Assign Managers</a>
+                             <a href="/admin/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">Admin Panel</a>
                              {% elif user.profile.role == 'manager' %}
                              <a href="/manager/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">My Dashboard</a>
                              {% endif %}
@@ -821,5 +823,6 @@
         }
     });
     </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -125,18 +125,7 @@ SUPABASE_STORAGE_BUCKET = os.getenv('SUPABASE_STORAGE_BUCKET', 'hostel-images')
 # Google OAuth
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
-
-# Payment Configuration (will be added later)
-STRIPE_PUBLIC_KEY = os.getenv('STRIPE_PUBLIC_KEY', '')
-STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
-STRIPE_RESTRICTED_KEY = os.getenv('STRIPE_RESTRICTED_KEY', '')
-STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
-STRIPE_CURRENCY = os.getenv('STRIPE_CURRENCY', 'USD')
-
-# Flutterwave Payment Configuration (will be added later)
-FLW_PUBLIC_KEY = os.getenv('FLW_PUBLIC_KEY', '')
-FLW_SECRET_KEY = os.getenv('FLW_SECRET_KEY', '')
-FLW_PRODUCTION = os.getenv('FLW_PRODUCTION', 'False') == 'True'
+GOOGLE_CALLBACK_URL = os.getenv('GOOGLE_CALLBACK_URL', '')
 
 
 # Password validation
@@ -171,7 +160,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 SITE_URL = os.getenv('SITE_URL', 'http://localhost:8000')
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.locmem.EmailBackend')
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'

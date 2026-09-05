@@ -1,80 +1,59 @@
+improve the hostel review section as well
 {% extends "base.html" %}
 
 {% block title %}My Chats - EHostelFinder{% endblock %}
 
-{% block nav_roommate %}active{% endblock %}
-
 {% block content %}
 <div class="min-h-[calc(100vh-80px)] px-4 py-12">
     <div class="max-w-4xl mx-auto">
-        <div class="flex items-center justify-between mb-8">
-            <div>
-                <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-2">My Chats</h1>
-                <p class="text-[var(--muted)]">Your conversations with potential roommates</p>
-            </div>
-            <a href="{% url 'roommate_finder' %}" class="btn-secondary flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                New Chat
-            </a>
-        </div>
+        <a href="/" class="inline-flex items-center gap-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors mb-8">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+        </a>
+
+        <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-8">My Chats</h1>
 
         {% if chat_rooms %}
-        <div class="space-y-3">
+        <div class="space-y-4">
             {% for room in chat_rooms %}
-            <a href="{% url 'chat_room_detail' room.id %}" class="block bg-[var(--card)] rounded-2xl border border-[var(--border)] p-5 hover:border-[var(--accent)] transition-all group">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
-                            </svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-semibold text-lg group-hover:text-[var(--accent)] transition-colors">
-                                {% for participant in room.participants.all %}
-                                    {% if participant.id != user.id %}
-                                        {% if participant.first_name or participant.last_name %}
-                                            {{ participant.first_name }} {{ participant.last_name }}
-                                        {% else %}
-                                            {{ participant.email }}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                            </h3>
-                            {% if room.hostel %}
-                            <p class="text-sm text-[var(--muted)]">{{ room.hostel.name }} • {{ room.hostel.city }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="text-right flex-shrink-0">
-                        {% with last_msg=room.messages.last %}
-                        {% if last_msg %}
-                        <p class="text-xs text-[var(--muted)] mb-1">{{ last_msg.created_at|timesince }} ago</p>
-                        <p class="text-sm text-[var(--muted)] truncate max-w-[200px]">{{ last_msg.content|truncatechars:40 }}</p>
+            <a href="{% url 'chat_room_detail' room.id %}" class="block bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 hover:border-[var(--accent)] transition-colors">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="font-semibold mb-1">
+                            {% for participant in room.participants.all %}
+                                {% if participant.id != user.id %}
+                                    {% if participant.first_name or participant.last_name %}{{ participant.first_name }} {{ participant.last_name }}{% else %}{{ participant.email }}{% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </h3>
+                        {% if room.hostel %}
+                        <p class="text-sm text-[var(--muted)]">{{ room.hostel.name }}</p>
                         {% endif %}
+                        {% if room.messages.all %}
+                        {% with last_msg=room.messages.last %}
+                        <p class="text-sm text-[var(--muted)] mt-2 truncate">{{ last_msg.content|truncatechars:50 }}</p>
                         {% endwith %}
+                        {% endif %}
                     </div>
+                    <svg class="w-5 h-5 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
                 </div>
             </a>
             {% endfor %}
         </div>
         {% else %}
-        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-12 text-center">
-            <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-[var(--accent)]/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-                <svg class="w-10 h-10 text-[var(--accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="bg-[var(--card)] rounded-3xl border border-[var(--border)] p-8 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.89 9.89 0 01-4-.838L3 21l2.05-3.05A7.962 7.962 0 0112 20c4.97 0 9-3.582 9-8V5a2 2 0 00-2-2H5a2 2 0 00-2 2v12z"/>
                 </svg>
             </div>
-            <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-3">No conversations yet</h2>
-            <p class="text-[var(--muted)] mb-8 max-w-md mx-auto">Connect with other students looking for roommates. Start chatting to find your perfect roommate match.</p>
-            <a href="{% url 'roommate_finder' %}" class="btn-primary inline-flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Find Roommates Now
-            </a>
+            <h2 class="text-2xl font-['Space_Grotesk'] font-bold mb-4">No chats yet</h2>
+            <p class="text-[var(--muted)] mb-6">Find roommates to start chatting!</p>
+            <a href="/roommate-finder/" class="btn-primary inline-block">Find Roommates</a>
         </div>
         {% endif %}
     </div>
@@ -85,7 +64,7 @@
         background: var(--accent);
         color: var(--bg);
         font-weight: 600;
-        padding: 14px 28px;
+        padding: 14px 24px;
         border-radius: 12px;
         transition: all 0.2s ease;
         border: none;
@@ -95,23 +74,6 @@
     }
     .btn-primary:hover {
         background: var(--accent-hover);
-        transform: translateY(-2px);
-    }
-    .btn-secondary {
-        background: var(--bg);
-        color: var(--fg);
-        font-weight: 500;
-        padding: 10px 20px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        transition: all 0.2s ease;
-        cursor: pointer;
-        text-decoration: none;
-    }
-    .btn-secondary:hover {
-        border-color: var(--accent);
-        color: var(--accent);
-        background: var(--card);
     }
 </style>
 {% endblock %}
