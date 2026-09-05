@@ -323,8 +323,10 @@ def login(request):
         user = authenticate(request, username=email, password=form.cleaned_data["password"])
         if user:
             auth_login(request, user)
+            if hasattr(user, 'profile') and user.profile.role == 'manager':
+                return redirect("manager_dashboard")
             if user.is_staff or (hasattr(user, 'profile') and user.profile.role == 'admin'):
-                return redirect("admin:index")
+                return redirect("admin_manager_assign")
             return redirect("home")
         messages.error(request, "Invalid email or password")
     else:
