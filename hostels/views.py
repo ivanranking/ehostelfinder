@@ -1,18 +1,23 @@
 from django.shortcuts import render, get_object_or_404, redirect
+from django.conf import settings
 from django.contrib.auth import logout
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import Avg, Q
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 import json, os, urllib.request, urllib.error, uuid
+from decimal import Decimal, InvalidOperation
+from urllib.parse import urlencode
 from .forms import UserRegistrationForm, UserLoginForm, ForgotPasswordForm, ResetPasswordForm, ProfileUpdateForm, HostelUploadForm
 from .models import Hostel, User, ContactMessage, Profile, Room, Booking, Review, Favorite, Message, Notification, Payment, RoomStatus, BookingStatus, RoomImage, HostelImage
 from .local_ai import get_local_ai_response
 from .email_utils import send_booking_receipt
+from . import stripe_service
 
 KAMPALA_AREA_UNIVERSITIES = ["Makerere University", "Makerere University Business School", "Kyambogo University", "Kampala International University", "Uganda Christian University", "Ndejje University", "Bugema University", "Cavendish University Uganda", "St. Lawrence University Uganda", "Mutesa I Royal University"]
 
@@ -113,24 +118,43 @@ def create_hostel_room_inventory(hostel, room_type_prices, request_post):
 
 def home(request):
     university = request.GET.get("university", "All Universities")
-    city = request.GET.get("city", "")
-    country = request.GET.get("country", "")
-    min_price = request.GET.get("min_price", "")
-    max_price = request.GET.get("max_price", "")
+    query = request.GET.get("q", "").strip()
+    city = request.GET.get("city", "").strip()
+    country = request.GET.get("country", "").strip()
+    min_price = request.GET.get("min_price", "").strip()
+    max_price = request.GET.get("max_price", "").strip()
     sort_by = request.GET.get("sort", "-created_at")
     page = request.GET.get("page", 1)
     valid_sorts = ["name", "-name", "price", "-price", "rating", "-rating", "created_at", "-created_at"]
     if sort_by not in valid_sorts: sort_by = "-created_at"
     hostels = Hostel.objects.all()
-    if university and university != "All Universities": hostels = hostels.filter(university=university)
+    if query:
+        hostels = hostels.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query) |
+            Q(university__icontains=query) |
+            Q(city__icontains=query) |
+            Q(country__icontains=query)
+        )
+    if university and university != "All Universities": hostels = hostels.filter(university__icontains=university)
     if city: hostels = hostels.filter(city__icontains=city)
     if country: hostels = hostels.filter(country__icontains=country)
-    if min_price:
-        try: hostels = hostels.filter(price__gte=float(min_price)).distinct()
-        except ValueError: pass
-    if max_price:
-        try: hostels = hostels.filter(price__lte=float(max_price)).distinct()
-        except ValueError: pass
+    try:
+        minimum = Decimal(min_price) if min_price else None
+        maximum = Decimal(max_price) if max_price else None
+        if minimum is not None or maximum is not None:
+            hostel_price_range = Q(price__isnull=False)
+            room_price_range = Q(rooms__price_per_semester__isnull=False)
+            if minimum is not None:
+                hostel_price_range &= Q(price__gte=minimum)
+                room_price_range &= Q(rooms__price_per_semester__gte=minimum)
+            if maximum is not None:
+                hostel_price_range &= Q(price__lte=maximum)
+                room_price_range &= Q(rooms__price_per_semester__lte=maximum)
+            hostels = hostels.filter(hostel_price_range | room_price_range).distinct()
+    except InvalidOperation:
+        min_price = ""
+        max_price = ""
     hostels = hostels.order_by(sort_by)
     paginator = Paginator(hostels, 12)
     try: page_obj = paginator.page(page)
@@ -156,9 +180,13 @@ def home(request):
     favorite_ids = []
     if request.user.is_authenticated:
         favorite_ids = list(Favorite.objects.filter(customer=request.user).values_list("hostel_id", flat=True))
+    filter_params = request.GET.copy()
+    filter_params.pop("page", None)
     return render(request, "home.html", {
         "hostels": hostel_list, "cities": cities_list, "countries": countries_list, "universities": universities,
-        "selected_city": city, "selected_country": country, "selected_university": university, "selected_sort": sort_by,
+        "query": query, "selected_city": city, "selected_country": country, "selected_university": university, "selected_sort": sort_by,
+        "filter_query": urlencode(filter_params),
+        "filtered_count": paginator.count,
         "total_hostels": Hostel.objects.count(), "total_universities": len(universities), "avg_rating": avg_rating,
         "total_cities": len(cities_list), "page_obj": page_obj, "favorite_ids": [str(fid) for fid in favorite_ids],
     })
@@ -437,7 +465,7 @@ def ai_chat(request):
         api_key = os.getenv("GOOGLE_GENERATIVE_API_KEY")
         if api_key:
             try:
-                prompt = f"You are a helpful hostel assistant for EHostelFinder. Question: {question}"
+                prompt = f"You are a helpful hostel assistant for Hostel. Question: {question}"
                 payload = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode("utf-8")
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
                 req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"}, method="POST")
@@ -742,6 +770,150 @@ def manager_checkins(request):
     return JsonResponse([{"id": str(b.id), "booking_reference": b.booking_reference, "customer_name": b.customer.get_full_name() or b.customer.email, "customer_email": b.customer.email, "room_number": b.room.room_number, "room_name": b.room.room_name, "check_in": b.check_in.isoformat(), "check_out": b.check_out.isoformat(), "students": b.students, "semesters": b.semesters, "total_price": str(b.total_price)} for b in bookings], safe=False)
 
 
+@require_http_methods(["GET"])
+def manager_occupancy(request):
+    """Return one sheet row per room with its active booking, if any."""
+    if not request.user.is_authenticated: return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, "profile", None)
+    if not profile or profile.role != "manager": return JsonResponse({"error": "Access denied"}, status=403)
+    hostel = profile.hostel
+    if not hostel: return JsonResponse({"error": "No hostel assigned"}, status=400)
+
+    active_statuses = ["Pending", "Confirmed", "Checked In"]
+    active_bookings = Booking.objects.filter(
+        hostel=hostel, booking_status__in=active_statuses
+    ).select_related("customer", "customer__profile", "room").order_by("-booked_at")
+    booking_by_room = {}
+    for booking in active_bookings:
+        booking_by_room.setdefault(booking.room_id, booking)
+
+    rows = []
+    for room in Room.objects.filter(hostel=hostel).order_by("floor", "room_number"):
+        booking = booking_by_room.get(room.id)
+        if booking:
+            occupancy_status = "Booked"
+        elif room.status == "Available" and room.is_available:
+            occupancy_status = "Available"
+        else:
+            occupancy_status = "Maintenance"
+
+        rows.append({
+            "room_id": str(room.id),
+            "room_number": room.room_number,
+            "room_name": room.room_name,
+            "room_type": room.room_type,
+            "floor": room.floor,
+            "capacity": room.capacity,
+            "occupancy_status": occupancy_status,
+            "room_status": room.status,
+            "available_quantity": room.available_quantity,
+            "booking": {
+                "id": str(booking.id),
+                "reference": booking.booking_reference,
+                "status": booking.booking_status,
+                "customer_name": booking.customer.get_full_name() or booking.customer.email,
+                "customer_email": booking.customer.email,
+                "customer_phone": getattr(getattr(booking.customer, "profile", None), "phone", "") or "",
+                "check_in": booking.check_in.isoformat(),
+                "check_out": booking.check_out.isoformat(),
+                "students": booking.students,
+                "semesters": booking.semesters,
+                "payment_status": booking.payment_status,
+                "total_price": str(booking.total_price),
+                "special_requests": booking.special_requests or "",
+            } if booking else None,
+        })
+    return JsonResponse(rows, safe=False)
+
+
+@require_http_methods(["POST"])
+def manager_add_occupancy(request):
+    """Create a booking from the manager's occupancy sheet."""
+    if not request.user.is_authenticated: return JsonResponse({"error": "Auth required"}, status=401)
+    profile = getattr(request.user, "profile", None)
+    if not profile or profile.role != "manager": return JsonResponse({"error": "Access denied"}, status=403)
+    hostel = profile.hostel
+    if not hostel: return JsonResponse({"error": "No hostel assigned"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+        room = get_object_or_404(Room, id=data.get("room_id"), hostel=hostel)
+        email = (data.get("email") or "").strip().lower()
+        first_name = (data.get("first_name") or "").strip()
+        last_name = (data.get("last_name") or "").strip()
+        if not email or not first_name:
+            return JsonResponse({"error": "First name and email are required"}, status=400)
+
+        from datetime import date
+        check_in = date.fromisoformat(data.get("check_in", ""))
+        check_out = date.fromisoformat(data.get("check_out", ""))
+        if check_out <= check_in:
+            return JsonResponse({"error": "Check-out must be after check-in"}, status=400)
+        students = max(1, int(data.get("students") or 1))
+        if students > room.capacity:
+            return JsonResponse({"error": f"This room has capacity for {room.capacity} student(s)"}, status=400)
+
+        booking_status = data.get("booking_status") or "Confirmed"
+        if booking_status not in dict(BookingStatus.choices):
+            return JsonResponse({"error": "Invalid booking status"}, status=400)
+        active_statuses = ["Pending", "Confirmed", "Checked In"]
+        if Booking.objects.filter(room=room, booking_status__in=active_statuses).exists():
+            return JsonResponse({"error": "This room already has an active booking"}, status=409)
+
+        with transaction.atomic():
+            customer, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "id": str(uuid.uuid4()),
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "is_email_verified": True,
+                },
+            )
+            if not created:
+                customer.first_name = first_name or customer.first_name
+                customer.last_name = last_name or customer.last_name
+                customer.save(update_fields=["first_name", "last_name", "updated_at"])
+            customer_profile, _ = Profile.objects.get_or_create(
+                user=customer,
+                defaults={
+                    "full_name": f"{customer.first_name} {customer.last_name}".strip(),
+                    "email": customer.email,
+                    "role": "customer",
+                },
+            )
+            customer_profile.phone = (data.get("phone") or "").strip()
+            customer_profile.email = customer.email
+            customer_profile.full_name = f"{customer.first_name} {customer.last_name}".strip()
+            customer_profile.save(update_fields=["phone", "email", "full_name", "updated_at"])
+
+            booking = Booking.objects.create(
+                hostel=hostel,
+                room=room,
+                customer=customer,
+                check_in=check_in,
+                check_out=check_out,
+                students=students,
+                semesters=max(1, int(data.get("semesters") or 1)),
+                total_price=data.get("total_price") or room.price_per_semester * students,
+                booking_status=booking_status,
+                payment_status=data.get("payment_status") or "Pending",
+                special_requests=data.get("special_requests") or "",
+            )
+
+            if booking_status == "Checked In":
+                room.status = RoomStatus.OCCUPIED
+                room.is_available = False
+                room.save(update_fields=["status", "is_available", "updated_at"])
+                hostel.update_full_status()
+
+        return JsonResponse({"success": True, "booking_id": str(booking.id), "booking_reference": booking.booking_reference})
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Enter valid booking dates and numbers"}, status=400)
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
+
+
 @require_http_methods(["POST"])
 def manager_checkout(request, booking_id):
     if not request.user.is_authenticated: return JsonResponse({"error": "Auth required"}, status=401)
@@ -867,6 +1039,15 @@ def hostel_upload(request):
                 image_url=form.cleaned_data["image_url"] or "",
                 total_floors=max(1, int(request.POST.get("floor_count") or 1)),
             )
+            image_urls = []
+            for image_url in [form.cleaned_data["image_url"], *form.cleaned_data["image_urls"].splitlines()]:
+                image_url = str(image_url or "").strip()
+                if image_url and image_url not in image_urls:
+                    image_urls.append(image_url)
+            HostelImage.objects.bulk_create([
+                HostelImage(hostel=hostel, image_url=image_url, is_cover=index == 0)
+                for index, image_url in enumerate(image_urls)
+            ])
             room_types = [
                 ("Single", form.cleaned_data["price_single"], request.POST.get("room_available_single")),
                 ("Double", form.cleaned_data["price_double"], request.POST.get("room_available_double")),
@@ -1161,20 +1342,83 @@ def flutterwave_webhook(request):
 
 
 @csrf_exempt
-@require_http_methods(["POST"])
-def stripe_webhook(request):
-    return JsonResponse({"status": "received"})
+@login_required
+def create_stripe_checkout_session(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+    try:
+        data = json.loads(request.body)
+        booking_id = data.get("booking_id")
+        if not booking_id:
+            return JsonResponse({"error": "booking_id is required"}, status=400)
+        booking = get_object_or_404(Booking, id=booking_id, customer=request.user)
+        success_url = request.build_absolute_uri(f"/payments/success/?booking_id={booking.id}")
+        cancel_url = request.build_absolute_uri("/my-bookings/")
+        usd_amount = round(float(booking.total_price) / 2500, 2)
+        result = stripe_service.create_checkout_session(
+            amount=usd_amount,
+            currency="usd",
+            booking_id=str(booking.id),
+            customer_email=request.user.email,
+            success_url=success_url,
+            cancel_url=cancel_url,
+        )
+        return JsonResponse({"checkout_url": result["checkout_url"], "session_id": result["session_id"]})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
-def create_stripe_checkout_session(request):
-    return JsonResponse({"error": "Stripe not configured"}, status=400)
+def stripe_webhook(request):
+    if not settings.STRIPE_WEBHOOK_SECRET:
+        return JsonResponse({"error": "Stripe not configured"}, status=400)
+    payload = request.body
+    sig_header = request.headers.get("Stripe-Signature", "")
+    event_data = stripe_service.handle_webhook_event(payload, sig_header)
+    if event_data.get("error"):
+        return JsonResponse({"error": event_data["errMsg"]}, status=400)
+    event_type = event_data.get("event_type")
+    if event_type == "checkout.session.completed":
+        checkout_session = event_data.get("data")
+        booking_id = checkout_session.get("metadata", {}).get("booking_id")
+        payment_intent = checkout_session.get("payment_intent")
+        if booking_id:
+            booking = Booking.objects.filter(id=booking_id).first()
+            if booking:
+                payment, created = Payment.objects.get_or_create(
+                    booking=booking,
+                    defaults={
+                        "amount": booking.total_price,
+                        "payment_method": "Credit Card",
+                        "payment_status": "Paid",
+                        "transaction_reference": checkout_session.get("id", ""),
+                        "stripe_payment_intent_id": payment_intent,
+                        "paid_at": timezone.now(),
+                    },
+                )
+                if not created and payment.payment_status != "Paid":
+                    payment.payment_status = "Paid"
+                    payment.stripe_payment_intent_id = payment_intent
+                    payment.paid_at = timezone.now()
+                    payment.save(update_fields=["payment_status", "stripe_payment_intent_id", "paid_at"])
+                booking.payment_status = "Paid"
+                booking.booking_status = "Confirmed"
+                booking.save(update_fields=["payment_status", "booking_status"])
+                try:
+                    send_booking_receipt(booking, request)
+                except Exception:
+                    pass
+    return JsonResponse({"status": "received"})
 
 
 @login_required
 def payment_success(request):
-    return render(request, "payment_success.html")
+    booking_id = request.GET.get("booking_id")
+    booking = None
+    if booking_id:
+        booking = Booking.objects.filter(id=booking_id, customer=request.user).first()
+    return render(request, "payment_success.html", {"booking": booking})
 
 
 # ========== ROOMMATE FINDER ==========

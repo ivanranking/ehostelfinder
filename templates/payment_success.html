@@ -1,19 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}Payment Successful - EHostelFinder{% endblock %}
+{% block title %}Payment Successful - Hostel{% endblock %}
 
 {% block content %}
 <div class="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-12">
-    <div class="text-center max-w-md">
-        <div class="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
-            <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="text-center max-w-lg w-full">
+        <div class="w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6">
+            <svg class="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.616-4.584A9 9 0 118.384 2.416z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/>
             </svg>
         </div>
         <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-4">Payment Successful!</h1>
-        <p class="text-[var(--muted)] mb-6">Your payment has been processed successfully. Your booking is now confirmed.</p>
-        {% if booking_id %}
-        <p class="text-sm text-[var(--muted)] mb-6">Booking ID: <strong>{{ booking_id }}</strong></p>
+        <p class="text-[var(--muted)] mb-6">Your payment has been processed successfully via Stripe. Your booking is now confirmed.</p>
+        {% if booking %}
+        <div class="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] text-left mb-6">
+            <h3 class="font-['Space_Grotesk'] font-semibold mb-2 text-[var(--accent)]">Booking Details</h3>
+            <div class="space-y-1 text-sm">
+                <p><span class="text-[var(--muted)]">Hostel:</span> <strong>{{ booking.hostel.name }}</strong></p>
+                <p><span class="text-[var(--muted)]">Booking Ref:</span> <strong>{{ booking.booking_reference }}</strong></p>
+                <p><span class="text-[var(--muted)]">Total Amount:</span> <strong>UGX {{ booking.total_price|floatformat:0 }}</strong></p>
+                <p><span class="text-[var(--muted)]">Check-in:</span> {{ booking.check_in }} to {{ booking.check_out }}</p>
+                <p><span class="text-[var(--muted)]">Semesters:</span> {{ booking.semesters }}</p>
+            </div>
+        </div>
         {% endif %}
         <a href="{% url 'my_bookings' %}" class="btn-primary inline-block">View My Bookings</a>
     </div>

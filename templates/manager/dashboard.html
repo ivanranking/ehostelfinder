@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Manager Dashboard - EHostelFinder{% endblock %}
+{% block title %}Manager Dashboard - Hostel{% endblock %}
 {% block nav_home %}active{% endblock %}
 
 {% block content %}
@@ -63,6 +63,7 @@
         <nav class="flex gap-6">
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)] active-tab" data-tab="bookings">All Bookings</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="checkins">Checked In Students</button>
+            <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="occupancy">Occupancy Sheet</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="rooms">Room Management</button>
             <button class="tab-btn py-3 px-1 text-sm font-medium border-b-2 border-transparent text-[var(--muted)] hover:text-[var(--fg)]" data-tab="hostel-info">Hostel Info</button>
         </nav>
@@ -112,6 +113,38 @@
                     <tr>
                         <td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">Loading check-ins...</td>
                     </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Occupancy Sheet Tab -->
+    <div id="occupancy-tab" class="tab-content hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-xl font-semibold">Room occupancy sheet</h2>
+                <p class="text-sm text-[var(--muted)]">Every room appears once, with the current occupant and booking details where applicable.</p>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" id="add-occupancy-btn" class="btn-primary">Add booked student</button>
+                <button type="button" id="refresh-occupancy-btn" class="btn-secondary">Refresh sheet</button>
+            </div>
+        </div>
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-x-auto">
+            <table class="w-full min-w-[1100px]">
+                <thead class="bg-[var(--bg-elevated)]">
+                    <tr>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Room</th>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Type / Capacity</th>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Availability</th>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Booked By</th>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Contact</th>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Stay</th>
+                        <th class="px-4 py-4 text-left text-xs font-medium text-[var(--muted)] uppercase">Booking / Payment</th>
+                    </tr>
+                </thead>
+                <tbody id="occupancy-table" class="divide-y divide-[var(--border)]">
+                    <tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">Select the sheet to load room occupancy.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -244,6 +277,37 @@
     </div>
 </div>
 
+<!-- Add Booking Modal -->
+<div id="occupancy-modal" class="fixed inset-0 z-[60] bg-black/50 hidden items-center justify-center p-4">
+    <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-['Space_Grotesk'] font-semibold">Add booked student</h3>
+            <button type="button" id="close-occupancy-btn" class="text-[var(--muted)] hover:text-[var(--fg)]">Close</button>
+        </div>
+        <form id="occupancy-form" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-[var(--muted)] mb-2">Available room</label>
+                <select name="room_id" id="occupancy-room" required class="input-field"></select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">First name</label><input name="first_name" required class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Last name</label><input name="last_name" class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Email</label><input type="email" name="email" required class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Phone</label><input name="phone" class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-in date</label><input type="date" name="check_in" required class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Check-out date</label><input type="date" name="check_out" required class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Students</label><input type="number" name="students" value="1" min="1" required class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Semesters</label><input type="number" name="semesters" value="1" min="1" required class="input-field"></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Booking status</label><select name="booking_status" class="input-field"><option value="Confirmed">Booked / Confirmed</option><option value="Checked In">Checked In</option><option value="Pending">Pending</option></select></div>
+                <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Payment status</label><select name="payment_status" class="input-field"><option value="Pending">Pending</option><option value="Paid">Paid</option></select></div>
+            </div>
+            <div><label class="block text-sm font-medium text-[var(--muted)] mb-2">Special requests</label><textarea name="special_requests" rows="2" class="input-field"></textarea></div>
+            <div class="flex gap-3 pt-2"><button type="button" id="cancel-occupancy-btn" class="btn-secondary flex-1">Cancel</button><button type="submit" class="btn-primary flex-1">Save booking</button></div>
+        </form>
+    </div>
+</div>
+
 <!-- Room Modal -->
 <div id="room-modal" class="fixed inset-0 z-[60] bg-black/50 hidden items-center justify-center p-4">
     <div class="bg-[var(--card)] rounded-2xl border border-[var(--border)] p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -340,6 +404,48 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active-tab', 'border-b-2', 'border-[var(--accent)]');
             document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
             document.getElementById(this.dataset.tab + '-tab').classList.remove('hidden');
+            if (this.dataset.tab === 'occupancy') loadOccupancySheet();
+        });
+    });
+
+    document.getElementById('refresh-occupancy-btn').addEventListener('click', loadOccupancySheet);
+    document.getElementById('add-occupancy-btn').addEventListener('click', function() {
+        const roomSelect = document.getElementById('occupancy-room');
+        if (!roomSelect.options.length) {
+            showToast('Refresh the occupancy sheet first.', 'error');
+            return;
+        }
+        document.getElementById('occupancy-modal').classList.remove('hidden');
+        document.getElementById('occupancy-modal').classList.add('flex');
+    });
+    ['close-occupancy-btn', 'cancel-occupancy-btn'].forEach(id => {
+        document.getElementById(id).addEventListener('click', function() {
+            document.getElementById('occupancy-modal').classList.add('hidden');
+            document.getElementById('occupancy-modal').classList.remove('flex');
+        });
+    });
+
+    document.getElementById('occupancy-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        const payload = Object.fromEntries(formData.entries());
+        fetch('/manager/occupancy/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify(payload)
+        }).then(response => response.json()).then(data => {
+            if (!data.success) {
+                showToast(data.error || 'Could not add booking', 'error');
+                return;
+            }
+            showToast(`Booking ${data.booking_reference} added`, 'success');
+            document.getElementById('occupancy-form').reset();
+            document.getElementById('occupancy-modal').classList.add('hidden');
+            document.getElementById('occupancy-modal').classList.remove('flex');
+            loadOccupancySheet();
         });
     });
 
@@ -417,6 +523,44 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!html) html = '<tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">No checked-in students</td></tr>';
             document.getElementById('checkins-table').innerHTML = html;
         });
+
+    function loadOccupancySheet() {
+        const table = document.getElementById('occupancy-table');
+        table.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">Loading occupancy sheet...</td></tr>';
+        fetch('/manager/occupancy/')
+            .then(r => r.json())
+            .then(data => {
+                const roomSelect = document.getElementById('occupancy-room');
+                roomSelect.innerHTML = data
+                    .filter(row => row.occupancy_status === 'Available')
+                    .map(row => `<option value="${row.room_id}">${row.room_number} - ${row.room_name} (capacity ${row.capacity})</option>`)
+                    .join('');
+                let html = '';
+                data.forEach(row => {
+                    const booking = row.booking;
+                    const statusClass = row.occupancy_status === 'Available'
+                        ? 'text-emerald-500'
+                        : row.occupancy_status === 'Booked' ? 'text-amber-500' : 'text-red-500';
+                    const bookingDetails = booking
+                        ? `<p class="font-medium">${booking.reference}</p><p class="text-xs text-[var(--muted)]">${booking.status} · ${booking.payment_status}</p><p class="text-xs text-[var(--muted)]">${booking.students} student(s) · ${booking.total_price}</p>`
+                        : '<span class="text-[var(--muted)]">No active booking</span>';
+                    html += `
+                        <tr class="hover:bg-[var(--bg-elevated)] align-top">
+                            <td class="px-4 py-4"><p class="font-medium">${row.room_number}</p><p class="text-xs text-[var(--muted)]">${row.room_name}${row.floor ? ` · Floor ${row.floor}` : ''}</p></td>
+                            <td class="px-4 py-4">${row.room_type}<p class="text-xs text-[var(--muted)]">Capacity ${row.capacity} · Qty ${row.available_quantity}</p></td>
+                            <td class="px-4 py-4"><span class="font-semibold ${statusClass}">${row.occupancy_status}</span><p class="text-xs text-[var(--muted)]">${row.room_status}</p></td>
+                            <td class="px-4 py-4">${booking ? `<p class="font-medium">${booking.customer_name}</p><p class="text-xs text-[var(--muted)]">${booking.special_requests || 'No special requests'}</p>` : '<span class="text-[var(--muted)]">-</span>'}</td>
+                            <td class="px-4 py-4">${booking ? `<p>${booking.customer_email}</p><p class="text-xs text-[var(--muted)]">${booking.customer_phone || 'No phone recorded'}</p>` : '<span class="text-[var(--muted)]">-</span>'}</td>
+                            <td class="px-4 py-4">${booking ? `<p>${booking.check_in}</p><p class="text-xs text-[var(--muted)]">to ${booking.check_out}</p>` : '<span class="text-[var(--muted)]">-</span>'}</td>
+                            <td class="px-4 py-4">${bookingDetails}</td>
+                        </tr>`;
+                });
+                table.innerHTML = html || '<tr><td colspan="7" class="px-6 py-8 text-center text-[var(--muted)]">No rooms found</td></tr>';
+            })
+            .catch(() => {
+                table.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-red-500">Could not load the occupancy sheet.</td></tr>';
+            });
+    }
 
     // Load rooms
     fetch('/manager/rooms/')

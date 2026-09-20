@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ hostel.name }} - EHostelFinder{% endblock %}
+{% block title %}{{ hostel.name }} - Hostel{% endblock %}
 
 {% block nav_home %}active{% endblock %}
 
@@ -29,6 +29,15 @@
                     </div>
                     {% endif %}
                 </div>
+                {% if hostel.images|length > 1 %}
+                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 p-3 bg-[var(--bg-elevated)]">
+                    {% for img in hostel.images %}
+                    <button type="button" onclick="openLightbox({{ forloop.counter0 }})" class="relative aspect-square overflow-hidden rounded-lg border border-[var(--border)] hover:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                        <img src="{{ img.url }}" alt="{{ hostel.name }} image {{ forloop.counter }}" class="w-full h-full object-cover" loading="lazy">
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 {% elif hostel.cover_image %}
                 <img src="{{ hostel.cover_image }}" alt="{{ hostel.name }}" class="w-full h-96 object-cover cursor-pointer" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\"w-full h-96 bg-[var(--bg-elevated)] flex items-center justify-center\"><span class=\"text-[var(--muted)]\">Image not available</span></div>';">
                 {% elif hostel.image_url %}

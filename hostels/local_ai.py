@@ -19,7 +19,7 @@ HOSTEL_RESPONSES = {
         "Check individual hostel listings for specific amenities!"
     ],
     "booking": [
-        "Booking process on EHostelFinder:",
+        "Booking process on Hostel:",
         "1. Browse and filter hostels by university",
         "2. View detailed information and reviews",
         "3. Check availability and pricing",
@@ -59,7 +59,7 @@ HOSTEL_RESPONSES = {
         "- Secure key card access",
         "- Emergency contact numbers available",
         "- Student ID verification required",
-        "EHostelFinder verifies all listed properties!"
+        "Hostel verifies all listed properties!"
     ],
     "price": [
         "Room Pricing Information:",
@@ -112,7 +112,7 @@ def get_hf_ai_response(question: str, context: str = None) -> str:
         return get_local_ai_response(question)
     
     try:
-        system_prompt = "You are a helpful hostel booking assistant for EHostelFinder in Uganda. Answer concisely about: room types (Single, Double, Triple, Quadruple, Dormitory), pricing, amenities, booking process, check-in, safety, cancellations, and roommate matching. Keep answers brief and helpful."
+        system_prompt = "You are a helpful hostel booking assistant for Hostel in Uganda. Answer concisely about: room types (Single, Double, Triple, Quadruple, Dormitory), pricing, amenities, booking process, check-in, safety, cancellations, and roommate matching. Keep answers brief and helpful."
         
         payload = {
             "inputs": f"<s>[INST] <<SYS>> {system_prompt} <</SYS>> {question} [/INST]</s>",

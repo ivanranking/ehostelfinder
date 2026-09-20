@@ -24,7 +24,7 @@ def send_email_confirmation(user, request=None):
     
     confirmation_url = f"{site_url.rstrip('/')}/confirm-email/{token}/"
     
-    subject = "Confirm your email for EHostelFinder"
+    subject = "Confirm your email for Hostel"
     message = render_to_string('emails/confirm_email.html', {
         'user': user,
         'confirmation_url': confirmation_url,
@@ -44,7 +44,7 @@ def send_email_confirmation(user, request=None):
 
 
 def send_welcome_email(user):
-    subject = "Welcome to EHostelFinder!"
+    subject = "Welcome to Hostel!"
     message = render_to_string('emails/welcome.html', {
         'user': user,
     })
@@ -100,7 +100,7 @@ def send_password_reset_email(user, request):
     
     reset_url = f"{site_url.rstrip('/')}/reset-password/{token}/"
     
-    subject = "Reset your EHostelFinder password"
+    subject = "Reset your Hostel password"
     message = render_to_string('emails/password_reset.html', {
         'user': user,
         'reset_url': reset_url,

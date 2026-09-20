@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Contact Us - EHostelFinder{% endblock %}
+{% block title %}Contact Us - Hostel{% endblock %}
 
 {% block nav_contact %}active{% endblock %}
 
@@ -9,14 +9,14 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
     <!-- Header -->
-    <div class="text-center mb-16 opacity-0 animate-fade-in-up">
+    <div class="text-center mb-16 animate-fade-in-up">
         <h1 class="text-4xl sm:text-5xl font-['Space_Grotesk'] font-bold mb-6">Contact Us</h1>
         <p class="text-[var(--muted)] text-lg max-w-2xl mx-auto">Have questions about finding accommodation? Need help with your booking? We're here to assist you every step of the way.</p>
     </div>
 
     <div class="grid lg:grid-cols-2 gap-12">
         <!-- Contact Form -->
-        <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-1">
+        <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] animate-fade-in-up stagger-1">
             <h2 class="text-2xl font-['Space_Grotesk'] font-semibold mb-6">Send us a message</h2>
             <form id="contact-form">
                 {% csrf_token %}
@@ -47,7 +47,7 @@
         <!-- Contact Information & FAQ -->
         <div class="space-y-6">
             <!-- Contact Info -->
-            <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-2">
+            <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] animate-fade-in-up stagger-2">
                 <h2 class="text-2xl font-['Space_Grotesk'] font-semibold mb-6">Get in Touch</h2>
                 <div class="space-y-6">
                     <div class="flex items-start gap-4">
@@ -91,7 +91,7 @@
             </div>
 
             <!-- FAQ -->
-            <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-3">
+            <div class="bg-[var(--card)] rounded-2xl p-8 border border-[var(--border)] animate-fade-in-up stagger-3">
                 <h2 class="text-2xl font-['Space_Grotesk'] font-semibold mb-6">Frequently Asked Questions</h2>
                 <div class="space-y-4">
                     <div>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Find Student Hostels - EHostelFinder{% endblock %}
+{% block title %}Find Student Hostels - Hostel{% endblock %}
 
 {% block nav_home %}active{% endblock %}
 
@@ -12,17 +12,18 @@
     
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
         <div class="grid lg:grid-cols-2 gap-12 items-center">
-            <div class="opacity-0 animate-fade-in-up">
+            <div class="animate-fade-in-up">
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 mb-6">
                     <span class="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse"></span>
                     <span class="text-sm font-medium text-[var(--accent)]">Trusted by 50,000+ Students</span>
                 </div>
-                <h1 class="text-5xl sm:text-6xl lg:text-7xl font-['Space_Grotesk'] font-bold leading-tight mb-6">
-                    Find Your
-                    <span class="block text-[var(--accent)]">Perfect Hostel</span>
-                    <span class="text-[var(--muted)]">Near Campus</span>
-                </h1>
-                <p class="text-xl text-[var(--muted)] mb-8 max-w-lg leading-relaxed">
+                 <h1 class="text-5xl sm:text-6xl lg:text-7xl font-['Space_Grotesk'] font-bold leading-tight mb-6">
+                     Find Your
+                     <span class="block text-[var(--accent)]">Perfect Hostel</span>
+                     <span class="text-[var(--muted)]">Near Campus</span>
+                 </h1>
+                 <p class="text-xl text-[var(--accent)] font-medium mb-4">Your place, your people.</p>
+                 <p class="text-xl text-[var(--muted)] mb-8 max-w-lg leading-relaxed">
                     Discover safe, comfortable, and affordable student accommodation near the world's top universities. 
                     Verified listings, transparent pricing, no hidden fees.
                 </p>
@@ -30,6 +31,12 @@
 <!-- Search Box -->
                 <div class="bg-[var(--card)] rounded-2xl p-2 border border-[var(--border)] mb-8 max-w-2xl">
                     <form action="/" method="get" class="space-y-3">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="flex-1 sm:col-span-2">
+                                <label class="text-xs text-[var(--muted)] mb-2 block">Search hostels</label>
+                                <input type="search" name="q" value="{{ query }}" placeholder="Name, university, city, or country" class="w-full bg-transparent border border-[var(--border)] outline-none text-[var(--fg)] py-3 rounded-lg px-3">
+                            </div>
+                        </div>
                         <div class="flex flex-col sm:flex-row gap-3">
                             <div class="flex-1">
                                 <label class="text-xs text-[var(--muted)] mb-2 block">University</label>
@@ -85,6 +92,18 @@
                                 Search Hostels
                             </button>
                         </div>
+                        {% if query or selected_city or selected_country or selected_university != 'All Universities' or request.GET.min_price or request.GET.max_price %}
+                        <div class="flex flex-wrap items-center gap-2 pt-2 text-sm text-[var(--muted)]">
+                            <span>Showing results for:</span>
+                            {% if query %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">"{{ query }}"</span>{% endif %}
+                            {% if selected_university != 'All Universities' %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_university }}</span>{% endif %}
+                            {% if selected_city %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_city }}</span>{% endif %}
+                            {% if selected_country %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_country }}</span>{% endif %}
+                            {% if request.GET.min_price %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">From {{ request.GET.min_price }} UGX</span>{% endif %}
+                            {% if request.GET.max_price %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">Up to {{ request.GET.max_price }} UGX</span>{% endif %}
+                            <a href="/" class="text-[var(--accent)] hover:underline">Clear filters</a>
+                        </div>
+                        {% endif %}
                     </form>
                 </div>
                 
@@ -110,7 +129,7 @@
                 </div>
             </div>
             
-            <div class="relative opacity-0 animate-fade-in-up stagger-1">
+            <div class="relative animate-fade-in-up stagger-1">
                 <div class="relative">
                     <div class="absolute -inset-4 bg-gradient-to-r from-[var(--accent)] to-emerald-500 rounded-3xl opacity-20 blur-xl"></div>
                     <div class="relative bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden">
@@ -134,13 +153,16 @@
 <section class="py-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 {% if hostels %}
+    {% if query or selected_city or selected_country or selected_university != 'All Universities' or request.GET.min_price or request.GET.max_price %}
+    <p class="text-sm text-[var(--muted)] mb-6">{{ filtered_count }} hostel{{ filtered_count|pluralize }} match your search.</p>
+    {% endif %}
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for hostel in hostels %}
             <div class="card-hover bg-[var(--card)] rounded-2xl border border-[var(--border)] overflow-hidden relative">
                 <a href="{% url 'hostel_detail' hostel.id %}">
                     <div style="aspect-ratio: 4/3; overflow: hidden;">
                         {% if hostel.image_url %}
-                        <img src="{{ hostel.image_url }}" alt="{{ hostel.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.parentElement.innerHTML='<div style=\"width:100%;height:100%;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;\"><span class=\"text-[var(--muted)]\">No image</span></div>'">
+                        <img src="{{ hostel.image_url }}" alt="{{ hostel.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none';">
                         {% else %}
                         <div style="width: 100%; height: 100%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center;">
                             <span class="text-[var(--muted)]">No image</span>
@@ -185,19 +207,19 @@
         {% if page_obj.paginator.num_pages > 1 %}
         <div class="flex items-center justify-center gap-2 mt-12">
             {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if selected_university %}&university={{ selected_university }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" class="px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm hover:border-[var(--accent)] transition-colors">
+            <a href="?page={{ page_obj.previous_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}" class="px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm hover:border-[var(--accent)] transition-colors">
                 Previous
             </a>
             {% endif %}
             
             {% for num in page_obj.paginator.page_range %}
-            <a href="?page={{ num }}{% if selected_university %}&university={{ selected_university }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" class="px-4 py-2 rounded-lg text-sm transition-colors {% if num == page_obj.number %}bg-[var(--accent)] text-[var(--bg)] font-semibold{% else %}bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]{% endif %}">
+            <a href="?page={{ num }}{% if filter_query %}&{{ filter_query }}{% endif %}" class="px-4 py-2 rounded-lg text-sm transition-colors {% if num == page_obj.number %}bg-[var(--accent)] text-[var(--bg)] font-semibold{% else %}bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)]{% endif %}">
                 {{ num }}
             </a>
             {% endfor %}
             
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if selected_university %}&university={{ selected_university }}{% endif %}{% if selected_city %}&city={{ selected_city }}{% endif %}{% if selected_country %}&country={{ selected_country }}{% endif %}{% if request.GET.min_price %}&min_price={{ request.GET.min_price }}{% endif %}{% if request.GET.max_price %}&max_price={{ request.GET.max_price }}{% endif %}{% if selected_sort %}&sort={{ selected_sort }}{% endif %}" class="px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm hover:border-[var(--accent)] transition-colors">
+            <a href="?page={{ page_obj.next_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}" class="px-4 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm hover:border-[var(--accent)] transition-colors">
                 Next
             </a>
             {% endif %}
@@ -222,19 +244,19 @@
 <section class="py-20 border-y border-[var(--border)]">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div class="text-center opacity-0 animate-fade-in stagger-1">
+            <div class="text-center animate-fade-in stagger-1">
                 <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">{{ total_hostels }}+</div>
                 <div class="text-[var(--muted)]">Verified Hostels</div>
             </div>
-            <div class="text-center opacity-0 animate-fade-in stagger-2">
+            <div class="text-center animate-fade-in stagger-2">
                 <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">{{ total_universities }}+</div>
                 <div class="text-[var(--muted)]">Partner Universities</div>
             </div>
-            <div class="text-center opacity-0 animate-fade-in stagger-3">
+            <div class="text-center animate-fade-in stagger-3">
                 <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">{{ avg_rating }}</div>
                 <div class="text-[var(--muted)]">Average Rating</div>
             </div>
-            <div class="text-center opacity-0 animate-fade-in stagger-4">
+            <div class="text-center animate-fade-in stagger-4">
                 <div class="text-4xl font-bold font-['Space_Grotesk'] text-[var(--accent)] mb-2">{{ total_cities }}</div>
                 <div class="text-[var(--muted)]">Cities Covered</div>
             </div>
@@ -244,12 +266,12 @@
 
 <section class="py-20 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-emerald-500/5">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div class="opacity-0 animate-fade-in-up">
+        <div class="animate-fade-in-up">
             <h2 class="text-3xl sm:text-4xl font-['Space_Grotesk'] font-bold mb-6">
                 Ready to Find Your Home Away From Home?
             </h2>
             <p class="text-[var(--muted)] text-lg mb-8 max-w-2xl mx-auto">
-                Join thousands of students who found their perfect accommodation through EHostelFinder. 
+                Join thousands of students who found their perfect accommodation through Hostel. 
                 Start your search today – it's completely free!
             </p>
 <div class="flex flex-col sm:flex-row gap-4 justify-center">

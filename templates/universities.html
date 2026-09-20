@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Partner Universities - EHostelFinder{% endblock %}
+{% block title %}Partner Universities - Hostel{% endblock %}
 
 {% block nav_universities %}active{% endblock %}
 
@@ -8,7 +8,7 @@
 <div class="bg-[var(--border)] h-px my-6"></div>
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-    <div class="text-center mb-16 opacity-0 animate-fade-in-up">
+    <div class="text-center mb-16 animate-fade-in-up">
         <h1 class="text-4xl sm:text-5xl font-['Space_Grotesk'] font-bold mb-6">Partner Universities</h1>
         <p class="text-[var(--muted)] text-lg max-w-2xl mx-auto">
             We work with top universities around Kampala to provide verified, safe, and affordable accommodation options for students.
@@ -19,7 +19,7 @@
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for uni in universities %}
         <a href="{% url 'home' %}?university={{ uni.name|urlencode }}" 
-           class="card-hover bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] opacity-0 animate-fade-in-up stagger-{{ forloop.counter }}">
+           class="card-hover bg-[var(--card)] rounded-2xl p-6 border border-[var(--border)] animate-fade-in-up stagger-{{ forloop.counter }}">
             <div class="flex items-center gap-4 mb-4">
                 <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
                     <span class="text-[var(--bg)] font-bold text-xl">{{ uni.name|slice:":1"|upper }}</span>

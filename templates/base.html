@@ -1,10 +1,13 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}EHostelFinder - Find Your Perfect Hostel{% endblock %}</title>
+    <link rel="icon" href="{% static 'images/favicon.jpg' %}" type="image/jpeg">
+    <title>{% block title %}Hostel - Find Your Perfect Hostel{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.stripe.com/v3/"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
         :root {
@@ -34,8 +37,13 @@
             background-size: 60px 60px;
         }
         [data-theme="light"] #ai-chat-overlay { background: rgba(0,0,0,0.3); }
-        
-        * {
+
+        .logo-dark-mode { display: block; }
+        .logo-light-mode { display: none; }
+        [data-theme="light"] .logo-dark-mode { display: none; }
+        [data-theme="light"] .logo-light-mode { display: block; }
+
+        * { {
             box-sizing: border-box;
         }
         
@@ -289,12 +297,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
-                        <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                    </div>
-                    <span class="text-xl font-bold font-['Space_Grotesk'] tracking-tight">EHostelFinder</span>
+                    <img src="{% static 'images/logo-dark.jpg' %}" alt="Hostel" class="logo-dark-mode h-10 w-auto rounded-lg" />
+                    <img src="{% static 'images/logo-light.jpg' %}" alt="Hostel" class="logo-light-mode h-10 w-auto rounded-lg" />
+                    <span class="text-xl font-bold font-['Space_Grotesk'] tracking-tight">Hostel</span>
                 </a>
                 
                 <div class="hidden md:flex items-center gap-8">
@@ -421,15 +426,12 @@
             <div class="grid md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-3 mb-4">
-                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center">
-                            <svg class="w-6 h-6 text-[var(--bg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                            </svg>
-                        </div>
-                        <span class="text-xl font-bold font-['Space_Grotesk']">EHostelFinder</span>
+                        <img src="{% static 'images/logo-dark.jpg' %}" alt="Hostel" class="logo-dark-mode h-10 w-auto rounded-lg" />
+                        <img src="{% static 'images/logo-light.jpg' %}" alt="Hostel" class="logo-light-mode h-10 w-auto rounded-lg" />
+                        <span class="text-xl font-bold font-['Space_Grotesk']">Hostel</span>
                     </div>
                     <p class="text-[var(--muted)] text-sm leading-relaxed max-w-md">
-                        Your trusted partner in finding safe, comfortable, and affordable student accommodation near top universities.
+                        Your place, your people.
                     </p>
                 </div>
                 <div>
@@ -451,7 +453,7 @@
                 </div>
             </div>
             <div class="border-t border-[var(--border)] mt-8 pt-8 text-center text-sm text-[var(--muted)]">
-                <p>&copy; 2026 EHostelFinder. All rights reserved.</p>
+                <p>&copy; 2026 Hostel. All rights reserved.</p>
             </div>
         </div>
     </footer>
@@ -504,7 +506,7 @@
                         </svg>
                     </div>
                     <div class="bg-[var(--bg)] rounded-lg p-3 max-w-[80%]">
-                        <p class="text-sm text-[var(--fg)]">Hi! I'm your eHostel AI assistant. How can I help you today?</p>
+                        <p class="text-sm text-[var(--fg)]">Hi! I'm your Hostel AI assistant. How can I help you today?</p>
                     </div>
                 </div>
             </div>
