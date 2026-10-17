@@ -151,17 +151,17 @@ def create_checkout_session(
                     "product_data": {
                         "name": f"Hostel Booking #{booking_id}",
                     },
-                    "unit_amount": int(float(amount) * 100),
+                    "unit_amount": int((Decimal(str(amount)) * 100).quantize(Decimal('1'))),
                 },
                 "quantity": 1,
             }
         ],
         mode="payment",
         customer_email=customer_email,
+        client_reference_id=str(booking_id),
         metadata={"booking_id": str(booking_id)},
         success_url=success_url,
         cancel_url=cancel_url,
-        automatic_tax={"enabled": True},
     )
     return {
         "checkout_url": session.url,

@@ -25,11 +25,17 @@ load_dotenv()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-ub7h$l^%v(lwhfsz^&h=25w=&d+(!s8#to*#2e%m5i5(jdl!s)')
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+SECRET_KEY = os.getenv('SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured('SECRET_KEY must be configured when DEBUG is disabled.')
+    SECRET_KEY = 'django-insecure-ub7h$l^%v(lwhfsz^&h=25w=&d+(!s8#to*#2e%m5i5(jdl!s)'
+elif not DEBUG and SECRET_KEY.startswith('django-insecure-'):
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured('Set a secure SECRET_KEY before deploying with DEBUG disabled.')
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 RENDER_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
@@ -99,7 +105,11 @@ handler500 = 'hostels.views.custom_500'
 database_url = os.getenv('DATABASE_URL') or os.getenv('SUPABASE_DATABASE_URL')
 if database_url:
     DATABASES = {
-        'default': dj_database_url.parse(database_url, conn_max_age=600, ssl_require=True)
+        'default': dj_database_url.parse(
+            database_url,
+            conn_max_age=600,
+            ssl_require=database_url.startswith(('postgres://', 'postgresql://')),
+        )
     }
 else:
     DATABASES = {
@@ -179,11 +189,23 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 STORAGES = {
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+            if DEBUG else 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        ),
     },
 }
 
 if os.getenv('RENDER_EXTERNAL_HOSTNAME'):
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

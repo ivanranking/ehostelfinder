@@ -30,7 +30,7 @@
                 
 <!-- Search Box -->
                 <div class="bg-[var(--card)] rounded-2xl p-2 border border-[var(--border)] mb-8 max-w-2xl">
-                    <form action="/" method="get" class="space-y-3">
+                    <form action="/#hostel-results" method="get" class="space-y-3">
                         <div class="flex flex-col sm:flex-row gap-3">
                             <div class="flex-1 sm:col-span-2">
                                 <label class="text-xs text-[var(--muted)] mb-2 block">Search hostels</label>
@@ -38,6 +38,15 @@
                             </div>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="flex-1">
+                                <label class="text-xs text-[var(--muted)] mb-2 block">Accommodation</label>
+                                <select name="accommodation" class="w-full bg-transparent border border-[var(--border)] outline-none text-[var(--fg)] py-3 rounded-lg px-3">
+                                    <option value="">Any policy</option>
+                                    <option value="male_only" {% if selected_accommodation == 'male_only' %}selected{% endif %}>Male only</option>
+                                    <option value="female_only" {% if selected_accommodation == 'female_only' %}selected{% endif %}>Female only</option>
+                                    <option value="mixed" {% if selected_accommodation == 'mixed' %}selected{% endif %}>Mixed</option>
+                                </select>
+                            </div>
                             <div class="flex-1">
                                 <label class="text-xs text-[var(--muted)] mb-2 block">University</label>
                                 <select name="university" 
@@ -92,13 +101,14 @@
                                 Search Hostels
                             </button>
                         </div>
-                        {% if query or selected_city or selected_country or selected_university != 'All Universities' or request.GET.min_price or request.GET.max_price %}
+                        {% if query or selected_city or selected_country or selected_accommodation or selected_university != 'All Universities' or request.GET.min_price or request.GET.max_price %}
                         <div class="flex flex-wrap items-center gap-2 pt-2 text-sm text-[var(--muted)]">
                             <span>Showing results for:</span>
                             {% if query %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">"{{ query }}"</span>{% endif %}
                             {% if selected_university != 'All Universities' %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_university }}</span>{% endif %}
                             {% if selected_city %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_city }}</span>{% endif %}
                             {% if selected_country %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_country }}</span>{% endif %}
+                            {% if selected_accommodation %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">{{ selected_accommodation }}</span>{% endif %}
                             {% if request.GET.min_price %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">From {{ request.GET.min_price }} UGX</span>{% endif %}
                             {% if request.GET.max_price %}<span class="px-2 py-1 rounded bg-[var(--bg-elevated)] text-[var(--fg)]">Up to {{ request.GET.max_price }} UGX</span>{% endif %}
                             <a href="/" class="text-[var(--accent)] hover:underline">Clear filters</a>
@@ -150,10 +160,10 @@
 </section>
 
 <!-- Hostels Listing Section -->
-<section class="py-20">
+<section id="hostel-results" class="py-20 scroll-mt-20">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 {% if hostels %}
-    {% if query or selected_city or selected_country or selected_university != 'All Universities' or request.GET.min_price or request.GET.max_price %}
+    {% if query or selected_city or selected_country or selected_accommodation or selected_university != 'All Universities' or request.GET.min_price or request.GET.max_price %}
     <p class="text-sm text-[var(--muted)] mb-6">{{ filtered_count }} hostel{{ filtered_count|pluralize }} match your search.</p>
     {% endif %}
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -188,6 +198,7 @@
                             {% endif %}
                         </div>
                         <p class="text-[var(--muted)] text-sm mb-3">{{ hostel.city }}, {{ hostel.country }}</p>
+                        <span class="inline-flex mb-3 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)]">{{ hostel.accommodation }}</span>
                         <div class="flex items-center justify-between">
                             <span class="text-[var(--accent)] font-semibold">{{ hostel.price|default:'0' }} UGX/semester</span>
                             <div class="flex items-center gap-1 text-yellow-500">
@@ -234,7 +245,8 @@
                 </svg>
             </div>
             <h3 class="text-xl font-['Space_Grotesk'] font-semibold mb-2">No hostels found</h3>
-            <p class="text-[var(--muted)]">Try adjusting your search filters or check back later for new listings.</p>
+            <p class="text-[var(--muted)]">No listings match these filters. Try a broader search or clear your filters.</p>
+            <a href="/#hostel-results" class="btn-secondary inline-flex mt-5">Clear filters</a>
         </div>
         {% endif %}
     </div>

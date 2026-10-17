@@ -12,7 +12,7 @@ class HostelAdminForm(forms.ModelForm):
 
     class Meta:
         model = Hostel
-        fields = ['name', 'description', 'address', 'city', 'university', 'rating', 'amenities', 'image_url']
+        fields = ['name', 'description', 'address', 'city', 'university', 'accommodation', 'rating', 'amenities', 'image_url']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,7 +54,7 @@ class ProfileAdmin(admin.ModelAdmin):
 @admin.register(Hostel)
 class HostelAdmin(admin.ModelAdmin):
     form = HostelAdminForm
-    fields = ['name', 'description', 'address', 'city', 'university', 'single_price', 'double_price', 'triple_price', 'quadruple_price', 'rating', 'amenities', 'image_url']
+    fields = ['name', 'description', 'address', 'city', 'university', 'accommodation', 'single_price', 'double_price', 'triple_price', 'quadruple_price', 'rating', 'amenities', 'image_url']
     list_display = ['name', 'city', 'country', 'university', 'price', 'rating', 'available']
     list_filter = ['city', 'country', 'university', 'available']
     search_fields = ['name', 'address', 'city', 'university']

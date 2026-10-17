@@ -121,6 +121,7 @@ class ManagerProfileForm(forms.ModelForm):
 
 
 class HostelUploadForm(forms.Form):
+    accommodation = forms.ChoiceField(choices=Hostel.ACCOMMODATION_CHOICES, initial='mixed', required=False)
     name = forms.CharField(max_length=255)
     description = forms.CharField(widget=forms.Textarea, required=False)
     address = forms.CharField(max_length=255)

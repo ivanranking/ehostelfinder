@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.conf import settings
 from django.contrib.auth import logout
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
@@ -121,6 +121,7 @@ def home(request):
     query = request.GET.get("q", "").strip()
     city = request.GET.get("city", "").strip()
     country = request.GET.get("country", "").strip()
+    accommodation = request.GET.get("accommodation", "").strip()
     min_price = request.GET.get("min_price", "").strip()
     max_price = request.GET.get("max_price", "").strip()
     sort_by = request.GET.get("sort", "-created_at")
@@ -133,12 +134,16 @@ def home(request):
             Q(name__icontains=query) |
             Q(description__icontains=query) |
             Q(university__icontains=query) |
+            Q(address__icontains=query) |
             Q(city__icontains=query) |
-            Q(country__icontains=query)
-        )
+            Q(country__icontains=query) |
+            Q(facilities__facility_name__icontains=query)
+        ).distinct()
     if university and university != "All Universities": hostels = hostels.filter(university__icontains=university)
     if city: hostels = hostels.filter(city__icontains=city)
     if country: hostels = hostels.filter(country__icontains=country)
+    if accommodation in dict(Hostel.ACCOMMODATION_CHOICES):
+        hostels = hostels.filter(accommodation=accommodation)
     try:
         minimum = Decimal(min_price) if min_price else None
         maximum = Decimal(max_price) if max_price else None
@@ -174,6 +179,7 @@ def home(request):
             "facilities": [{"name": f.facility_name, "icon": f.icon or ""} for f in h.facilities.all()],
             "available": h.available and not h.is_full, "rating": float(h.rating) if h.rating else round(float(h.average_rating), 1),
             "distance": h.distance or "Near campus",
+            "accommodation": h.get_accommodation_display(),
             "price": str(h.price) if h.price else (str(available_room.price_per_semester) if available_room else "0"),
             "amenities": h.amenities or [], "is_full": h.is_full,
         })
@@ -184,7 +190,7 @@ def home(request):
     filter_params.pop("page", None)
     return render(request, "home.html", {
         "hostels": hostel_list, "cities": cities_list, "countries": countries_list, "universities": universities,
-        "query": query, "selected_city": city, "selected_country": country, "selected_university": university, "selected_sort": sort_by,
+        "query": query, "selected_city": city, "selected_country": country, "selected_accommodation": accommodation, "selected_university": university, "selected_sort": sort_by,
         "filter_query": urlencode(filter_params),
         "filtered_count": paginator.count,
         "total_hostels": Hostel.objects.count(), "total_universities": len(universities), "avg_rating": avg_rating,
@@ -258,6 +264,7 @@ def hostel_detail(request, id):
                 "price": float(hostel.price) if hostel.price else 0,
                 "rating": float(hostel.rating) if hostel.rating else round(float(hostel.average_rating), 1),
                 "available": hostel.available, "contact": hostel.contact or "",
+                "accommodation": hostel.get_accommodation_display(),
                 "amenities": hostel.amenities or [], "phone": hostel.phone, "email": hostel.email,
                 "latitude": str(hostel.latitude) if hostel.latitude else None,
                 "longitude": str(hostel.longitude) if hostel.longitude else None,
@@ -272,6 +279,8 @@ def hostel_detail(request, id):
             "facilities": [{"name": f.facility_name, "icon": f.icon or ""} for f in facilities],
             "reviews": reviews_data,
         }
+    except Http404:
+        raise
     except Exception as e:
         print(f"Error in hostel_detail: {e}")
         messages.error(request, "Error loading hostel details")
@@ -317,7 +326,7 @@ def api_hostels(request):
     results = []
     for h in hostels:
         cover = h.images.filter(is_cover=True).first()
-        results.append({"id": str(h.id), "name": h.name, "city": h.city, "country": h.country, "university": h.university, "address": h.address, "description": h.description, "average_rating": round(float(h.average_rating), 2), "rating": float(h.rating) if h.rating else round(float(h.average_rating), 2), "review_count": h.reviews.count(), "image_url": h.image_url or (cover.image_url if cover else None), "facilities": [f.facility_name for f in h.facilities.all()], "amenities": h.amenities or [], "distance": h.distance or "", "price": float(h.price) if h.price else 0, "contact": h.contact or "", "available": h.available and not h.is_full, "is_full": h.is_full, "status": "Full" if h.is_full else "Available"})
+        results.append({"id": str(h.id), "name": h.name, "city": h.city, "country": h.country, "university": h.university, "address": h.address, "description": h.description, "accommodation": h.accommodation, "accommodation_display": h.get_accommodation_display(), "average_rating": round(float(h.average_rating), 2), "rating": float(h.rating) if h.rating else round(float(h.average_rating), 2), "review_count": h.reviews.count(), "image_url": h.image_url or (cover.image_url if cover else None), "facilities": [f.facility_name for f in h.facilities.all()], "amenities": h.amenities or [], "distance": h.distance or "", "price": float(h.price) if h.price else 0, "contact": h.contact or "", "available": h.available and not h.is_full, "is_full": h.is_full, "status": "Full" if h.is_full else "Available"})
     return JsonResponse(results, safe=False)
 
 
@@ -327,7 +336,7 @@ def api_hostel_detail(request, id):
     rooms = Room.objects.filter(hostel=hostel)
     cover = hostel.images.filter(is_cover=True).first()
     rooms_data = [{"id": str(r.id), "room_number": r.room_number, "room_name": r.room_name, "room_type": r.room_type, "capacity": r.capacity, "price_per_semester": str(r.price_per_semester), "description": r.description, "private_bathroom": r.private_bathroom, "air_conditioning": r.air_conditioning, "wifi": r.wifi, "status": r.status} for r in rooms]
-    return JsonResponse({"id": str(hostel.id), "name": hostel.name, "description": hostel.description, "address": hostel.address, "city": hostel.city, "country": hostel.country, "phone": hostel.phone, "email": hostel.email, "latitude": str(hostel.latitude) if hostel.latitude else None, "longitude": str(hostel.longitude) if hostel.longitude else None, "image_url": cover.image_url if cover else None, "rooms": rooms_data, "facilities": [{"name": f.facility_name} for f in hostel.facilities.all()]})
+    return JsonResponse({"id": str(hostel.id), "name": hostel.name, "description": hostel.description, "address": hostel.address, "city": hostel.city, "country": hostel.country, "accommodation": hostel.accommodation, "accommodation_display": hostel.get_accommodation_display(), "phone": hostel.phone, "email": hostel.email, "latitude": str(hostel.latitude) if hostel.latitude else None, "longitude": str(hostel.longitude) if hostel.longitude else None, "image_url": cover.image_url if cover else None, "rooms": rooms_data, "facilities": [{"name": f.facility_name} for f in hostel.facilities.all()]})
 
 
 @require_http_methods(["GET"])
@@ -1033,6 +1042,7 @@ def hostel_upload(request):
                 name=form.cleaned_data["name"], description=form.cleaned_data["description"] or "",
                 address=form.cleaned_data["address"], city=form.cleaned_data["city"],
                 country=form.cleaned_data.get("country") or "Uganda",
+                accommodation=form.cleaned_data.get('accommodation') or 'mixed',
                 university=form.cleaned_data["university"] or "", distance="Near campus",
                 price=form.cleaned_data["price_single"] or 0, rating=form.cleaned_data["rating"] or 0,
                 amenities=[item.strip() for item in form.cleaned_data["amenities"].split(",") if item.strip()],
@@ -1302,7 +1312,6 @@ def mark_all_notifications_read(request):
 
 # ========== PAYMENT ==========
 
-@csrf_exempt
 @require_http_methods(["POST"])
 def process_payment(request):
     if not request.user.is_authenticated: return JsonResponse({"error": "Auth required"}, status=401)
@@ -1310,38 +1319,50 @@ def process_payment(request):
         data = json.loads(request.body)
         booking = get_object_or_404(Booking, id=data.get("booking_id"), customer=request.user)
         payment_method = data.get("payment_method", "Mobile Money")
-        transaction_ref = data.get("transaction_reference") or f"TXN-{uuid.uuid4().hex[:12].upper()}"
-        payment = Payment.objects.create(booking=booking, amount=booking.total_price, payment_method=payment_method, payment_status="Paid", transaction_reference=transaction_ref, paid_at=timezone.now())
-        booking.payment_status = "Paid"
-        booking.booking_status = "Confirmed"
+        if payment_method != 'Cash':
+            return JsonResponse({"error": "This payment method is not currently available. Use Stripe checkout or choose cash on arrival."}, status=400)
+        if booking.payment_status == 'Paid':
+            return JsonResponse({"error": "This booking is already paid."}, status=409)
+        payment = Payment.objects.filter(booking=booking, payment_method='Cash', payment_status='Pending').first()
+        new_reservation = payment is None
+        if payment is None:
+            payment = Payment.objects.create(
+                booking=booking,
+                amount=booking.total_price,
+                payment_method='Cash',
+                payment_status='Pending',
+                transaction_reference=f"CASH-{uuid.uuid4().hex.upper()}",
+            )
+        booking.payment_status = 'Pending'
+        booking.booking_status = 'Confirmed'
         booking.save(update_fields=["payment_status", "booking_status"])
-        try:
-            send_booking_receipt(booking, request)
-        except Exception:
-            pass
-        return JsonResponse({"success": True, "payment_id": str(payment.id)})
+        if new_reservation:
+            try:
+                send_booking_receipt(booking, request)
+            except Exception:
+                pass
+        return JsonResponse({"success": True, "paid": False, "payment_pending": True, "payment_id": str(payment.id)})
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def verify_payment(request):
-    return JsonResponse({"success": True, "message": "Payment verified"})
+    return JsonResponse({"success": False, "paid": False, "error": "Payments must be verified by the provider webhook."}, status=400)
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def flutterwave_validate_payment(request):
-    return JsonResponse({"success": True, "message": "Payment validated"})
+    return JsonResponse({"success": False, "error": "Flutterwave payments are not currently enabled."}, status=503)
 
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def flutterwave_webhook(request):
-    return JsonResponse({"status": "received"})
+    return JsonResponse({"error": "Flutterwave payments are not currently enabled."}, status=503)
 
 
-@csrf_exempt
 @login_required
 def create_stripe_checkout_session(request):
     if request.method != "POST":
@@ -1352,9 +1373,11 @@ def create_stripe_checkout_session(request):
         if not booking_id:
             return JsonResponse({"error": "booking_id is required"}, status=400)
         booking = get_object_or_404(Booking, id=booking_id, customer=request.user)
+        if booking.payment_status == 'Paid':
+            return JsonResponse({"error": "This booking is already paid."}, status=409)
         success_url = request.build_absolute_uri(f"/payments/success/?booking_id={booking.id}")
         cancel_url = request.build_absolute_uri("/my-bookings/")
-        usd_amount = round(float(booking.total_price) / 2500, 2)
+        usd_amount = (booking.total_price / Decimal('2500')).quantize(Decimal('0.01'))
         result = stripe_service.create_checkout_session(
             amount=usd_amount,
             currency="usd",
@@ -1383,32 +1406,43 @@ def stripe_webhook(request):
         checkout_session = event_data.get("data")
         booking_id = checkout_session.get("metadata", {}).get("booking_id")
         payment_intent = checkout_session.get("payment_intent")
-        if booking_id:
-            booking = Booking.objects.filter(id=booking_id).first()
-            if booking:
-                payment, created = Payment.objects.get_or_create(
-                    booking=booking,
-                    defaults={
-                        "amount": booking.total_price,
-                        "payment_method": "Credit Card",
-                        "payment_status": "Paid",
-                        "transaction_reference": checkout_session.get("id", ""),
-                        "stripe_payment_intent_id": payment_intent,
-                        "paid_at": timezone.now(),
-                    },
-                )
-                if not created and payment.payment_status != "Paid":
-                    payment.payment_status = "Paid"
-                    payment.stripe_payment_intent_id = payment_intent
-                    payment.paid_at = timezone.now()
-                    payment.save(update_fields=["payment_status", "stripe_payment_intent_id", "paid_at"])
-                booking.payment_status = "Paid"
-                booking.booking_status = "Confirmed"
-                booking.save(update_fields=["payment_status", "booking_status"])
-                try:
-                    send_booking_receipt(booking, request)
-                except Exception:
-                    pass
+        if checkout_session.get('payment_status') != 'paid' or not booking_id:
+            return JsonResponse({"error": "Checkout session is not a paid booking session."}, status=400)
+        booking = Booking.objects.filter(id=booking_id).first()
+        if not booking or checkout_session.get('client_reference_id') not in (None, str(booking.id)):
+            return JsonResponse({"error": "Booking does not match checkout session."}, status=400)
+        expected_amount = int((booking.total_price / Decimal('2500') * Decimal('100')).quantize(Decimal('1')))
+        if checkout_session.get('currency') != 'usd' or checkout_session.get('amount_total') != expected_amount:
+            return JsonResponse({"error": "Checkout amount does not match booking total."}, status=400)
+        with transaction.atomic():
+            booking = Booking.objects.select_for_update().get(id=booking_id)
+            payment, created = Payment.objects.get_or_create(
+                transaction_reference=checkout_session.get("id"),
+                defaults={
+                    "booking": booking,
+                    "amount": booking.total_price,
+                    "payment_method": "Credit Card",
+                    "payment_status": "Paid",
+                    "stripe_payment_intent_id": payment_intent,
+                    "paid_at": timezone.now(),
+                },
+            )
+            if payment.booking_id != booking.id or payment.amount != booking.total_price:
+                return JsonResponse({"error": "Payment record does not match booking."}, status=400)
+            if payment.payment_status != 'Paid':
+                payment.payment_status = 'Paid'
+                payment.stripe_payment_intent_id = payment_intent
+                payment.paid_at = timezone.now()
+                payment.save(update_fields=["payment_status", "stripe_payment_intent_id", "paid_at"])
+            newly_paid = booking.payment_status != 'Paid'
+            booking.payment_status = "Paid"
+            booking.booking_status = "Confirmed"
+            booking.save(update_fields=["payment_status", "booking_status"])
+        if newly_paid:
+            try:
+                send_booking_receipt(booking, request)
+            except Exception:
+                pass
     return JsonResponse({"status": "received"})
 
 
@@ -1418,7 +1452,7 @@ def payment_success(request):
     booking = None
     if booking_id:
         booking = Booking.objects.filter(id=booking_id, customer=request.user).first()
-    return render(request, "payment_success.html", {"booking": booking})
+    return render(request, "payment_success.html", {"booking": booking, "payment_confirmed": bool(booking and booking.payment_status == 'Paid')})
 
 
 # ========== ROOMMATE FINDER ==========
@@ -1432,10 +1466,23 @@ def roommate_finder(request):
         if not request.user.is_authenticated: return JsonResponse({"error": "Auth required"}, status=401)
         try:
             data = json.loads(request.body)
-            req = RoommateRequest.objects.create(user=request.user, hostel_id=data.get("hostel_id"), room_id=data.get("room_id") or None, preferred_gender=data.get("preferred_gender", "any"), budget_min=data.get("budget_min") or None, budget_max=data.get("budget_max") or None, about_me=data.get("about_me", ""), lifestyle_preferences=data.get("lifestyle_preferences", []))
+            own_gender = data.get('own_gender', 'unspecified')
+            preferred_gender = data.get('preferred_gender', 'any')
+            if own_gender not in dict(RoommateRequest.OWN_GENDER_CHOICES) or preferred_gender not in dict(RoommateRequest.GENDER_CHOICES):
+                return JsonResponse({"error": "Select valid gender options."}, status=400)
+            RoommateRequest.objects.filter(user=request.user, is_active=True).update(is_active=False)
+            req = RoommateRequest.objects.create(user=request.user, hostel_id=data.get("hostel_id"), room_id=data.get("room_id") or None, own_gender=own_gender, preferred_gender=preferred_gender, budget_min=data.get("budget_min") or None, budget_max=data.get("budget_max") or None, about_me=data.get("about_me", ""), lifestyle_preferences=data.get("lifestyle_preferences", []))
             return JsonResponse({"success": True, "request_id": str(req.id)}, status=201)
         except Exception as e: return JsonResponse({"error": str(e)}, status=400)
-    return render(request, "roommate_finder.html")
+    if not request.user.is_authenticated:
+        return redirect('login')
+    return render(request, "roommate_finder.html", {
+        "hostels": Hostel.objects.filter(available=True, is_full=False).order_by('name'),
+        "my_request": RoommateRequest.objects.filter(user=request.user, is_active=True).select_related('hostel', 'room').first(),
+        "my_chat_rooms": ChatRoom.objects.filter(participants=request.user),
+        "preselected_hostel_id": request.GET.get('hostel_id'),
+        "preselected_room_id": request.GET.get('room_id'),
+    })
 
 
 @login_required
@@ -1452,6 +1499,7 @@ def chat_room_detail(request, room_id):
 
 
 @require_http_methods(["GET", "POST"])
+@login_required
 def api_roommate_requests(request):
     if request.method == "GET":
         hostel_id = request.GET.get("hostel_id")
@@ -1459,13 +1507,65 @@ def api_roommate_requests(request):
         qs = RoommateRequest.objects.filter(is_active=True).select_related("user", "hostel", "room")
         if hostel_id: qs = qs.filter(hostel_id=hostel_id)
         if room_id: qs = qs.filter(room_id=room_id)
-        return JsonResponse([{"id": str(r.id), "user_id": str(r.user.id), "user_name": r.user.get_full_name() or r.user.email, "hostel_id": str(r.hostel_id), "hostel_name": r.hostel.name, "room_id": str(r.room_id) if r.room else None, "preferred_gender": r.preferred_gender, "budget_min": str(r.budget_min) if r.budget_min else None, "budget_max": str(r.budget_max) if r.budget_max else None, "about_me": r.about_me, "lifestyle_preferences": r.lifestyle_preferences, "created_at": r.created_at.isoformat()} for r in qs], safe=False)
+        current_request = RoommateRequest.objects.filter(user=request.user, is_active=True).first()
+        qs = qs.exclude(user=request.user)
+        if current_request:
+            qs = [candidate for candidate in qs if _roommate_requests_match(current_request, candidate)]
+        else:
+            qs = []
+        return JsonResponse([{"id": str(r.id), "user_id": str(r.user.id), "user_name": r.user.get_full_name() or r.user.email, "hostel_id": str(r.hostel_id), "hostel_name": r.hostel.name, "hostel_city": r.hostel.city, "room_id": str(r.room_id) if r.room else None, "own_gender": r.own_gender, "preferred_gender": r.preferred_gender, "budget_min": str(r.budget_min) if r.budget_min is not None else None, "budget_max": str(r.budget_max) if r.budget_max is not None else None, "about_me": r.about_me, "lifestyle_preferences": r.lifestyle_preferences, "created_at": r.created_at.isoformat()} for r in qs], safe=False)
     if not request.user.is_authenticated: return JsonResponse({"error": "Auth required"}, status=401)
     try:
         data = json.loads(request.body)
-        req = RoommateRequest.objects.create(user=request.user, hostel_id=data.get("hostel_id"), room_id=data.get("room_id") or None, preferred_gender=data.get("preferred_gender", "any"), about_me=data.get("about_me", ""))
+        if data.get('is_active') is False:
+            updated = RoommateRequest.objects.filter(user=request.user, is_active=True).update(is_active=False)
+            return JsonResponse({"success": True, "cancelled": bool(updated)})
+        own_gender = data.get('own_gender', 'unspecified')
+        preferred_gender = data.get('preferred_gender', 'any')
+        if own_gender not in dict(RoommateRequest.OWN_GENDER_CHOICES):
+            return JsonResponse({"error": "Select a valid gender option."}, status=400)
+        if preferred_gender not in dict(RoommateRequest.GENDER_CHOICES):
+            return JsonResponse({"error": "Select a valid roommate gender preference."}, status=400)
+        RoommateRequest.objects.filter(user=request.user, is_active=True).update(is_active=False)
+        req = RoommateRequest.objects.create(user=request.user, hostel_id=data.get("hostel_id"), room_id=data.get("room_id") or None, own_gender=own_gender, preferred_gender=preferred_gender, budget_min=data.get('budget_min') or None, budget_max=data.get('budget_max') or None, about_me=data.get("about_me", ""), lifestyle_preferences=data.get('lifestyle_preferences', []))
         return JsonResponse({"success": True, "request_id": str(req.id)}, status=201)
     except Exception as e: return JsonResponse({"error": str(e)}, status=400)
+
+
+def _roommate_requests_match(first, second):
+    if first.hostel_id != second.hostel_id:
+        return False
+    accommodation = first.hostel.accommodation
+    if accommodation == 'male_only' and (first.own_gender != 'male' or second.own_gender != 'male'):
+        return False
+    if accommodation == 'female_only' and (first.own_gender != 'female' or second.own_gender != 'female'):
+        return False
+    first_accepts_second = first.preferred_gender == 'any' or first.preferred_gender == second.own_gender
+    second_accepts_first = second.preferred_gender == 'any' or second.preferred_gender == first.own_gender
+    return first_accepts_second and second_accepts_first
+
+
+@login_required
+@require_http_methods(["POST"])
+def api_roommate_connect(request, request_id):
+    try:
+        data = json.loads(request.body or '{}')
+        target = get_object_or_404(RoommateRequest.objects.select_related('hostel'), id=request_id, is_active=True)
+        current = RoommateRequest.objects.filter(user=request.user, is_active=True).first()
+        if target.user_id == request.user.id:
+            return JsonResponse({"error": "You cannot connect to your own request."}, status=400)
+        if not current:
+            return JsonResponse({"error": "Create an active roommate request before connecting."}, status=400)
+        if not _roommate_requests_match(current, target):
+            return JsonResponse({"error": "This request is not a gender-compatible match."}, status=400)
+        existing = ChatRoom.objects.filter(hostel_id=target.hostel_id, participants=request.user).filter(participants=target.user).first()
+        if existing:
+            return JsonResponse({"success": True, "chat_room_id": str(existing.id), "existing": True})
+        chat_room = ChatRoom.objects.create(hostel_id=target.hostel_id)
+        chat_room.participants.add(request.user, target.user)
+        return JsonResponse({"success": True, "chat_room_id": str(chat_room.id), "existing": False}, status=201)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @login_required

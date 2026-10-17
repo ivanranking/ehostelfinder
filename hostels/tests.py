@@ -57,6 +57,12 @@ class HomeViewTests(BaseTestCase):
     def test_home_page_has_hostels(self):
         response = self.client.get(reverse('home'))
         self.assertContains(response, 'Test Hostel')
+
+    def test_home_displays_hostel_accommodation(self):
+        self.hostel.accommodation = 'female_only'
+        self.hostel.save(update_fields=['accommodation'])
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'Female only')
     
     def test_home_page_city_filter(self):
         response = self.client.get(reverse('home'), {'city': self.hostel.city})
@@ -67,6 +73,31 @@ class HomeViewTests(BaseTestCase):
         response = self.client.get(reverse('home'), {'country': self.hostel.country})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Test Hostel')
+
+    def test_home_search_matches_hostel_address(self):
+        response = self.client.get(reverse('home'), {'q': 'Test Street'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Hostel')
+
+    def test_home_search_matches_facility(self):
+        from .models import HostelFacility
+
+        HostelFacility.objects.create(hostel=self.hostel, facility_name='Study Lounge')
+        response = self.client.get(reverse('home'), {'q': 'Study Lounge'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Hostel')
+
+    def test_search_form_targets_results_section(self):
+        response = self.client.get(reverse('home'))
+        self.assertContains(response, 'action="/#hostel-results"')
+        self.assertContains(response, 'id="hostel-results"')
+
+    def test_home_page_accommodation_filter(self):
+        self.hostel.accommodation = 'female_only'
+        self.hostel.save(update_fields=['accommodation'])
+        response = self.client.get(reverse('home'), {'accommodation': 'male_only'})
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Test Hostel')
 
 
 class UniversitiesViewTests(BaseTestCase):
@@ -94,6 +125,12 @@ class HostelDetailViewTests(BaseTestCase):
         response = self.client.get(reverse('hostel_detail', args=[self.hostel.id]))
         self.assertContains(response, 'Test Hostel')
         self.assertContains(response, 'A test hostel for testing purposes')
+
+    def test_hostel_detail_displays_accommodation_policy(self):
+        self.hostel.accommodation = 'male_only'
+        self.hostel.save(update_fields=['accommodation'])
+        response = self.client.get(reverse('hostel_detail', args=[self.hostel.id]))
+        self.assertContains(response, 'Male only accommodation')
     
     def test_hostel_detail_404(self):
         response = self.client.get(reverse('hostel_detail', args=[999]))
@@ -172,7 +209,7 @@ class MyBookingsViewTests(BaseTestCase):
 
 
 class PaymentReceiptTests(BaseTestCase):
-    """Tests for payment-related booking confirmation receipts"""
+    """Tests for safe payment state handling and booking receipts"""
 
     @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
     def test_processing_payment_sends_booking_confirmation_invoice(self):
@@ -203,15 +240,42 @@ class PaymentReceiptTests(BaseTestCase):
         self.client.force_login(self.user)
         response = self.client.post(reverse('api_process_payment'), json.dumps({
             'booking_id': str(booking.id),
-            'payment_method': 'Mobile Money',
-            'transaction_reference': 'TXN-TEST-001'
+            'payment_method': 'Cash',
         }), content_type='application/json')
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(json.loads(response.content)['payment_pending'])
+        booking.refresh_from_db()
+        self.assertEqual(booking.payment_status, 'Pending')
+        self.assertEqual(booking.booking_status, 'Confirmed')
+        self.assertEqual(booking.payments.get().payment_status, 'Pending')
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('Booking Confirmation', mail.outbox[0].subject)
         self.assertIn(booking.booking_reference, mail.outbox[0].body)
         self.assertEqual(mail.outbox[0].to, [self.user.email])
+
+    def test_client_cannot_mark_online_payment_as_paid(self):
+        booking = Booking.objects.create(
+            hostel=self.hostel,
+            room=Room.objects.create(hostel=self.hostel, room_number='102', room_name='Double Room', room_type='Double', capacity=2, price_per_semester=250000),
+            customer=self.user,
+            check_in='2026-07-10',
+            check_out='2026-07-12',
+            students=1,
+            semesters=2,
+            total_price=500000,
+            booking_reference='BK-TEST-002',
+        )
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('api_process_payment'), json.dumps({
+            'booking_id': str(booking.id),
+            'payment_method': 'Mobile Money',
+            'transaction_reference': 'CLIENT-FORGED-REF',
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        booking.refresh_from_db()
+        self.assertEqual(booking.payment_status, 'Pending')
+        self.assertFalse(booking.payments.exists())
 
 
 class UserRegistrationTests(BaseTestCase):
@@ -348,6 +412,7 @@ class HostelUploadTests(BaseTestCase):
             'city': 'Kampala',
             'country': 'Uganda',
             'university': 'Makerere University',
+            'accommodation': 'female_only',
             'price_single': '180000',
             'price_double': '250000',
             'image_url': 'https://example.com/cover.jpg',
@@ -361,6 +426,7 @@ class HostelUploadTests(BaseTestCase):
 
         self.assertEqual(response.status_code, 302)
         hostel = Hostel.objects.get(name='Label Hostel')
+        self.assertEqual(hostel.accommodation, 'female_only')
         self.assertEqual(hostel.room_label_range['type'], 'numeric')
         self.assertEqual(Room.objects.filter(hostel=hostel).count(), 4)
 
@@ -696,6 +762,7 @@ class RoommateFinderTests(TestCase):
             reverse('api_roommate_requests'),
             json.dumps({
                 'hostel_id': str(self.hostel.id),
+                'own_gender': 'female',
                 'preferred_gender': 'any',
                 'budget_min': None,
                 'budget_max': None,
@@ -707,6 +774,28 @@ class RoommateFinderTests(TestCase):
         data = json.loads(response.content)
         self.assertTrue(data['success'])
         self.assertTrue(RoommateRequest.objects.filter(user=self.user).exists())
+
+    def test_roommate_matches_require_mutual_gender_compatibility(self):
+        self.client.force_login(self.user)
+        RoommateRequest.objects.create(user=self.user, hostel=self.hostel, own_gender='female', preferred_gender='male')
+        other_user = User.objects.create(id=str(uuid.uuid4()), email='match@example.com', first_name='Match', last_name='User')
+        RoommateRequest.objects.create(user=other_user, hostel=self.hostel, own_gender='male', preferred_gender='female')
+        incompatible_user = User.objects.create(id=str(uuid.uuid4()), email='notmatch@example.com', first_name='No', last_name='Match')
+        RoommateRequest.objects.create(user=incompatible_user, hostel=self.hostel, own_gender='female', preferred_gender='female')
+        response = self.client.get(reverse('api_roommate_requests'))
+        self.assertEqual(response.status_code, 200)
+        results = json.loads(response.content)
+        self.assertEqual([item['user_id'] for item in results], [other_user.id])
+
+    def test_connect_creates_chat_without_disabling_request(self):
+        self.client.force_login(self.user)
+        RoommateRequest.objects.create(user=self.user, hostel=self.hostel, own_gender='female', preferred_gender='male')
+        other_user = User.objects.create(id=str(uuid.uuid4()), email='connect@example.com', first_name='Connect', last_name='User')
+        target = RoommateRequest.objects.create(user=other_user, hostel=self.hostel, own_gender='male', preferred_gender='female')
+        response = self.client.post(reverse('api_roommate_connect', args=[target.id]), '{}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(target.__class__.objects.get(id=target.id).is_active)
+        self.assertEqual(ChatRoom.objects.filter(participants=self.user).count(), 1)
 
     def test_get_roommate_requests(self):
         self.client.force_login(self.user)
@@ -733,7 +822,7 @@ class RoommateFinderTests(TestCase):
             json.dumps({'is_active': False}),
             content_type='application/json'
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         data = json.loads(response.content)
         self.assertTrue(data['cancelled'])
         self.assertFalse(RoommateRequest.objects.filter(user=self.user, is_active=True).exists())
@@ -754,13 +843,20 @@ class RoommateFinderTests(TestCase):
             email='otheruser@example.com',
             role='customer'
         )
+        RoommateRequest.objects.create(
+            user=self.user,
+            hostel=self.hostel,
+            own_gender='male',
+            preferred_gender='any'
+        )
         request = RoommateRequest.objects.create(
             user=other_user,
             hostel=self.hostel,
+            own_gender='male',
             preferred_gender='any'
         )
         response = self.client.post(
-            reverse('api_roommate_request_toggle', args=[request.id]),
+            reverse('api_roommate_connect', args=[request.id]),
             json.dumps({}),
             content_type='application/json'
         )

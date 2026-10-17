@@ -77,11 +77,22 @@
                     {% csrf_token %}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div>
+                            <label class="block text-sm font-medium mb-2">Your Gender</label>
+                            <select name="own_gender" class="input-field" required>
+                                <option value="">Select your gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                                <option value="unspecified">Prefer not to say</option>
+                            </select>
+                        </div>
+                        <div>
                             <label class="block text-sm font-medium mb-2">Preferred Gender</label>
                             <select name="preferred_gender" class="input-field">
                                 <option value="any">Any Gender</option>
                                 <option value="male">Male</option>
                                 <option value="female">Female</option>
+                                <option value="other">Other</option>
                             </select>
                         </div>
                         <div>
@@ -243,7 +254,7 @@ async function loadRoommateRequests() {
         }
         
         listEl.innerHTML = requests.map(req => `
-            <div class="bg-[var(--bg)] rounded-2xl border border-[var(--border)] p-6 hover:border-[var(--accent)] transition-all">
+                        <div class="bg-[var(--bg)] rounded-2xl border border-[var(--border)] p-6 hover:border-[var(--accent)] transition-all">
                 <div class="flex items-start justify-between mb-4">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)] to-emerald-500 flex items-center justify-center flex-shrink-0">
@@ -252,8 +263,9 @@ async function loadRoommateRequests() {
                             </svg>
                         </div>
                         <div>
-                            <h3 class="font-semibold">${req.user.full_name || req.user.email}</h3>
-                            <p class="text-sm text-[var(--muted)]">${req.hostel.name} • ${req.hostel.city}</p>
+                            <h3 class="font-semibold">${escapeHtml(req.user_name)}</h3>
+                            <p class="text-sm text-[var(--muted)]">${escapeHtml(req.hostel_name)} · ${escapeHtml(req.hostel_city)}</p>
+                            <p class="text-xs text-[var(--muted)] mt-1">${escapeHtml(req.own_gender)} · seeking ${escapeHtml(req.preferred_gender === 'any' ? 'any gender' : req.preferred_gender)}</p>
                         </div>
                     </div>
                     <button onclick="connectWithRoommate('${req.id}')" class="btn-primary text-sm py-2 px-4 flex items-center gap-1">
@@ -267,13 +279,13 @@ async function loadRoommateRequests() {
                     ${req.budget_min || req.budget_max ? `
                         <div class="flex items-center gap-2">
                             <span class="text-[var(--muted)]">Budget:</span>
-                            <span class="text-[var(--fg)]">${req.budget_min ? req.budget_min + ' - ' : ''}${req.budget_max || 'any'} UGX</span>
+                            <span class="text-[var(--fg)]">${req.budget_min ? escapeHtml(req.budget_min) + ' - ' : ''}${escapeHtml(req.budget_max || 'any')} UGX</span>
                         </div>
                     ` : ''}
                     ${req.about_me ? `
                         <div>
                             <span class="text-[var(--muted)]">About:</span>
-                            <p class="mt-1">${req.about_me}</p>
+                            <p class="mt-1">${escapeHtml(req.about_me)}</p>
                         </div>
                     ` : ''}
                 </div>
@@ -284,9 +296,15 @@ async function loadRoommateRequests() {
     }
 }
 
+function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[character]));
+}
+
 async function connectWithRoommate(requestId) {
     try {
-        const response = await fetch(`/api/roommate-requests/${requestId}/toggle/`, {
+        const response = await fetch(`/api/roommate-requests/${requestId}/connect/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() }
         });
@@ -328,6 +346,7 @@ document.getElementById('roommate-form').addEventListener('submit', async functi
     const data = {
         hostel_id: formData.get('hostel_id'),
         room_id: formData.get('room_id') || null,
+            own_gender: formData.get('own_gender'),
         preferred_gender: formData.get('preferred_gender'),
         budget_min: formData.get('budget_min') || null,
         budget_max: formData.get('budget_max') || null,

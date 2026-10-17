@@ -11,8 +11,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/>
             </svg>
         </div>
-        <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-4">Payment Successful!</h1>
-        <p class="text-[var(--muted)] mb-6">Your payment has been processed successfully via Stripe. Your booking is now confirmed.</p>
+        <h1 class="text-3xl font-['Space_Grotesk'] font-bold mb-4">{% if payment_confirmed %}Payment Successful{% else %}Payment Processing{% endif %}</h1>
+        <p class="text-[var(--muted)] mb-6">{% if payment_confirmed %}Your payment was confirmed by Stripe and your booking is paid.{% else %}Stripe is still confirming your payment. Check your bookings shortly; this page does not mark a booking as paid.{% endif %}</p>
         {% if booking %}
         <div class="bg-[var(--bg)] rounded-xl p-4 border border-[var(--border)] text-left mb-6">
             <h3 class="font-['Space_Grotesk'] font-semibold mb-2 text-[var(--accent)]">Booking Details</h3>

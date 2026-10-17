@@ -38,12 +38,31 @@
         }
         [data-theme="light"] #ai-chat-overlay { background: rgba(0,0,0,0.3); }
 
-        .logo-dark-mode { display: block; }
-        .logo-light-mode { display: none; }
-        [data-theme="light"] .logo-dark-mode { display: none; }
-        [data-theme="light"] .logo-light-mode { display: block; }
+        .brand-mark {
+            width: 52px;
+            height: 40px;
+            object-fit: cover;
+            object-position: center;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            box-shadow: 0 5px 18px rgba(13, 110, 253, 0.22);
+        }
+        .brand-wordmark {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 21px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .brand-caption {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 9px;
+            font-weight: 600;
+            line-height: 1;
+        }
 
-        * { {
+        * {
             box-sizing: border-box;
         }
         
@@ -296,29 +315,23 @@
     <nav class="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)]/80 backdrop-blur-lg border-b border-[var(--border)]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center gap-3">
-                    <img src="{% static 'images/logo-dark.jpg' %}" alt="Hostel" class="logo-dark-mode h-10 w-auto rounded-lg" />
-                    <img src="{% static 'images/logo-light.jpg' %}" alt="Hostel" class="logo-light-mode h-10 w-auto rounded-lg" />
-                    <span class="text-xl font-bold font-['Space_Grotesk'] tracking-tight">Hostel</span>
+                <a href="/" class="flex items-center gap-3" aria-label="Hostel home">
+                    <img src="{% static 'images/logo-dark.jpg' %}" alt="" class="brand-mark" />
+                    <span>
+                        <span class="brand-wordmark">Host<span class="text-[var(--accent)]">el</span></span>
+                        <span class="brand-caption">FIND YOUR PLACE</span>
+                    </span>
                 </a>
                 
                 <div class="hidden md:flex items-center gap-8">
                     <a href="/" class="nav-link {% block nav_home %}{% endblock %}">Home</a>
                     <a href="/universities/" class="nav-link {% block nav_universities %}{% endblock %}">Universities</a>
                     <a href="/roommate-finder/" class="nav-link {% block nav_roommate %}{% endblock %}">Roommate Finder</a>
-                    <a href="/how-it-works/" class="nav-link {% block nav_how %}{% endblock %}">How It Works</a>
-                    <a href="/contact/" class="nav-link {% block nav_contact %}{% endblock %}">Contact</a>
-                    <a href="/ai-assistant/" class="nav-link flex items-center gap-2 {% block nav_ai %}{% endblock %}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                        </svg>
-                        <span>AI Assistant</span>
-                    </a>
                 </div>
                 
-<div class="flex items-center gap-3">
+                <div class="flex items-center gap-3">
                     <!-- Theme Toggle -->
-                    <button id="theme-toggle" class="p-2 rounded-full bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] transition-all" onclick="toggleTheme()" title="Toggle theme">
+                    <button id="theme-toggle" class="p-2 rounded-full bg-[var(--card)] border border-[var(--border)] hover:border-[var(--accent)] transition-all" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
                         <svg id="dark-icon" class="w-4 h-4 text-[var(--fg)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
@@ -327,45 +340,47 @@
                         </svg>
                     </button>
                     {% if user.is_authenticated %}
-                        <a href="/favorites/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                            </svg>
-                            Favorites
-                        </a>
-                        <a href="/notifications/" class="relative text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block" id="notification-link">
+                        <a href="/notifications/" class="relative hidden md:block text-[var(--muted)] hover:text-[var(--fg)] transition-colors p-2" id="notification-link" aria-label="Notifications" title="Notifications">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                             </svg>
                             <span id="notification-badge" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center hidden">0</span>
                         </a>
-                        <a href="/my-bookings/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block">My Bookings</a>
-                        <a href="/profile/" class="text-sm text-[var(--muted)] hover:text-[var(--fg)] transition-colors hidden sm:block">Profile</a>
-{% if user.profile.role == 'admin' %}
-                         <a href="/admin/hostels/upload/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Upload Hostel</a>
-                         <a href="/admin/managers/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Assign Managers</a>
-                         <a href="/admin/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">Admin Panel</a>
-                         {% elif user.profile.role == 'manager' %}
-                         <a href="/manager/" class="text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors hidden sm:block">My Dashboard</a>
-                         {% endif %}
-                        <div class="hidden sm:flex items-center gap-3 px-3 py-2 rounded-full bg-[var(--card)] border border-[var(--border)]">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--accent)] to-cyan-500 flex items-center justify-center text-sm font-bold text-[var(--bg)]">
-                                {{ user.first_name|slice:":1"|upper }}
+                        <details class="relative hidden md:block">
+                            <summary class="flex cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-2 hover:border-[var(--accent)]" aria-label="Account menu">
+                                <span class="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--bg)]">{{ user.first_name|slice:":1"|upper }}</span>
+                                <span class="hidden lg:block text-sm font-medium">{{ user.first_name }}</span>
+                                <svg class="h-4 w-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"/></svg>
+                            </summary>
+                            <div class="absolute right-0 mt-2 w-56 rounded-lg border border-[var(--border)] bg-[var(--card)] p-2 shadow-xl">
+                                <a href="/my-bookings/" class="block rounded px-3 py-2 text-sm text-[var(--fg)] hover:bg-[var(--bg-elevated)]">My Bookings</a>
+                                <a href="/favorites/" class="block rounded px-3 py-2 text-sm text-[var(--fg)] hover:bg-[var(--bg-elevated)]">Favorites</a>
+                                <a href="/profile/" class="block rounded px-3 py-2 text-sm text-[var(--fg)] hover:bg-[var(--bg-elevated)]">Profile</a>
+                                {% if user.profile.role == 'admin' %}
+                                <div class="my-1 border-t border-[var(--border)]"></div>
+                                <a href="/admin/hostels/upload/" class="block rounded px-3 py-2 text-sm text-[var(--accent)] hover:bg-[var(--bg-elevated)]">Upload Hostel</a>
+                                <a href="/admin/managers/" class="block rounded px-3 py-2 text-sm text-[var(--accent)] hover:bg-[var(--bg-elevated)]">Assign Managers</a>
+                                <a href="/admin/" class="block rounded px-3 py-2 text-sm text-[var(--accent)] hover:bg-[var(--bg-elevated)]">Admin Panel</a>
+                                {% elif user.profile.role == 'manager' %}
+                                <div class="my-1 border-t border-[var(--border)]"></div>
+                                <a href="/manager/" class="block rounded px-3 py-2 text-sm text-[var(--accent)] hover:bg-[var(--bg-elevated)]">My Dashboard</a>
+                                {% endif %}
+                                <div class="my-1 border-t border-[var(--border)]"></div>
+                                <a href="/logout/" class="block rounded px-3 py-2 text-sm text-[var(--fg)] hover:bg-[var(--bg-elevated)]">Logout</a>
                             </div>
-                            <span class="text-sm font-medium hidden md:block">Welcome, {{ user.first_name }}</span>
-                        </div>
-                        <a href="/logout/" class="btn-secondary text-sm py-2 px-4">Logout</a>
+                        </details>
                     {% else %}
-                        <a href="/login/" class="btn-secondary text-sm py-2 px-4">Login</a>
-                        <a href="/signup/" class="btn-primary text-sm py-2 px-4">Sign Up</a>
+                        <div class="hidden md:flex items-center gap-3">
+                            <a href="/login/" class="btn-secondary text-sm py-2 px-4">Login</a>
+                            <a href="/signup/" class="btn-primary text-sm py-2 px-4">Sign Up</a>
+                        </div>
                     {% endif %}
+                    <button class="md:hidden p-2 text-[var(--fg)]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')" aria-label="Open navigation menu" aria-controls="mobile-menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
                 </div>
-                
-                <button class="md:hidden p-2 text-[var(--fg)]" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
             </div>
         </div>
         
@@ -375,18 +390,20 @@
                 <a href="/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Home</a>
                 <a href="/universities/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Universities</a>
                 <a href="/roommate-finder/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Roommate Finder</a>
-                <a href="/how-it-works/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">How It Works</a>
-                <a href="/contact/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Contact</a>
-                <a href="/ai-assistant/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                    </svg>
-                    AI Assistant
-                </a>
+                <details class="border-t border-[var(--border)] pt-3">
+                    <summary class="cursor-pointer py-2 font-medium text-[var(--fg)]">More</summary>
+                    <div class="pl-3">
+                        <a href="/how-it-works/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">How It Works</a>
+                        <a href="/contact/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Contact</a>
+                        <a href="/ai-assistant/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">AI Assistant</a>
+                    </div>
+                </details>
                 {% if user.is_authenticated %}
 <div class="pt-3 border-t border-[var(--border)]">
                             <p class="text-sm text-[var(--muted)] mb-2">Welcome, {{ user.first_name }}</p>
+                            <a href="/notifications/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Notifications</a>
                             <a href="/my-bookings/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">My Bookings</a>
+                            <a href="/favorites/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Favorites</a>
                             <a href="/profile/" class="block py-2 text-[var(--muted)] hover:text-[var(--fg)] transition-colors">Profile</a>
 {% if user.profile.role == 'admin' %}
                              <a href="/admin/hostels/upload/" class="block py-2 text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors">Upload Hostel</a>
@@ -426,9 +443,11 @@
             <div class="grid md:grid-cols-4 gap-8">
                 <div class="md:col-span-2">
                     <div class="flex items-center gap-3 mb-4">
-                        <img src="{% static 'images/logo-dark.jpg' %}" alt="Hostel" class="logo-dark-mode h-10 w-auto rounded-lg" />
-                        <img src="{% static 'images/logo-light.jpg' %}" alt="Hostel" class="logo-light-mode h-10 w-auto rounded-lg" />
-                        <span class="text-xl font-bold font-['Space_Grotesk']">Hostel</span>
+                        <img src="{% static 'images/logo-dark.jpg' %}" alt="" class="brand-mark" />
+                        <span>
+                            <span class="brand-wordmark">Host<span class="text-[var(--accent)]">el</span></span>
+                            <span class="brand-caption">FIND YOUR PLACE</span>
+                        </span>
                     </div>
                     <p class="text-[var(--muted)] text-sm leading-relaxed max-w-md">
                         Your place, your people.

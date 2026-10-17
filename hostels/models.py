@@ -83,6 +83,11 @@ class Profile(models.Model):
 
 
 class Hostel(models.Model):
+    ACCOMMODATION_CHOICES = (
+        ('male_only', 'Male only'),
+        ('female_only', 'Female only'),
+        ('mixed', 'Mixed'),
+    )
     name = models.CharField(max_length=255)
     description = models.TextField()
     address = models.CharField(max_length=255)
@@ -95,6 +100,7 @@ class Hostel(models.Model):
     amenities = models.JSONField(default=list, blank=True)
     contact = models.CharField(max_length=255, blank=True, null=True)
     available = models.BooleanField(default=True)
+    accommodation = models.CharField(max_length=12, choices=ACCOMMODATION_CHOICES, default='mixed')
     is_full = models.BooleanField(default=False, help_text="Set to True when all rooms are occupied")
     total_floors = models.PositiveIntegerField(default=1, help_text="Total number of floors in the building")
     image_url = models.URLField(blank=True, null=True)
@@ -427,10 +433,18 @@ class RoommateRequest(models.Model):
         ('any', 'Any'),
         ('male', 'Male'),
         ('female', 'Female'),
+        ('other', 'Other'),
+    )
+    OWN_GENDER_CHOICES = (
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+        ('unspecified', 'Not specified'),
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='roommate_requests')
     hostel = models.ForeignKey(Hostel, on_delete=models.CASCADE, related_name='roommate_requests')
     room = models.ForeignKey(Room, on_delete=models.SET_NULL, blank=True, null=True, related_name='roommate_requests')
+    own_gender = models.CharField(max_length=12, choices=OWN_GENDER_CHOICES, default='unspecified')
     preferred_gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='any')
     budget_min = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     budget_max = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
